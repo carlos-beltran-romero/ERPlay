@@ -1,16 +1,11 @@
 // src/services/review.ts
-const API_URL = import.meta.env.VITE_API_URL;
+import { fetchAuth, API_URL } from './http';
 
 export async function getPendingStudentQuestionsCount(): Promise<number> {
-  const token = localStorage.getItem('accessToken');
-  if (!token) return 0;
-
   try {
-    const res = await fetch(`${API_URL}/api/questions/pending/count`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await fetchAuth(`${API_URL}/api/questions/pending/count`);
     if (!res.ok) return 0;
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     return Number(data?.count ?? 0);
   } catch {
     return 0;

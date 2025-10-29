@@ -63,9 +63,13 @@ export async function getOverview(userId: string) {
       .select('COUNT(*)', 'cnt')
       .getRawOne<{ cnt: string }>()) ?? { cnt: '0' };
 
-  // Total respondidas
-  const totRow =
-    (await baseQB.clone().select('COUNT(*)', 'cnt').getRawOne<{ cnt: string }>()) ?? { cnt: '0' };
+// Total respondidas (SOLO las que tienen respuesta)
+const totRow =
+  (await baseQB
+    .clone()
+    .andWhere('r.selectedIndex IS NOT NULL')   // ⬅️ FILTRAR respondidas
+    .select('COUNT(*)', 'cnt')
+    .getRawOne<{ cnt: string }>()) ?? { cnt: '0' };
 
   // Mejor racha (días consecutivos con actividad)
   const streakRows = await baseQB

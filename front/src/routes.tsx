@@ -21,6 +21,7 @@ import NewQuestion from './views/Student/NewQuestion';
 import MyTests from './views/Student/MyTests';
 import MyProgress from './views/Student/MyProgress';
 import StudentDetail from './views/Supervisor/StudentDetail';
+import DiagramStats from './views/Supervisor/DiagramSats';
 
 
 
@@ -142,6 +143,13 @@ export const router = createBrowserRouter([
     element: <EditDiagram />,
     loader: () => requireRole(['supervisor']),
   },
+
+  {
+  path: '/supervisor/diagrams/:id/stats',
+  element: <DiagramStats />,
+  loader: () => requireRole(['supervisor']),
+},
+
 
  
   

@@ -1,6 +1,6 @@
 import {
   Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany,
-  CreateDateColumn, UpdateDateColumn
+  CreateDateColumn, UpdateDateColumn, BaseEntity
 } from 'typeorm';
 import { User } from './User';
 import { Diagram } from './Diagram';

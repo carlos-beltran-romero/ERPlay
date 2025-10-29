@@ -453,6 +453,16 @@ const UploadDiagram: React.FC = () => {
                     <p className="mt-1 text-xs text-red-600">{q.errors.hint}</p>
                   )}
                 </div>
+                {/* Acciones al final de la pregunta */}
+                <div className="mt-4 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={addQuestion}
+                    className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
+                  >
+                    <Plus size={16} /> Añadir pregunta
+                  </button>
+                </div>
               </div>
             ))}
           </div>

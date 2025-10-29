@@ -71,7 +71,7 @@ const SupervisorTests: React.FC = () => {
         {/* Volver */}
         <div className="mb-4">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("supervisor/dashboard")}
             className="inline-flex items-center rounded-full border border-gray-300 bg-white p-2 hover:bg-gray-50"
             aria-label="Volver"
             title="Volver"
@@ -142,7 +142,7 @@ const SupervisorTests: React.FC = () => {
                       <div className="col-span-3">{t.questionsCount ?? '—'}</div>
                       <div className="col-span-2 flex justify-end gap-2">
                         <Link
-                          to={`/supervisor/diagrams/${t.id}/study`}
+                          to={`/supervisor/diagrams/${t.id}/stats`}
                           className="rounded-lg px-2 py-1 text-sky-700 hover:bg-sky-50"
                           title="Estudio del test"
                         >
@@ -188,7 +188,7 @@ const SupervisorTests: React.FC = () => {
 
                           <div className="mt-2 flex justify-end gap-1.5">
                             <Link
-                              to={`/supervisor/diagrams/${t.id}/study`}
+                              to={`/supervisor/diagrams/${t.id}/stats`}
                               className="rounded-lg p-1.5 text-sky-700 hover:bg-sky-50"
                               title="Estudio del test"
                               aria-label="Estudio del test"

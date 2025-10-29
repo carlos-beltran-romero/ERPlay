@@ -26,7 +26,6 @@ const ForgotPassword: React.FC = () => {
         await new Promise(res => setTimeout(res, MIN - elapsed));
       }
       setStatus('sent');
-      toast.success('Enlace de restablecimiento enviado. Revisa tu correo.');
     } catch (err: any) {
       const elapsed = Date.now() - start;
       const MIN = 1000;
@@ -87,8 +86,8 @@ const ForgotPassword: React.FC = () => {
 
           <button
             type="submit"
-            className={`w-full flex items-center justify-center space-x-2 py-3 bg-indigo-600 text-white font-semibold rounded-lg transition-colors
-              ${loading ? 'cursor-wait opacity-75' : 'hover:bg-indigo-500'}`}
+            className={`w-full flex items-center justify-center space-x-2 py-3 bg-slate-800 text-white font-semibold rounded-lg transition-colors
+              ${loading ? 'cursor-wait opacity-75' : 'hover:bg-slate-700'}`}
             disabled={loading || status === 'sent'}
           >
             {loading ? (
@@ -125,7 +124,7 @@ const ForgotPassword: React.FC = () => {
 
         {/* Back Link */}
         <p className="mt-6 text-center text-sm text-gray-600">
-          <a href="/login" className="font-medium text-indigo-600 hover:underline">
+          <a href="/login" className="font-medium text-slate-500 hover:text-slate-700 hover:underline">
             Volver al Login
           </a>
         </p>

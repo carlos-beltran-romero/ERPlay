@@ -77,13 +77,20 @@ export class DiagramsService {
 
 
   async listDiagrams(): Promise<(Diagram & { questionsCount: number })[]> {
-    const qb = this.diagramRepo.createQueryBuilder('d')
-      .loadRelationCountAndMap('d.questionsCount', 'd.questions')
-      .orderBy('d.createdAt', 'DESC');
-
-    const rows = await qb.getMany() as (Diagram & { questionsCount: number })[];
-    return rows;
+    const rows = await this.diagramRepo
+      .createQueryBuilder('d')
+      .loadRelationCountAndMap(
+        'd.questionsCount',
+        'd.questions',
+        'q',
+        qb => qb.andWhere('q.status = :st', { st: ReviewStatus.APPROVED })
+      )
+      .orderBy('d.createdAt', 'DESC')
+      .getMany();
+  
+    return rows as (Diagram & { questionsCount: number })[];
   }
+  
 
   async getDiagramById(id: string): Promise<{
     id: string;
@@ -94,17 +101,24 @@ export class DiagramsService {
   }> {
     const diagram = await this.diagramRepo.findOne({
       where: { id },
-      relations: { questions: { options: true } },
     });
     if (!diagram) throw new Error('Test no encontrado');
 
-    const questions = (diagram.questions || [])
-      .map(q => ({
-        prompt: q.prompt,
-        hint: q.hint,
-        correctIndex: q.correctOptionIndex,
-        options: [...(q.options || [])].sort((a, b) => a.orderIndex - b.orderIndex).map(o => o.text),
-      }));
+    // ⬇️ Cargar SOLO preguntas aprobadas (con sus opciones)
+    const approvedQs = await this.questionRepo.find({
+      where: { diagram: { id: diagram.id }, status: ReviewStatus.APPROVED },
+      relations: { options: true },
+      order: { createdAt: 'ASC' },
+    });
+
+    const questions = approvedQs.map(q => ({
+      prompt: q.prompt,
+      hint: q.hint,
+      correctIndex: q.correctOptionIndex,
+      options: [...(q.options || [])]
+        .sort((a, b) => a.orderIndex - b.orderIndex)
+        .map(o => o.text),
+    }));
 
     return {
       id: diagram.id,
@@ -123,21 +137,46 @@ export class DiagramsService {
     title: string;
     questions: QuestionInput[];
     newFile?: { filename: string; path: string };
-    actorId: string; // 👈 QUIÉN EDITA
+    actorId: string;
   }): Promise<void> {
-    // validaciones...
-
+    // helpers para firmas estables
+    const norm = (s?: string) => (s || '').trim().replace(/\s+/g, ' ');
+    const makeSignature = (q: { prompt: string; hint: string; options: string[]; correctIndex: number }) => {
+      const opts = (q.options || []).map(o => norm(o)).join('||');
+      return `${norm(q.prompt)}|${norm(q.hint)}|${opts}|#${q.correctIndex}`;
+    };
+  
     let oldPublicPath: string | null = null;
-
+  
     await AppDataSource.transaction(async (manager) => {
       const diagram = await manager.findOneBy(Diagram, { id: params.id });
       if (!diagram) throw new Error('Test no encontrado');
-
+  
       const actor = await manager.findOneBy(User, { id: params.actorId });
       if (!actor) throw new Error('Usuario no encontrado');
       const supervisor = actor.role === UserRole.SUPERVISOR;
-
-      // actualizar título/imagen
+  
+      // 1) Cargar preguntas existentes con opciones y creador
+      const existingQs = await manager.find(Question, {
+        where: { diagram: { id: diagram.id } },
+        relations: { options: true, creator: true },
+        order: { createdAt: 'ASC' },
+      });
+  
+      // 2) Mapa firma -> creador original (y status original para info si quisieras)
+      const existingSignatureCreator = new Map<string, User>();
+      for (const q of existingQs) {
+        const optTexts = (q.options || []).slice().sort((a,b)=>a.orderIndex-b.orderIndex).map(o => o.text);
+        const sig = makeSignature({
+          prompt: q.prompt,
+          hint: q.hint || '',
+          options: optTexts,
+          correctIndex: q.correctOptionIndex ?? 0,
+        });
+        if (q.creator) existingSignatureCreator.set(sig, q.creator);
+      }
+  
+      // 3) Actualizar título/imagen
       oldPublicPath = params.newFile ? diagram.path : null;
       diagram.title = params.title.trim();
       if (params.newFile) {
@@ -145,45 +184,45 @@ export class DiagramsService {
         diagram.path = `/uploads/diagrams/${params.newFile.filename}`;
       }
       await manager.save(diagram);
-
-      // borrar preguntas/opciones actuales
-      const existingQs = await manager.find(Question, {
-        where: { diagram: { id: diagram.id } },
-        relations: { options: true },
-      });
+  
+      // 4) Borrar TODAS las existentes (como antes)…
+      //    …pero conservamos el mapa de creadores por firma
       for (const q of existingQs) {
         if (q.options?.length) await manager.remove(Option, q.options);
       }
       if (existingQs.length) await manager.remove(Question, existingQs);
-
-      // recrear preguntas APROBADAS si edita un supervisor
+  
+      // 5) Re-crear preservando el creador cuando la firma coincide
       for (const q of params.questions) {
+        const sig = makeSignature(q);
+        const originalCreator = existingSignatureCreator.get(sig);
+        const creatorToUse = originalCreator ?? actor; // 👈 clave del fix
+  
         const question = manager.create(Question, {
           prompt: q.prompt.trim(),
           hint: q.hint.trim(),
           correctOptionIndex: q.correctIndex,
           diagram,
-          creator: actor, // autor de la edición
+          creator: creatorToUse,
           status: supervisor ? ReviewStatus.APPROVED : ReviewStatus.PENDING,
           reviewedBy: supervisor ? actor : null,
           reviewedAt: supervisor ? new Date() : null,
           reviewComment: null,
         });
         await manager.save(question);
-
+  
         const options = q.options.map((text, idx) =>
           manager.create(Option, { text: text.trim(), orderIndex: idx, question })
         );
         await manager.save(options);
       }
     });
-
+  
     if (oldPublicPath) {
       const absolute = path.resolve(oldPublicPath.replace(/^\/+/, ''));
-      fs.unlink(absolute, () => {});
+      fs.unlink(absolute, () => { /* ignore */ });
     }
   }
-
   // -------------------
   // DELETE
   // -------------------

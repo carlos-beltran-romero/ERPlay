@@ -1,14 +1,11 @@
 // src/views/Student/Settings.tsx
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PageWithHeader from '../PageWithHeader';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import {
   getProfile,
   type UserProfile,
-  // Asegúrate de tener estos dos en services/users:
-  // updateMyProfile({ name, lastName, email })
-  // changeMyPassword({ currentPassword, newPassword })
   updateMyProfile,
   changeMyPassword,
 } from '../../services/users';
@@ -34,6 +31,10 @@ const Settings: React.FC = () => {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPwd, setSavingPwd] = useState(false);
 
+  // Confirmación de salida sin guardar
+  const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
+  const initialSnapRef = useRef<string>('');
+
   useEffect(() => {
     (async () => {
       try {
@@ -43,6 +44,16 @@ const Settings: React.FC = () => {
         // cubrir ambos casos: lastName o surname
         setLastName((u as any).lastName ?? (u as any).surname ?? '');
         setEmail(u.email || '');
+
+        // snapshot inicial basado en los datos cargados + contraseñas vacías
+        initialSnapRef.current = JSON.stringify({
+          name: u.name || '',
+          lastName: (u as any).lastName ?? (u as any).surname ?? '',
+          email: u.email || '',
+          currentPassword: '',
+          newPassword: '',
+          newPassword2: '',
+        });
       } catch (e: any) {
         toast.error(e.message || 'No se pudo cargar tu perfil');
       } finally {
@@ -81,9 +92,19 @@ const Settings: React.FC = () => {
       // actualiza estado base y campos visibles
       setMe(updated);
       setName(updated.name || '');
-      setLastName(lastName.trim()); // el backend no devuelve lastName en tu tipo UserProfile, mantenemos el actual
+      setLastName(lastName.trim()); // el backend puede no devolver lastName, preservamos el actual
       setEmail(updated.email || '');
       toast.success('Perfil actualizado');
+
+      // actualiza snapshot a lo que hay ahora mismo (contraseñas siguen vacías)
+      initialSnapRef.current = JSON.stringify({
+        name: updated.name || '',
+        lastName: lastName.trim(),
+        email: updated.email || '',
+        currentPassword: '',
+        newPassword: '',
+        newPassword2: '',
+      });
     } catch (e: any) {
       toast.error(e.message || 'No se pudo actualizar el perfil');
     } finally {
@@ -111,11 +132,44 @@ const Settings: React.FC = () => {
       setCurrentPassword('');
       setNewPassword('');
       setNewPassword2('');
+
+      // resetea snapshot para reflejar que ya no hay cambios pendientes en seguridad
+      initialSnapRef.current = JSON.stringify({
+        name,
+        lastName,
+        email,
+        currentPassword: '',
+        newPassword: '',
+        newPassword2: '',
+      });
     } catch (e: any) {
       toast.error(e.message || 'No se pudo cambiar la contraseña');
     } finally {
       setSavingPwd(false);
     }
+  };
+
+  // --- Detección de cambios global (perfil + contraseñas) ---
+  const currentSnap = useMemo(
+    () =>
+      JSON.stringify({
+        name,
+        lastName,
+        email,
+        currentPassword,
+        newPassword,
+        newPassword2,
+      }),
+    [name, lastName, email, currentPassword, newPassword, newPassword2]
+  );
+  const isDirty = currentSnap !== initialSnapRef.current;
+
+  const goBack = () => {
+    if (isDirty) {
+      setConfirmLeaveOpen(true);
+      return;
+    }
+    navigate("student/dashboard");
   };
 
   if (loading) {
@@ -133,7 +187,7 @@ const Settings: React.FC = () => {
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
             <button
-              onClick={() => navigate(-1)}
+              onClick={goBack}
               className="rounded-xl border border-gray-300 bg-white p-2 hover:bg-gray-50"
               aria-label="Volver"
               title="Volver"
@@ -296,6 +350,34 @@ const Settings: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Modal confirmar salida sin guardar */}
+        {confirmLeaveOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-md rounded-2xl bg-white shadow-xl border border-gray-200">
+              <div className="px-5 py-4 border-b">
+                <h3 className="text-lg font-semibold">Salir sin guardar</h3>
+                <p className="mt-1 text-sm text-gray-600">
+                  Tienes cambios sin guardar. ¿Seguro que quieres salir?
+                </p>
+              </div>
+              <div className="flex items-center justify-end gap-2 px-5 py-4">
+                <button
+                  onClick={() => setConfirmLeaveOpen(false)}
+                  className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50"
+                >
+                  Seguir editando
+                </button>
+                <button
+                  onClick={() => navigate("student/dashboard")}
+                  className="rounded-xl px-5 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-500"
+                >
+                  Salir sin guardar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </PageWithHeader>
   );

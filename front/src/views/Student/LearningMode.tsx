@@ -327,7 +327,7 @@ const LearningMode: React.FC = () => {
     } catch {
       /* ignore */
     } finally {
-      navigate('/student/play-menu');
+      navigate('/student/dashboard');
     }
   };
 

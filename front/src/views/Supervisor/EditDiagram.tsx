@@ -28,6 +28,10 @@ const EditDiagram: React.FC = () => {
 
   // snapshot para detectar cambios
   const initialSnapRef = useRef<string>('');
+  const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
+
+  // ref del formulario para invocar submit desde la barra flotante
+  const formRef = useRef<HTMLFormElement | null>(null);
 
   // Cargar datos
   useEffect(() => {
@@ -45,7 +49,11 @@ const EditDiagram: React.FC = () => {
         }));
         setQuestions(qNorm);
 
-        initialSnapRef.current = JSON.stringify({ title: d.title || '', questions: qNorm, hasFile: false });
+        initialSnapRef.current = JSON.stringify({
+          title: d.title || '',
+          questions: qNorm,
+          hasFile: false,
+        });
       } catch (e: any) {
         toast.error(e.message || 'No se pudo cargar el test');
       } finally {
@@ -59,15 +67,6 @@ const EditDiagram: React.FC = () => {
     [title, questions, imageFile]
   );
   const isDirty = currentSnap !== initialSnapRef.current;
-
-  // Aviso al cerrar/reload pestaña si hay cambios
-  useEffect(() => {
-    const onBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isDirty) { e.preventDefault(); e.returnValue = ''; }
-    };
-    window.addEventListener('beforeunload', onBeforeUnload);
-    return () => window.removeEventListener('beforeunload', onBeforeUnload);
-  }, [isDirty]);
 
   // Handlers imagen
   const onPickImage = (file: File | null) => {
@@ -87,6 +86,8 @@ const EditDiagram: React.FC = () => {
 
   const removeQuestion = (qi: number) => {
     setQuestions(prev => prev.filter((_, i) => i !== qi));
+    // (opcional) feedback para que el usuario vea que hay cambios pendientes
+    // toast.info('Pregunta eliminada. Pulsa Guardar para aplicar los cambios.');
   };
 
   const setQuestionField = (qi: number, field: keyof QuestionForm, value: any) => {
@@ -109,7 +110,11 @@ const EditDiagram: React.FC = () => {
         let correct = q.correctIndex;
         if (oi === q.correctIndex) correct = 0;
         else if (oi < q.correctIndex) correct = Math.max(0, correct - 1);
-        return { ...q, options: opts.length ? opts : ['',''], correctIndex: Math.min(correct, Math.max(0, opts.length - 1)) };
+        return {
+          ...q,
+          options: opts.length ? opts : ['', ''],
+          correctIndex: Math.min(correct, Math.max(0, opts.length - 1)),
+        };
       })
     );
   };
@@ -150,8 +155,12 @@ const EditDiagram: React.FC = () => {
     return { ok: errs.length === 0, errs };
   }, [title, questions]);
 
+  // Navegación con confirmación modal
   const goBack = () => {
-    if (isDirty && !window.confirm('¿Estás seguro que deseas salir sin guardar los cambios?')) return;
+    if (isDirty) {
+      setConfirmLeaveOpen(true);
+      return;
+    }
     navigate(-1);
   };
 
@@ -184,6 +193,19 @@ const EditDiagram: React.FC = () => {
       }
 
       await updateDiagram(id, fd);
+
+      // Actualiza snapshot: ya no hay cambios pendientes
+      initialSnapRef.current = JSON.stringify({
+        title: title.trim(),
+        questions: questions.map(q => ({
+          prompt: q.prompt.trim(),
+          hint: q.hint.trim(),
+          options: q.options.map(o => o.trim()),
+          correctIndex: q.correctIndex,
+        })),
+        hasFile: false,
+      });
+
       toast.success('Test actualizado');
       navigate('/supervisor/tests', { replace: true });
     } catch (e: any) {
@@ -215,7 +237,7 @@ const EditDiagram: React.FC = () => {
           </button>
         </div>
 
-        <h1 className="text-2xl font-semibold mb-6">Editar test</h1>
+        <h1 className="text-2xl font-semibold mb-6">Editar diagrama</h1>
 
         {/* Título */}
         <div className="mb-6">
@@ -259,7 +281,7 @@ const EditDiagram: React.FC = () => {
         </div>
 
         {/* Preguntas */}
-        <form onSubmit={onSubmit} className="space-y-6">
+        <form ref={formRef} onSubmit={onSubmit} className="space-y-6">
           <div className="space-y-6">
             {questions.map((q, qi) => (
               <div key={qi} className="rounded-2xl border border-gray-200 bg-white p-4">
@@ -364,10 +386,7 @@ const EditDiagram: React.FC = () => {
           <div className="flex items-center justify-end gap-2">
             <button
               type="button"
-              onClick={() => {
-                if (isDirty && !window.confirm('¿Estás seguro que deseas salir sin guardar los cambios?')) return;
-                navigate('/supervisor/tests');
-              }}
+              onClick={goBack}
               className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50"
             >
               Cancelar
@@ -396,6 +415,59 @@ const EditDiagram: React.FC = () => {
             </button>
           </div>
         </form>
+
+        {/* === BARRA FLOTANTE: Guardar / Cancelar cuando hay cambios === */}
+        {isDirty && (
+          <div className="fixed bottom-6 right-6 z-40">
+            <div className="flex items-center gap-2 rounded-2xl border border-gray-200 bg-white/95 backdrop-blur px-3 py-2 shadow-lg">
+              <button
+                onClick={goBack}
+                className="rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => formRef.current?.requestSubmit()}
+                disabled={saving || !validation.ok}
+                className={`inline-flex items-center gap-2 rounded-xl px-4 py-1.5 text-sm font-medium text-white ${
+                  saving || !validation.ok ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-500'
+                }`}
+                title={!validation.ok ? 'Revisa los campos antes de guardar' : 'Guardar cambios'}
+              >
+                <Save size={16} />
+                Guardar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Modal confirmar salida sin guardar */}
+        {confirmLeaveOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-md rounded-2xl bg-white shadow-xl border border-gray-200">
+              <div className="px-5 py-4 border-b">
+                <h3 className="text-lg font-semibold">Salir sin guardar</h3>
+                <p className="mt-1 text-sm text-gray-600">
+                  Tienes cambios sin guardar. ¿Seguro que quieres salir?
+                </p>
+              </div>
+              <div className="flex items-center justify-end gap-2 px-5 py-4">
+                <button
+                  onClick={() => setConfirmLeaveOpen(false)}
+                  className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50"
+                >
+                  Seguir editando
+                </button>
+                <button
+                  onClick={() => navigate(-1)}
+                  className="rounded-xl px-5 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-500"
+                >
+                  Salir sin guardar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </PageWithHeader>
   );

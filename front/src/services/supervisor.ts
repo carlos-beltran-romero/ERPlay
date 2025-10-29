@@ -1,16 +1,8 @@
 // src/services/supervisor.ts
-
-const API_URL = import.meta.env.VITE_API_URL as string;
-
-/* ===================== Auth & helpers (mismo patrón que otros services) ===================== */
-function auth() {
-  const t = localStorage.getItem('accessToken');
-  if (!t) throw new Error('No autenticado');
-  return { Authorization: `Bearer ${t}` };
-}
+import { fetchAuth, API_URL } from './http';
 
 async function getJSON(url: string) {
-  const res = await fetch(url, { headers: auth() });
+  const res = await fetchAuth(url);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || 'Error de servidor');
   return data;
@@ -19,6 +11,7 @@ async function getJSON(url: string) {
 const toAbs = (p?: string | null) =>
   p && !p.startsWith('http') ? `${API_URL}${p}` : (p || null);
 
+/* ===================== Tipos (sin cambios) ===================== */
 /* ===================== Tipos ===================== */
 export type SupStudent = { id: string; name: string; lastName: string; email: string; role: string };
 
@@ -113,12 +106,12 @@ export type SupClaimItem = {
 };
 
 /* ===================== Students ===================== */
-export async function supGetStudent(studentId: string): Promise<SupStudent> {
+export async function supGetStudent(studentId: string) {
   return await getJSON(`${API_URL}/api/supervisor/students/${studentId}`);
 }
 
-/* ===================== Progress (overview, trends, errors, claims stats, created questions) ===================== */
-export async function supGetOverview(studentId: string): Promise<SupOverview> {
+/* ===================== Progress ===================== */
+export async function supGetOverview(studentId: string) {
   return await getJSON(`${API_URL}/api/supervisor/students/${studentId}/progress/overview`);
 }
 
@@ -127,26 +120,76 @@ export async function supGetTrends(
   { bucket = 'day' as 'day'|'week'|'month' } = {}
 ) {
   const q = new URLSearchParams({ bucket }).toString();
-  return await getJSON(`${API_URL}/api/supervisor/students/${studentId}/progress/trends?${q}`) as SupTrendPoint[];
+  return await getJSON(`${API_URL}/api/supervisor/students/${studentId}/progress/trends?${q}`);
 }
 
 export async function supGetErrors(studentId: string, limit = 5) {
-  return await getJSON(`${API_URL}/api/supervisor/students/${studentId}/progress/errors?limit=${limit}`) as SupErrorItem[];
+  return await getJSON(`${API_URL}/api/supervisor/students/${studentId}/progress/errors?limit=${limit}`);
 }
 
 export async function supGetClaimsStats(studentId: string) {
-  return await getJSON(`${API_URL}/api/supervisor/students/${studentId}/claims/stats`) as SupClaimsStats;
+  return await getJSON(`${API_URL}/api/supervisor/students/${studentId}/claims/stats`);
 }
 
-export async function supGetCreatedQuestions(studentId: string, { limit = 100 } = {}) {
-  return await getJSON(`${API_URL}/api/supervisor/students/${studentId}/questions?limit=${limit}`) as SupQuestionItem[];
+/* ===================== Preguntas creadas por un usuario ===================== */
+export async function supGetCreatedQuestions(
+  userId: string,
+  opts: { limit?: number } = {}
+) {
+  const res = await fetchAuth(
+    `${API_URL}/api/supervisor/students/${userId}/questions?limit=${opts.limit ?? 200}`
+  );
+  const data = await res.json().catch(() => ([]));
+  if (!res.ok) throw new Error(data?.error || 'No se pudieron cargar las preguntas del alumno');
+
+  const rows = Array.isArray((data as any)?.items) ? (data as any).items : (Array.isArray(data) ? data : []);
+  return rows.map((q: any) => {
+    const status =
+      (q.status ?? q.reviewStatus ?? q.state ?? ((typeof q.verified === 'boolean') ? (q.verified ? 'APPROVED' : 'PENDING') : 'PENDING')) as any;
+
+    let options: string[] = [];
+    if (Array.isArray(q.options)) {
+      if (q.options.length && typeof q.options[0] === 'string') {
+        options = q.options as string[];
+      } else {
+        const arr = (q.options as any[])
+          .map((o) => (o?.text ? { text: String(o.text), orderIndex: Number(o.orderIndex ?? 0) } : null))
+          .filter(Boolean) as { text: string; orderIndex: number }[];
+        arr.sort((a, b) => a.orderIndex - b.orderIndex);
+        options = arr.map((o) => o.text);
+      }
+    } else if (Array.isArray(q.optionTexts)) {
+      options = (q.optionTexts as any[]).map(String);
+    }
+
+    let correctIndex = Number(q.correctIndex ?? q.correct_option_index ?? q.correctOptionIndex ?? 0);
+    if (!(correctIndex >= 0 && correctIndex < options.length)) correctIndex = 0;
+
+    return {
+      id: String(q.id),
+      prompt: String(q.prompt ?? ''),
+      status,
+      reviewComment: q.reviewComment ?? null,
+      diagram: q.diagram
+        ? {
+            id: String(q.diagram.id ?? ''),
+            title: String(q.diagram.title ?? ''),
+            path: q.diagram.path && !q.diagram.path.startsWith('http') ? `${API_URL}${q.diagram.path}` : q.diagram.path,
+          }
+        : undefined,
+      createdAt: q.createdAt,
+      reviewedAt: q.reviewedAt ?? null,
+      options,
+      correctIndex,
+    };
+  });
 }
 
 /* ===================== Tests (list) ===================== */
 export async function supListUserSessions(
   studentId: string,
   { mode, dateFrom, dateTo, q }: { mode?: 'learning'|'exam'|'errors'; dateFrom?: string; dateTo?: string; q?: string }
-): Promise<SupSessionSummary[]> {
+) {
   const qs = new URLSearchParams();
   if (mode) qs.set('mode', mode);
   if (dateFrom) qs.set('dateFrom', dateFrom);
@@ -163,13 +206,12 @@ export async function supListUserSessions(
     diagram: s.diagram
       ? { id: s.diagram.id, title: s.diagram.title, path: toAbs(s.diagram.path) }
       : null,
-  })) as SupSessionSummary[];
+  }));
 }
 
 /* ===================== Tests (detail) ===================== */
 import type { SessionDetail, TestResultItem } from './tests';
 
-/** Detalle de una sesión de un alumno (normalizado como en tests.getTestDetail) */
 export async function supGetSessionDetail(studentId: string, sessionId: string): Promise<SessionDetail> {
   const url = `${API_URL}/api/supervisor/students/${studentId}/tests/${sessionId}`;
   const data = await getJSON(url);
@@ -262,21 +304,18 @@ export async function supGetSessionDetail(studentId: string, sessionId: string):
   return detail;
 }
 
-/* ===================== Claims list (para detalle del alumno) ===================== */
-export async function supListUserClaims(studentId: string): Promise<SupClaimItem[]> {
+/* ===================== Claims list ===================== */
+export async function supListUserClaims(studentId: string) {
   const data = await getJSON(`${API_URL}/api/supervisor/students/${studentId}/claims`);
   const rows = Array.isArray(data) ? data : (data.items || []);
-  // normaliza rutas de imagen si vienen relativas
   return rows.map((c: any) => ({
     ...c,
-    diagram: c.diagram
-      ? { ...c.diagram, path: toAbs(c.diagram.path) || undefined }
-      : c.diagram,
-  })) as SupClaimItem[];
+    diagram: c.diagram ? { ...c.diagram, path: toAbs(c.diagram.path) || undefined } : c.diagram,
+  }));
 }
 
 /* ===================== Weekly Goal (admin) ===================== */
-export async function supGetWeeklyGoal(): Promise<WeeklyGoalDTO | null> {
+export async function supGetWeeklyGoal() {
   return await getJSON(`${API_URL}/api/supervisor/weekly-goal`);
 }
 
@@ -285,49 +324,49 @@ export async function supPutWeeklyGoal(payload: {
   weekStart?: string;
   weekEnd?: string;
   notify?: boolean;
-}): Promise<WeeklyGoalDTO> {
+}) {
   const url = `${API_URL}/api/supervisor/weekly-goal`;
 
   // Intento principal: PUT
-  let res = await fetch(url, {
+  let res = await fetchAuth(url, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...auth() },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
 
-  // Fallback a POST si el host/proxy no admite PUT o tiene mal el route
+  // Fallback POST
   if (!res.ok && (res.status === 404 || res.status === 405 || res.status === 501)) {
-    res = await fetch(url, {
+    res = await fetchAuth(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...auth() },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
   }
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || 'No se pudo guardar el objetivo');
-  return data as WeeklyGoalDTO;
+  return data;
 }
 
 export async function supGetWeeklyProgress(params?: {
   weekStart?: string;
   weekEnd?: string;
-  userId?: string;   // ⬅️ nuevo (para ver progreso de un alumno concreto)
-}): Promise<WeeklyProgressRow[]> {
+  userId?: string;
+}) {
   const qs = new URLSearchParams();
   if (params?.weekStart) qs.set('weekStart', params.weekStart);
   if (params?.weekEnd) qs.set('weekEnd', params.weekEnd);
   if (params?.userId) qs.set('userId', params.userId);
-  const res = await fetch(
-    `${API_URL}/api/supervisor/weekly-goal/progress${qs.toString() ? `?${qs.toString()}` : ''}`,
-    { headers: auth() } // ✅ antes usaba authHeader(); aquí va auth()
+
+  const res = await fetchAuth(
+    `${API_URL}/api/supervisor/weekly-goal/progress${qs.toString() ? `?${qs.toString()}` : ''}`
   );
   const data = await res.json().catch(() => []);
   if (!res.ok) throw new Error((data as any)?.error || 'No disponible');
   return Array.isArray(data) ? data : [];
 }
 
-export async function supGetStudentBadges(studentId: string): Promise<SupBadgeItem[]> {
+export async function supGetStudentBadges(studentId: string) {
   const data = await getJSON(`${API_URL}/api/supervisor/students/${studentId}/badges`);
   return Array.isArray(data) ? data : [];
 }

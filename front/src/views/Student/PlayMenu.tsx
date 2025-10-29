@@ -2,7 +2,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageWithHeader from '../PageWithHeader';
-import { GraduationCap, BookOpenCheck } from 'lucide-react';
+import { GraduationCap, BookOpenCheck, LayoutDashboard } from 'lucide-react';
 
 type TileProps = {
   title: string;
@@ -41,9 +41,24 @@ const PlayMenu: React.FC = () => {
   return (
     <PageWithHeader>
       <div className="mx-auto w-full max-w-7xl p-8">
-        <header className="mb-8">
-          <h1 className="text-3xl font-semibold text-gray-800">Elige un modo</h1>
-          <p className="text-gray-600">Selecciona cómo quieres practicar hoy.</p>
+        <header className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold text-gray-800">Elige un modo</h1>
+            <p className="text-gray-600">Selecciona cómo quieres practicar hoy.</p>
+          </div>
+
+          {/* Botón para ir al dashboard del estudiante */}
+          <button
+            type="button"
+            onClick={() => navigate('/student/dashboard')}
+            className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm
+                       text-gray-700 hover:bg-gray-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-indigo-200"
+            aria-label="Ir al dashboard"
+            title="Ir al dashboard"
+          >
+            <LayoutDashboard size={16} className="text-indigo-600" />
+            <span>Ir al dashboard</span>
+          </button>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

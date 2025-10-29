@@ -12,6 +12,8 @@ import testSessionsRouter from './testSession';
 import progressRoutes from './progress';
 import dashboardRoutes from './dashboard';
 import supervisorRoutes from './supervisor';
+import diagramStatsRoutes from './diagramStats';
+
 
 
 
@@ -45,6 +47,9 @@ export default function registerRoutes(app: Express) {
     next();
   });
   app.use('/api/supervisor', supervisorRoutes);
+
+  app.use('/api/admin/diagrams', diagramStatsRoutes);
+
 
 
 

@@ -1,22 +1,5 @@
 // src/services/dashboard.ts
-const API_URL = import.meta.env.VITE_API_URL as string;
-
-function getAccessToken(): string | null {
-  return (
-    sessionStorage.getItem('accessToken') ||
-    localStorage.getItem('accessToken') ||
-    sessionStorage.getItem('token') ||
-    localStorage.getItem('token') ||
-    sessionStorage.getItem('jwt') ||
-    localStorage.getItem('jwt') ||
-    null
-  );
-}
-function auth() {
-  const t = getAccessToken();
-  if (!t) throw new Error('No autenticado');
-  return { Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' };
-}
+import { fetchAuth, API_URL } from './http';
 
 export type RecentActivityItem =
   | {
@@ -46,16 +29,18 @@ export type RecentActivityItem =
       title: string; // preview del promptSnapshot
     };
 
-    export async function getRecentActivity(params?: { limit?: number; offset?: number }) {
-      const limit = params?.limit ?? 8;
-      const offset = params?.offset ?? 0;
-      const res = await fetch(`${API_URL}/api/dashboard/recent?limit=${limit}&offset=${offset}`, { headers: auth() });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw new Error((data as any)?.error || `Error ${res.status}`);
-      }
-      if (!Array.isArray(data)) {
-        throw new Error('Respuesta inesperada de la API');
-      }
-      return data as RecentActivityItem[];
-    }
+export async function getRecentActivity(params?: { limit?: number; offset?: number }) {
+  const limit = params?.limit ?? 8;
+  const offset = params?.offset ?? 0;
+
+  const res = await fetchAuth(`${API_URL}/api/dashboard/recent?limit=${limit}&offset=${offset}`);
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    throw new Error((data as any)?.error || `Error ${res.status}`);
+  }
+  if (!Array.isArray(data)) {
+    throw new Error('Respuesta inesperada de la API');
+  }
+  return data as RecentActivityItem[];
+}

@@ -1,16 +1,8 @@
 // src/services/progress.ts
-// Servicio alineado con el patrón de tests/claims: fetch + headers auth()
-
-const API_URL = import.meta.env.VITE_API_URL as string;
-
-function auth() {
-  const t = localStorage.getItem('accessToken');
-  if (!t) throw new Error('No autenticado');
-  return { Authorization: `Bearer ${t}` };
-}
+import { fetchAuth, API_URL } from './http';
 
 async function getJSON(url: string) {
-  const res = await fetch(url, { headers: auth() });
+  const res = await fetchAuth(url);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || 'Error de servidor');
   return data;
@@ -41,7 +33,6 @@ export type WeeklyProgressRow = {
   weekEnd?: string | null;
 };
 
-
 export type BadgeItem = {
   id: string;
   label: string;
@@ -55,7 +46,7 @@ export type ErrorItem = {
   title: string;
   errorRatePct: number;
   commonChosenIndex?: number;
-  commonChosenText?: string; // 👈 NUEVO
+  commonChosenText?: string;
 };
 
 export type TrendPoint = {
@@ -65,7 +56,6 @@ export type TrendPoint = {
   correctCount?: number;
   incorrectCount?: number;
 };
-
 
 export type Habits = {
   byHour: { hour: number; answered: number }[]; // 0..23
@@ -81,19 +71,11 @@ export type Goal = {
   currentStreakDays: number;
 };
 
-
-
-
 /* =========================
  * Endpoints de progreso
  * ========================= */
-
 export async function getOverview(): Promise<Overview> {
-  const res = await fetch(`${API_URL}/api/progress/overview`, { headers: auth() });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || 'No se pudo cargar el resumen');
-
-  // Normalización defensiva por si el back cambia nombres
+  const data = await getJSON(`${API_URL}/api/progress/overview`);
   return {
     accuracyLearningPct: Number(data.accuracyLearningPct ?? data.learningAccuracyPct ?? 0),
     examScoreAvg: Number(data.examScoreAvg ?? data.avgExamScore ?? 0),
@@ -112,7 +94,7 @@ export async function getTrends(params?: { from?: string; to?: string; bucket?: 
   if (params?.bucket) q.set('bucket', params.bucket);
   const url = `${API_URL}/api/progress/trends${q.toString() ? `?${q.toString()}` : ''}`;
 
-  const res = await fetch(url, { headers: auth() });
+  const res = await fetchAuth(url);
   const data = await res.json().catch(() => ([]));
   if (!res.ok) throw new Error((data as any)?.error || 'No se pudieron cargar tendencias');
 
@@ -127,7 +109,7 @@ export async function getTrends(params?: { from?: string; to?: string; bucket?: 
 }
 
 export async function getErrors(limit = 5): Promise<ErrorItem[]> {
-  const res = await fetch(`${API_URL}/api/progress/errors?limit=${limit}`, { headers: auth() });
+  const res = await fetchAuth(`${API_URL}/api/progress/errors?limit=${limit}`);
   const data = await res.json().catch(() => ([]));
   if (!res.ok) throw new Error((data as any)?.error || 'No se pudieron cargar errores');
   const arr = Array.isArray(data) ? data : (data.items || []);
@@ -135,17 +117,23 @@ export async function getErrors(limit = 5): Promise<ErrorItem[]> {
     id: String(e.id ?? e.questionId ?? crypto.randomUUID()),
     title: String(e.title ?? e.prompt ?? 'Pregunta'),
     errorRatePct: Number(e.errorRatePct ?? e.errorPct ?? 0),
-    commonChosenIndex: typeof e.commonChosenIndex === 'number' ? e.commonChosenIndex : (e.commonChosenIndex != null ? Number(e.commonChosenIndex) : undefined),
-    commonChosenText: e.commonChosenText ? String(e.commonChosenText) : undefined, // 👈
+    commonChosenIndex:
+      typeof e.commonChosenIndex === 'number'
+        ? e.commonChosenIndex
+        : e.commonChosenIndex != null
+        ? Number(e.commonChosenIndex)
+        : undefined,
+    commonChosenText: e.commonChosenText ? String(e.commonChosenText) : undefined,
   }));
 }
 
 export async function getHabits(): Promise<Habits> {
-  const res = await fetch(`${API_URL}/api/progress/habits`, { headers: auth() });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || 'No se pudieron cargar hábitos');
+  const data = await getJSON(`${API_URL}/api/progress/habits`);
   const byHourSrc = Array.isArray(data.byHour) ? data.byHour : [];
-  const byHour = byHourSrc.map((h: any) => ({ hour: Number(h.hour ?? 0), answered: Number(h.answered ?? h.count ?? 0) }));
+  const byHour = byHourSrc.map((h: any) => ({
+    hour: Number(h.hour ?? 0),
+    answered: Number(h.answered ?? h.count ?? 0),
+  }));
   return {
     byHour,
     avgSessionDurationSec: Number(data.avgSessionDurationSec ?? data.avgSessionSec ?? 0),
@@ -154,16 +142,12 @@ export async function getHabits(): Promise<Habits> {
 }
 
 export async function getClaimsStats(): Promise<ClaimsStats> {
-  const res = await fetch(`${API_URL}/api/progress/claims`, { headers: auth() });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || 'No se pudieron cargar reclamaciones');
+  const data = await getJSON(`${API_URL}/api/progress/claims`);
   return { submitted: Number(data.submitted ?? 0), approved: Number(data.approved ?? 0) };
 }
 
 export async function getGoal(): Promise<Goal> {
-  const res = await fetch(`${API_URL}/api/progress/goal`, { headers: auth() });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || 'No se pudo cargar el objetivo');
+  const data = await getJSON(`${API_URL}/api/progress/goal`);
   return {
     weeklyTargetQuestions: Number(data.weeklyTargetQuestions ?? data.target ?? 0),
     weekAnswered: Number(data.weekAnswered ?? data.answered ?? 0),
@@ -172,16 +156,19 @@ export async function getGoal(): Promise<Goal> {
 }
 
 export async function getBadges(): Promise<BadgeItem[]> {
-  const res = await fetch(`${API_URL}/api/progress/badges`, { headers: auth() });
+  const res = await fetchAuth(`${API_URL}/api/progress/badges`);
   const data = await res.json().catch(() => ([]));
   if (!res.ok) throw new Error((data as any)?.error || 'No se pudieron cargar insignias');
   const arr = Array.isArray(data) ? data : (data.items || []);
-  return (arr as any[]).map((b) => ({ id: String(b.id ?? crypto.randomUUID()), label: String(b.label ?? b.name ?? 'Insignia'), earnedAt: b.earnedAt ?? b.at ?? undefined }));
+  return (arr as any[]).map((b) => ({
+    id: String(b.id ?? crypto.randomUUID()),
+    label: String(b.label ?? b.name ?? 'Insignia'),
+    earnedAt: b.earnedAt ?? b.at ?? undefined,
+  }));
 }
 
-// Texto de opción i-ésima de una pregunta (para "Opción más elegida")
 export async function getQuestionOptionText(questionId: string, optionIndex: number): Promise<string | null> {
-  const res = await fetch(`${API_URL}/api/questions/${questionId}`, { headers: auth() });
+  const res = await fetchAuth(`${API_URL}/api/questions/${questionId}`);
   const data = await res.json().catch(() => null);
   if (!res.ok || !data) return null;
   const options = Array.isArray(data.options) ? data.options : [];
@@ -189,8 +176,6 @@ export async function getQuestionOptionText(questionId: string, optionIndex: num
   return found?.text ?? null;
 }
 
-// Registro: preguntas creadas por mí (últimas N)
-// Intenta /api/progress/my-questions; si no existe, /api/questions/mine; y como fallback /api/questions?createdBy=me
 export type MyQuestionItem = {
   id: string;
   title: string;
@@ -199,7 +184,9 @@ export type MyQuestionItem = {
   reviewerName?: string | null;
 };
 
-export async function getMyCreatedQuestions(params?: { limit?: number; page?: number; status?: 'all'|'approved'|'rejected'|'pending' }): Promise<MyQuestionItem[]> {
+export async function getMyCreatedQuestions(params?: {
+  limit?: number; page?: number; status?: 'all'|'approved'|'rejected'|'pending'
+}): Promise<MyQuestionItem[]> {
   const limit = params?.limit ?? 50;
   const status = params?.status ?? 'all';
   const qs = new URLSearchParams();
@@ -208,7 +195,7 @@ export async function getMyCreatedQuestions(params?: { limit?: number; page?: nu
   if (status !== 'all') qs.set('status', status);
 
   async function hit(url: string) {
-    const res = await fetch(url, { headers: auth() });
+    const res = await fetchAuth(url);
     const data = await res.json().catch(() => null);
     if (!res.ok || !data) throw new Error(data?.error || 'No se pudo cargar "mis preguntas"');
     const arr = Array.isArray(data) ? data : (data.items || data.results || []);
@@ -221,17 +208,15 @@ export async function getMyCreatedQuestions(params?: { limit?: number; page?: nu
     })) as MyQuestionItem[];
   }
 
-  // orden de prueba de endpoints
   try { return await hit(`${API_URL}/api/progress/my-questions?${qs.toString()}`); } catch {}
   try { return await hit(`${API_URL}/api/questions/mine?${qs.toString()}`); } catch {}
   return await hit(`${API_URL}/api/questions?createdBy=me&${qs.toString()}`);
 }
 
-// (si aún no lo tenías)
 export async function updateGoal(payload: { weeklyTargetQuestions: number }) : Promise<Goal> {
-  const res = await fetch(`${API_URL}/api/progress/goal`, {
+  const res = await fetchAuth(`${API_URL}/api/progress/goal`, {
     method: 'PUT',
-    headers: auth(),
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
   const data = await res.json().catch(() => ({}));
@@ -243,18 +228,15 @@ export async function updateGoal(payload: { weeklyTargetQuestions: number }) : P
   };
 }
 
-/* ===== Insignias (SELF) ===== */
 export async function getMyBadges(): Promise<BadgeItem[]> {
-  // Asegura header Authorization
   const data = await getJSON(`${API_URL}/api/progress/badges`);
   return Array.isArray(data) ? data : [];
 }
 
-/* ===== Objetivo semanal (SELF) con fallback de ruta ===== */
 export async function getMyWeeklyProgress(): Promise<WeeklyProgressRow | null> {
   const urls = [
-    `${API_URL}/api/progress/weekly-progress`,        // tu comentario apunta aquí
-    `${API_URL}/api/progress/weekly-goal/progress`,   // alias que te sugerí
+    `${API_URL}/api/progress/weekly-progress`,
+    `${API_URL}/api/progress/weekly-goal/progress`,
   ];
   let data: any = null, ok = false, lastErr: any = null;
 
@@ -283,4 +265,3 @@ export async function getMyWeeklyProgress(): Promise<WeeklyProgressRow | null> {
     weekEnd: data.weekEnd ?? null,
   };
 }
-

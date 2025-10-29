@@ -154,7 +154,7 @@ const SupervisorStudents: React.FC = () => {
           <button
             onClick={() => {
               if (editing && isEditDirty && !window.confirm('Hay cambios sin guardar. ¿Salir igualmente?')) return;
-              navigate(-1);
+              navigate("/supervisor/dashboard");
             }}
             className="inline-flex items-center rounded-full border border-gray-300 bg-white p-2 hover:bg-gray-50"
             aria-label="Volver"

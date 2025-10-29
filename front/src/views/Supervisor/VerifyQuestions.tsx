@@ -97,7 +97,7 @@ const VerifyQuestions: React.FC = () => {
 
   const goBack = () => {
     if (hasTypedComment && !window.confirm('¿Estás seguro que deseas salir sin guardar los cambios?')) return;
-    navigate(-1);
+    navigate("supervisor/dashboard");
   };
 
   const loadAll = async () => {

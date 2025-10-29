@@ -186,39 +186,44 @@ export async function listUserClaims(req: Request, res: Response) {
 
 /** === PREGUNTAS CREADAS === */
 
+// GET /api/supervisor/students/:studentId/questions
 export async function listCreatedQuestions(req: Request, res: Response) {
   try {
     const { studentId } = IdParam.parse(req.params);
     const limit = Math.min(500, Math.max(1, Number(req.query.limit ?? 100)));
+
+    // ⬇️ reutiliza tu servicio (ya normaliza options/correctIndex)
     const rows = await questionsSvc.listMine(studentId);
 
-    const out = rows.slice(0, limit).map((q) => {
-      const statusToken = normalizeStatus(q.status);
-      return {
-        id: q.id,
-        prompt: q.prompt,
-        status: statusToken,                            // 👈 corrige el “todas pendientes”
-        createdAt: q.createdAt,
-        reviewedAt: q.reviewedAt ?? null,
-        resolution: {                                   // 👈 apartado de resolución
-          decidedAt: q.reviewedAt ?? null,
-          comment: q.reviewComment ?? null,
-        },
-        diagram: q.diagram
-          ? {
-              id: q.diagram.id,
-              title: q.diagram.title,
-              path: withBase(req, q.diagram.path),      // 👈 ampliable en el front
-            }
-          : undefined,
-      };
-    });
+    const out = rows.slice(0, limit).map((q) => ({
+      id: q.id,
+      prompt: q.prompt,
+      status: q.status, // el front ya lo normaliza con normalizeReviewStatus
+      reviewComment: q.reviewComment ?? null,
+      createdAt: q.createdAt,
+      reviewedAt: q.reviewedAt ?? null,
+      diagram: q.diagram
+        ? {
+            id: q.diagram.id,
+            title: q.diagram.title,
+            path: withBase(req, q.diagram.path),
+          }
+        : undefined,
+
+      // 👇 Igual que en el alumno:
+      options: Array.isArray(q.options) ? q.options : [],
+      correctIndex:
+        typeof q.correctIndex === 'number'
+          ? q.correctIndex
+          : (q as any).correctOptionIndex ?? 0,
+    }));
 
     res.json(out);
   } catch (e: any) {
     res.status(400).json({ error: e?.message || 'No disponible' });
   }
 }
+
 
 /** === TESTS === */
 
@@ -320,5 +325,7 @@ export async function getStudentBadges(req: Request, res: Response) {
     res.status(400).json({ error: e?.message || 'No se pudieron listar las insignias' });
   }
 }
+
+
 
 

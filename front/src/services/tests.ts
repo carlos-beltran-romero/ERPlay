@@ -1,26 +1,6 @@
 // src/services/tests.ts
-const API_URL = import.meta.env.VITE_API_URL as string;
+import { fetchAuth, API_URL } from './http';
 
-function getAccessToken(): string | null {
-    return (
-      sessionStorage.getItem('accessToken') ||
-      localStorage.getItem('accessToken') ||
-      sessionStorage.getItem('token') ||
-      localStorage.getItem('token') ||
-      sessionStorage.getItem('jwt') ||
-      localStorage.getItem('jwt') ||
-      null
-    );
-  }
-  function auth() {
-    const t = getAccessToken();
-    if (!t) throw new Error('No autenticado');
-    return { Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' };
-  }
-
-/* =========================
- * Tipos compartidos
- * ========================= */
 export type TestMode = 'learning' | 'exam' | 'errors';
 
 export type StartedSession = {
@@ -36,13 +16,12 @@ export type StartedSession = {
   }>;
 };
 
-/* ===== Para listado (MyTests) ===== */
 export type TestSessionListItem = {
   id: string;
   mode: TestMode;
   startedAt: string;           // ISO
   finishedAt?: string | null;  // ISO
-  durationSeconds?: number;    // opcional
+  durationSeconds?: number;
   diagram?: { id: string; title: string; path: string | null } | null;
 
   totalQuestions: number;
@@ -50,16 +29,15 @@ export type TestSessionListItem = {
   wrongCount: number;
   skippedCount: number;
   score?: number | null;       // 0..100 en examen
-  claimCount?: number;         // # de reclamaciones en el test
+  claimCount?: number;
 
-  // Campos opcionales que tu vista podría leer como "summary"
   summary?: {
     accuracyPct?: number | null;
     score?: number | null;
     durationSeconds?: number | null;
     noteLabel?: string | null;
   };
-  questionCount?: number; // por comodidad para la vista
+  questionCount?: number;
 };
 
 export type ListMyTestsResponse = {
@@ -69,7 +47,6 @@ export type ListMyTestsResponse = {
   total: number;
 };
 
-/* ===== Para detalle (MyTests > ver test) ===== */
 export type TestResultItem = {
   resultId: string;
   questionId?: string | null;
@@ -84,10 +61,8 @@ export type TestResultItem = {
   isCorrect?: boolean;
   claimed?: boolean;
   claimId?: string | null;
-  claimStatus?: 'PENDING'|'APPROVED'|'REJECTED' | null;   // ⬅️ NUEVO
-  claimCreatedAt?: string | null;                         // ⬅️ NUEVO
-
-
+  claimStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
+  claimCreatedAt?: string | null;
 };
 
 export type TestSessionDetail = {
@@ -97,7 +72,6 @@ export type TestSessionDetail = {
   finishedAt?: string | null;
   durationSeconds?: number;
   diagram?: { id: string; title: string; path: string | null } | null;
-
   totals: {
     totalQuestions: number;
     answered: number;
@@ -108,26 +82,32 @@ export type TestSessionDetail = {
     revealed: number;
     score?: number | null; // 0..100 en examen
   };
-
-  // Compat con tu vista que usa detail.summary?.*
   summary?: {
     durationSeconds?: number | null;
     accuracyPct?: number | null;
     score?: number | null;
   };
-
   results: TestResultItem[];
   events?: Array<{ id: string; type: string; at: string; resultId?: string; payload?: any }>;
+};
+
+/* ===== Filtros para listados ===== */
+export type ListFilters = {
+  mode?: TestMode | 'all';
+  dateFrom?: string; // 'YYYY-MM-DD'
+  dateTo?: string;   // 'YYYY-MM-DD'
+  page?: number;     // 1-based
+  pageSize?: number; // por defecto 20
+  q?: string;        // búsqueda libre (si el back la soporta)
 };
 
 /* =========================
  * Sesión de test (jugar)
  * ========================= */
-
 export async function startTestSession(params: { mode: TestMode; limit?: number }) {
-  const res = await fetch(`${API_URL}/api/test-sessions/start`, {
+  const res = await fetchAuth(`${API_URL}/api/test-sessions/start`, {
     method: 'POST',
-    headers: auth(),
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
   });
   const data = await res.json().catch(() => ({}));
@@ -146,18 +126,18 @@ export async function patchResult(
     timeSpentSecondsDelta: number;
   }>
 ) {
-  const res = await fetch(
+  const res = await fetchAuth(
     `${API_URL}/api/test-sessions/${sessionId}/results/${resultId}`,
     {
       method: 'PATCH',
-      headers: auth(),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     }
   );
-  if (!res.ok)
-    throw new Error(
-      (await res.json().catch(() => ({}))).error || 'No se pudo guardar'
-    );
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}));
+    throw new Error(j?.error || 'No se pudo guardar');
+  }
   return true;
 }
 
@@ -166,9 +146,9 @@ export async function logEvent(
   body: { type: string; resultId?: string; payload?: any }
 ) {
   try {
-    await fetch(`${API_URL}/api/test-sessions/${sessionId}/events`, {
+    await fetchAuth(`${API_URL}/api/test-sessions/${sessionId}/events`, {
       method: 'POST',
-      headers: auth(),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
   } catch {
@@ -177,9 +157,8 @@ export async function logEvent(
 }
 
 export async function finishSession(sessionId: string) {
-  const res = await fetch(`${API_URL}/api/test-sessions/${sessionId}/finish`, {
+  const res = await fetchAuth(`${API_URL}/api/test-sessions/${sessionId}/finish`, {
     method: 'POST',
-    headers: auth(),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || 'No se pudo finalizar');
@@ -189,20 +168,6 @@ export async function finishSession(sessionId: string) {
 /* =========================
  * Mis tests (listado + detalle)
  * ========================= */
-
-export type ListFilters = {
-  mode?: TestMode | 'all';
-  dateFrom?: string; // 'YYYY-MM-DD'
-  dateTo?: string;   // 'YYYY-MM-DD'
-  page?: number;     // 1-based
-  pageSize?: number; // por defecto 20
-  q?: string;        // búsqueda libre (si tu back la soporta)
-};
-
-/**
- * Lista tus tests con filtros. Endpoint esperado:
- * GET /api/test-sessions/mine?mode=learning|exam|errors|all&from=YYYY-MM-DD&to=YYYY-MM-DD&page=1&pageSize=20&q=...
- */
 export async function listMyTests(filters: ListFilters = {}): Promise<ListMyTestsResponse> {
   const params = new URLSearchParams();
   if (filters.mode && filters.mode !== 'all') params.set('mode', filters.mode);
@@ -214,12 +179,10 @@ export async function listMyTests(filters: ListFilters = {}): Promise<ListMyTest
 
   const url = `${API_URL}/api/test-sessions/mine${params.toString() ? `?${params.toString()}` : ''}`;
 
-  const res = await fetch(url, { headers: auth() });
+  const res = await fetchAuth(url);
   const data = await res.json().catch(() => ({}));
 
-  if (!res.ok) {
-    throw new Error(data?.error || 'No se pudieron cargar tus tests');
-  }
+  if (!res.ok) throw new Error(data?.error || 'No se pudieron cargar tus tests');
 
   const rawItems = (data.items || data.results || data) as any[];
   const items: TestSessionListItem[] = Array.isArray(rawItems)
@@ -230,14 +193,9 @@ export async function listMyTests(filters: ListFilters = {}): Promise<ListMyTest
         finishedAt: it.finishedAt ?? null,
         durationSeconds: it.durationSeconds ?? it.summary?.durationSeconds ?? null,
         diagram: it.diagram
-          ? {
-              id: it.diagram.id,
-              title: it.diagram.title,
-              path: it.diagram.path ?? null,
-            }
+          ? { id: it.diagram.id, title: it.diagram.title, path: it.diagram.path ?? null }
           : null,
-        totalQuestions:
-          Number(it.totalQuestions ?? it.summary?.totalQuestions ?? it.questionCount ?? 0),
+        totalQuestions: Number(it.totalQuestions ?? it.summary?.totalQuestions ?? it.questionCount ?? 0),
         correctCount: Number(it.correctCount ?? it.summary?.correct ?? 0),
         wrongCount: Number(it.wrongCount ?? it.summary?.wrong ?? 0),
         skippedCount: Number(it.skippedCount ?? it.summary?.skipped ?? 0),
@@ -274,14 +232,8 @@ export async function listMyTests(filters: ListFilters = {}): Promise<ListMyTest
   };
 }
 
-/**
- * Detalle de un test concreto. Endpoint esperado:
- * GET /api/test-sessions/:sessionId
- */
 export async function getTestDetail(sessionId: string): Promise<TestSessionDetail> {
-  const res = await fetch(`${API_URL}/api/test-sessions/${sessionId}`, {
-    headers: auth(),
-  });
+  const res = await fetchAuth(`${API_URL}/api/test-sessions/${sessionId}`);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || 'No se pudo cargar el detalle del test');
 
@@ -315,35 +267,44 @@ export async function getTestDetail(sessionId: string): Promise<TestSessionDetai
     finishedAt: data.finishedAt ?? null,
     durationSeconds: data.durationSeconds ?? undefined,
     diagram: data.diagram
-      ? {
-          id: data.diagram.id,
-          title: data.diagram.title,
-          path: data.diagram.path ?? null,
-        }
+      ? { id: data.diagram.id, title: data.diagram.title, path: data.diagram.path ?? null }
       : null,
     totals: {
       totalQuestions: Number(data.totals?.totalQuestions ?? data.totalQuestions ?? results.length),
-      answered: Number(data.totals?.answered ?? data.answered ?? results.filter(r => r.selectedIndex !== null).length),
-      correct: Number(data.totals?.correct ?? data.correct ?? results.filter(r => r.isCorrect === true).length),
-      wrong: Number(data.totals?.wrong ?? data.wrong ?? results.filter(r => r.isCorrect === false).length),
+      answered: Number(
+        data.totals?.answered ??
+          data.answered ??
+          results.filter((r) => r.selectedIndex !== null).length
+      ),
+      correct: Number(
+        data.totals?.correct ??
+          data.correct ??
+          results.filter((r) => r.isCorrect === true).length
+      ),
+      wrong: Number(
+        data.totals?.wrong ?? data.wrong ?? results.filter((r) => r.isCorrect === false).length
+      ),
       skipped: Number(
         data.totals?.skipped ??
           data.skipped ??
-          results.filter(r => r.selectedIndex === null).length
+          results.filter((r) => r.selectedIndex === null).length
       ),
       usedHints: Number(
         data.totals?.usedHints ??
           data.usedHints ??
-          results.filter(r => r.usedHint).length
+          results.filter((r) => r.usedHint).length
       ),
       revealed: Number(
         data.totals?.revealed ??
           data.revealed ??
-          results.filter(r => r.revealedAnswer).length
+          results.filter((r) => r.revealedAnswer).length
       ),
-      score: typeof data.totals?.score === 'number' ? data.totals.score
-            : typeof data.score === 'number' ? data.score
-            : null,
+      score:
+        typeof data.totals?.score === 'number'
+          ? data.totals.score
+          : typeof data.score === 'number'
+          ? data.score
+          : null,
     },
     summary: {
       durationSeconds:
@@ -367,14 +328,12 @@ export async function getTestDetail(sessionId: string): Promise<TestSessionDetai
 }
 
 /* =========================
- * Alias esperados por tu vista
+ * Alias esperados por la vista Student/MyTests
  * ========================= */
-
-// Tipos con los nombres que importa tu vista
 export type SessionSummary = TestSessionListItem;
 export type SessionDetail = TestSessionDetail;
 
-// Función que tu vista importa como listMySessions
+/** Lista tus sesiones (learning/exam/errors). La vista lo importa como listMySessions */
 export async function listMySessions(params: {
   mode?: 'learning' | 'exam' | 'errors';
   dateFrom?: string;
@@ -387,12 +346,12 @@ export async function listMySessions(params: {
     dateTo: params.dateTo,
     q: params.q,
     page: 1,
-    pageSize: 200, // ajusta si quieres paginar en el front
+    pageSize: 200,
   });
   return resp.items;
 }
 
-// Función que tu vista importa como getSessionDetail
+/** Detalle de una sesión. La vista lo importa como getSessionDetail */
 export async function getSessionDetail(sessionId: string): Promise<SessionDetail> {
   return getTestDetail(sessionId);
 }

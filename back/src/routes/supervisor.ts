@@ -25,6 +25,8 @@ r.get('/students/:studentId/badges', ctrl.getStudentBadges);
 
 r.get('/students/:studentId/questions', ctrl.listCreatedQuestions);
 
+
+
 r.get('/students/:studentId/tests', ctrl.listUserSessions);
 r.get('/students/:studentId/tests/:sessionId', ctrl.getUserSessionDetail);
 

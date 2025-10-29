@@ -13,8 +13,8 @@ import {
   supGetCreatedQuestions,
   supListUserSessions,
   supListUserClaims,
-  supGetWeeklyProgress,          // ⬅️ nuevo
-  supGetStudentBadges,           // ⬅️ nuevo
+  supGetWeeklyProgress, // ⬅️ nuevo
+  supGetStudentBadges, // ⬅️ nuevo
   type SupStudent,
   type SupOverview,
   type SupTrendPoint,
@@ -23,8 +23,8 @@ import {
   type SupQuestionItem,
   type SupSessionSummary,
   type SupClaimItem,
-  type WeeklyProgressRow,        // ⬅️ nuevo
-  type SupBadgeItem,             // ⬅️ nuevo
+  type WeeklyProgressRow, // ⬅️ nuevo
+  type SupBadgeItem, // ⬅️ nuevo
 } from "../../services/supervisor";
 import { getSessionDetail, type SessionDetail } from "../../services/tests";
 import {
@@ -36,7 +36,6 @@ import {
   Trophy,
   Clock,
   Gauge,
-  Flame,
   CheckCircle,
   XCircle,
   MailCheck,
@@ -49,8 +48,8 @@ import {
   Loader2,
   CheckCircle2,
   MessageSquare,
-  Target,                         // ⬅️ nuevo
-  Award,                          // ⬅️ nuevo
+  Target, // ⬅️ nuevo
+  Award, // ⬅️ nuevo
 } from "lucide-react";
 
 /* ---------- Helpers ---------- */
@@ -79,6 +78,37 @@ const normStatus = (s?: string | null) => {
   if (u === "APPROVED") return "APPROVED";
   if (u === "REJECTED") return "REJECTED";
   return "PENDING";
+};
+
+/* ---------- Expandable text (Ver más/Ver menos) ---------- */
+const MIN_HALF_TOGGLE = 120;
+const MIN_HALF_TOGGLE_OPT = 80;
+const ExpandableText: React.FC<{
+  text: string;
+  minToHalf?: number;
+  className?: string;
+}> = ({ text, minToHalf = MIN_HALF_TOGGLE, className }) => {
+  const needsToggle = (text || "").length > minToHalf;
+  const halfIndex = Math.ceil((text || "").length / 2);
+  const [expanded, setExpanded] = useState(false);
+
+  if (!needsToggle) return <div className={className}>{text}</div>;
+
+  return (
+    <div className={className}>
+      <span className="whitespace-pre-wrap break-words">
+        {expanded ? text : text.slice(0, halfIndex)}
+        {!expanded && "…"}
+      </span>
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="ml-2 inline-flex items-center text-indigo-600 hover:text-indigo-700 text-xs font-medium"
+      >
+        {expanded ? "Ver menos" : "Ver más"}
+      </button>
+    </div>
+  );
 };
 
 const StatusBadge: React.FC<{ status?: string | null }> = ({ status }) => {
@@ -142,6 +172,9 @@ const KPI: React.FC<{
 );
 
 /* ---------- Mini-charts ---------- */
+const COLOR_A = "#10b981"; // Acierto (learning)
+const COLOR_B = "#3b82f6"; // Nota (examen)
+
 const DualLineChart: React.FC<{
   data: { a?: number | null; b?: number | null }[];
 }> = ({ data }) => {
@@ -159,91 +192,26 @@ const DualLineChart: React.FC<{
     }, "");
   const hasAny = data.some((d) => d.a != null || d.b != null);
   return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      className="w-full h-56"
-      role="img"
-      aria-label="Acierto vs nota"
-    >
-      <rect x={0} y={0} width={W} height={H} fill="white" />
-      {[0, 50, 100].map((g) => (
-        <g key={g}>
-          <line
-            x1={P}
-            x2={W - P}
-            y1={y(g)}
-            y2={y(g)}
-            stroke="#e5e7eb"
-            strokeWidth={1}
-          />
-          <text x={8} y={y(g) + 4} fontSize={10} fill="#6b7280">
-            {g}%
-          </text>
-        </g>
-      ))}
-      <line
-        x1={P}
-        x2={W - P}
-        y1={H - P}
-        y2={H - P}
-        stroke="#9ca3af"
-        strokeWidth={1}
-      />
-      {hasAny ? (
-        <>
-          <path
-            d={makePath("a")}
-            fill="none"
-            stroke="#10b981"
-            strokeWidth={2.25}
-          />
-          <path
-            d={makePath("b")}
-            fill="none"
-            stroke="#3b82f6"
-            strokeWidth={2.25}
-          />
-        </>
-      ) : (
-        <text
-          x={W / 2}
-          y={H / 2}
-          textAnchor="middle"
-          fontSize={12}
-          fill="#6b7280"
-        >
-          Sin datos suficientes
-        </text>
-      )}
-    </svg>
-  );
-};
-const ScrollableGroupedBars: React.FC<{
-  data: { label: string; ok: number; ko: number }[];
-}> = ({ data }) => {
-  const P = 28,
-    H = 220,
-    step = 30;
-  const max = Math.max(1, ...data.map((d) => d.ok + d.ko));
-  const y = (v: number) => H - P - (v * (H - 2 * P)) / max;
-  const W = P * 2 + data.length * step;
-  const barW = Math.max(6, (step - 8) / 2);
-  return (
-    <div className="overflow-x-auto pb-2">
-      <svg width={W} height={H} role="img" aria-label="Preguntas por día">
+    <div>
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className="w-full h-56"
+        role="img"
+        aria-label="Acierto vs nota"
+      >
         <rect x={0} y={0} width={W} height={H} fill="white" />
-        {[0, 0.25, 0.5, 0.75, 1].map((g, idx) => (
-          <g key={idx}>
+        {[0, 50, 100].map((g) => (
+          <g key={g}>
             <line
               x1={P}
-              x2={W - P}
-              y1={y(max * g)}
-              y2={y(max * g)}
-              stroke="#f3f4f6"
+              x2={W - 2}
+              y1={y(g)}
+              y2={y(g)}
+              stroke="#e5e7eb"
               strokeWidth={1}
             />
-            <text x={8} y={y(max * g) + 4} fontSize={10} fill="#9ca3af">
-              {Math.round(max * g)}
+            <text x={8} y={y(g) + 4} fontSize={10} fill="#6b7280">
+              {g}%
             </text>
           </g>
         ))}
@@ -255,46 +223,205 @@ const ScrollableGroupedBars: React.FC<{
           stroke="#9ca3af"
           strokeWidth={1}
         />
+        {hasAny ? (
+          <>
+            <path
+              d={makePath("a")}
+              fill="none"
+              stroke={COLOR_A}
+              strokeWidth={2.25}
+            />
+            <path
+              d={makePath("b")}
+              fill="none"
+              stroke={COLOR_B}
+              strokeWidth={2.25}
+            />
+          </>
+        ) : (
+          <text
+            x={W / 2}
+            y={H / 2}
+            textAnchor="middle"
+            fontSize={12}
+            fill="#6b7280"
+          >
+            Sin datos suficientes
+          </text>
+        )}
+      </svg>
+
+      {/* Leyenda */}
+      <div className="mt-2 flex items-center gap-4 text-xs text-gray-600">
+        <div className="inline-flex items-center gap-1.5">
+          <span
+            className="inline-block h-2 w-2 rounded-full"
+            style={{ background: COLOR_A }}
+          />
+          <span>Acierto (learning)</span>
+        </div>
+        <div className="inline-flex items-center gap-1.5">
+          <span
+            className="inline-block h-2 w-2 rounded-full"
+            style={{ background: COLOR_B }}
+          />
+          <span>Nota (examen)</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ScrollableGroupedBars: React.FC<{
+  data: { label: string; ok: number; ko: number }[];
+}> = ({ data }) => {
+  const [hover, setHover] = React.useState<number | null>(null);
+
+  const Pleft = 36,
+    Pright = 16,
+    Ptop = 16,
+    Pbot = 48;
+  const H = 240;
+  const step = 34;
+  const W = Pleft + Pright + data.length * step;
+
+  const max = Math.max(1, ...data.map((d) => d.ok + d.ko));
+  const y = (v: number) => H - Pbot - (v * (H - Ptop - Pbot)) / max;
+  const barW = Math.max(6, (step - 10) / 2);
+
+  const labelEvery = data.length <= 20 ? 1 : data.length <= 40 ? 2 : 3;
+
+  return (
+    <div className="relative overflow-x-auto pb-2">
+      <svg width={W} height={H} role="img" aria-label="Preguntas por día">
+        {/* Fondo */}
+        <rect x={0} y={0} width={W} height={H} fill="white" />
+
+        {/* Líneas y etiquetas del eje Y */}
+        {[0, 0.25, 0.5, 0.75, 1].map((g, idx) => (
+          <g key={idx}>
+            <line
+              x1={Pleft}
+              x2={W - Pright}
+              y1={y(max * g)}
+              y2={y(max * g)}
+              stroke="#f3f4f6"
+              strokeWidth={1}
+            />
+            <text x={8} y={y(max * g) + 4} fontSize={10} fill="#9ca3af">
+              {Math.round(max * g)}
+            </text>
+          </g>
+        ))}
+        {/* Eje X */}
+        <line
+          x1={Pleft}
+          x2={W - Pright}
+          y1={H - Pbot}
+          y2={H - Pbot}
+          stroke="#9ca3af"
+          strokeWidth={1}
+        />
+
+        {/* Barras por día */}
         {data.map((d, i) => {
-          const x0 = P + i * step;
+          const x0 = Pleft + i * step;
           const yOk = y(d.ok),
             yKo = y(d.ko);
+
           return (
-            <g key={i}>
+            <g
+              key={i}
+              onMouseEnter={() => setHover(i)}
+              onMouseLeave={() => setHover(null)}
+            >
+              {/* Guía vertical al pasar el ratón */}
+              {hover === i && (
+                <line
+                  x1={x0 + step / 2}
+                  x2={x0 + step / 2}
+                  y1={Ptop}
+                  y2={H - Pbot}
+                  stroke="#e5e7eb"
+                  strokeWidth={1}
+                  strokeDasharray="3 3"
+                />
+              )}
+
+              {/* Aciertos (verde) */}
               <rect
                 x={x0 + 2}
                 y={yOk}
                 width={barW}
-                height={H - P - yOk}
+                height={H - Pbot - yOk}
                 fill="#10b981"
-                rx={3}
+                rx={4}
               />
+              {/* Fallos (rojo) */}
               <rect
                 x={x0 + 2 + barW + 4}
                 y={yKo}
                 width={barW}
-                height={H - P - yKo}
+                height={H - Pbot - yKo}
                 fill="#f43f5e"
-                rx={3}
+                rx={4}
               />
-              {(i % 5 === 0 || i === data.length - 1) && (
-                <text
-                  x={x0 + step / 2}
-                  y={H - P + 12}
-                  fontSize={9}
-                  fill="#6b7280"
-                  textAnchor="middle"
+
+              {/* Etiqueta de día (rotada) */}
+              {(i % labelEvery === 0 || i === data.length - 1) && (
+                <g
+                  transform={`translate(${x0 + step / 2}, ${
+                    H - Pbot + 12
+                  }) rotate(-45)`}
                 >
-                  {d.label}
-                </text>
+                  <text textAnchor="end" fontSize={10} fill="#6b7280">
+                    {d.label}
+                  </text>
+                </g>
               )}
             </g>
           );
         })}
       </svg>
+
+      {/* Tooltip (día + valores) */}
+      {hover != null && data[hover] && (
+        <div
+          className="absolute z-10 pointer-events-none rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 shadow-sm"
+          style={{
+            left: Pleft + hover * step + step / 2,
+            top: 8,
+            transform: "translateX(-50%)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <div className="font-medium">{data[hover].label}</div>
+          <div>✔ Aciertos: {data[hover].ok}</div>
+          <div>✘ Fallos: {data[hover].ko}</div>
+        </div>
+      )}
+
+      {/* Leyenda colores */}
+      <div className="mt-2 flex items-center gap-4 text-xs text-gray-600">
+        <div className="inline-flex items-center gap-1.5">
+          <span
+            className="inline-block h-2 w-2 rounded-full"
+            style={{ background: "#10b981" }}
+          />
+          <span>Correctas</span>
+        </div>
+        <div className="inline-flex items-center gap-1.5">
+          <span
+            className="inline-block h-2 w-2 rounded-full"
+            style={{ background: "#f43f5e" }}
+          />
+          <span>Incorrectas</span>
+        </div>
+      </div>
     </div>
   );
 };
+
 const Donut: React.FC<{ value: number }> = ({ value }) => {
   const size = 56,
     stroke = 8,
@@ -384,12 +511,12 @@ const StudentDetail: React.FC = () => {
   const [ov, setOv] = useState<SupOverview | null>(null);
   const [trends, setTrends] = useState<SupTrendPoint[]>([]);
   const bestStreakDisplay = useMemo(() => {
-    const val = typeof ov?.bestStreakDays === 'number' ? ov.bestStreakDays : 0;
+    const val = typeof ov?.bestStreakDays === "number" ? ov.bestStreakDays : 0;
     if (val > 0) return `${val} días`;
     const fb = calcBestStreakFromTrends(trends);
-    return fb ? `${fb} días` : '—';
+    return fb ? `${fb} días` : "—";
   }, [ov?.bestStreakDays, trends]);
-  
+
   const [errorsTop, setErrorsTop] = useState<SupErrorItem[]>([]);
   const [claimsStats, setClaimsStats] = useState<SupClaimsStats | null>(null);
   const [myQuestions, setMyQuestions] = useState<SupQuestionItem[]>([]);
@@ -397,8 +524,8 @@ const StudentDetail: React.FC = () => {
   const [claims, setClaims] = useState<SupClaimItem[]>([]);
 
   // NUEVO: progreso semanal e insignias
-  const [progRows, setProgRows] = useState<WeeklyProgressRow[]>([]);  // ✅
-  const [bgs, setBgs] = useState<SupBadgeItem[]>([]);                // ✅
+  const [progRows, setProgRows] = useState<WeeklyProgressRow[]>([]);
+  const [bgs, setBgs] = useState<SupBadgeItem[]>([]);
   const [showBadges, setShowBadges] = useState(false);
 
   // tests filtros
@@ -414,6 +541,11 @@ const StudentDetail: React.FC = () => {
   const [stClaims, setStClaims] = useState<
     "ALL" | "PENDING" | "APPROVED" | "REJECTED"
   >("ALL");
+
+  // paginación tipo “Cargar más” para Preguntas y Reclamaciones
+  const PAGE_SIZE = 15;
+  const [visibleQ, setVisibleQ] = useState(PAGE_SIZE);
+  const [visibleC, setVisibleC] = useState(PAGE_SIZE);
 
   // zoom imagen
   const [previewImg, setPreviewImg] = useState<{
@@ -439,8 +571,8 @@ const StudentDetail: React.FC = () => {
           qs,
           ts,
           cl,
-          rows,            // ⬅️ progreso semanal
-          badges           // ⬅️ insignias
+          rows, // ⬅️ progreso semanal
+          badges, // ⬅️ insignias
         ] = await Promise.all([
           supGetStudent(studentId),
           supGetOverview(studentId),
@@ -450,8 +582,8 @@ const StudentDetail: React.FC = () => {
           supGetCreatedQuestions(studentId, { limit: 200 }),
           supListUserSessions(studentId, {}),
           supListUserClaims(studentId),
-          supGetWeeklyProgress({ userId: studentId }), // ✅
-          supGetStudentBadges(studentId),              // ✅
+          supGetWeeklyProgress({ userId: studentId }),
+          supGetStudentBadges(studentId),
         ]);
         setStudent(stu);
         setOv(ovw);
@@ -532,6 +664,14 @@ const StudentDetail: React.FC = () => {
     });
   }, [claims, qClaims, stClaims]);
 
+  useEffect(() => {
+    setVisibleQ(PAGE_SIZE);
+  }, [myQuestions]);
+
+  useEffect(() => {
+    setVisibleC(PAGE_SIZE);
+  }, [filteredClaims, qClaims, stClaims]);
+
   /* ------- Nota robusta para EXAM en el modal ------- */
   const examScore = useMemo(() => {
     if (!detail || detail.mode !== "exam") return null;
@@ -605,7 +745,7 @@ const StudentDetail: React.FC = () => {
     return txt?.trim() ? (
       <div className="inline-flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
         <MessageSquare size={14} className="mt-0.5" />
-        <span>{txt}</span>
+        <span className="whitespace-pre-wrap break-words">{txt}</span>
       </div>
     ) : null;
   };
@@ -644,7 +784,7 @@ const StudentDetail: React.FC = () => {
             ).map(([key, label, Icon]) => (
               <button
                 key={key}
-                onClick={() => setTab(key)}
+                onClick={() => setTab(key as any)}
                 className={`inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm ${
                   tab === key
                     ? "border-indigo-600 text-indigo-700 bg-indigo-50"
@@ -688,8 +828,7 @@ const StudentDetail: React.FC = () => {
                   label="Sesiones completadas"
                   value={ov.sessionsCompleted}
                 />
-
-                {/* 👉 KPI de Insignias en lugar de “Mejor racha” (clicable para abrir el modal) */}
+                {/* Insignias (clic para ver) */}
                 <Card>
                   <button
                     type="button"
@@ -759,7 +898,6 @@ const StudentDetail: React.FC = () => {
                         </span>
                       </div>
 
-                      {/* Insignia al completar */}
                       {progRow.completed && (
                         <div className="mt-3 inline-flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 px-3 py-2">
                           <img
@@ -866,34 +1004,35 @@ const StudentDetail: React.FC = () => {
                   <div className="text-lg font-semibold mb-3">
                     Preguntas creadas
                   </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-700">
+                  {/* Responsive: 1 col (móvil), 2 (sm), 3 (lg) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50/50">
+                      <div className="shrink-0 p-2.5 rounded-xl bg-emerald-50 text-emerald-700">
                         <CheckCircle className="h-5 w-5" />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <div className="text-xs uppercase text-gray-500">
                           Aprobadas
                         </div>
-                        <div className="text-2xl font-semibold">
+                        <div className="text-2xl font-semibold leading-tight">
                           {qCounts.approved}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="p-2.5 rounded-xl bg-rose-50 text-rose-700">
+                    <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50/50">
+                      <div className="shrink-0 p-2.5 rounded-xl bg-rose-50 text-rose-700">
                         <XCircle className="h-5 w-5" />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <div className="text-xs uppercase text-gray-500">
                           Rechazadas
                         </div>
-                        <div className="text-2xl font-semibold">
+                        <div className="text-2xl font-semibold leading-tight">
                           {qCounts.rejected}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50/50 sm:col-span-2 lg:col-span-1">
                       <Donut
                         value={
                           qCounts.approved + qCounts.rejected
@@ -903,7 +1042,7 @@ const StudentDetail: React.FC = () => {
                             : 0
                         }
                       />
-                      <div>
+                      <div className="min-w-0">
                         <div className="text-sm font-medium">
                           Tasa de aprobación
                         </div>
@@ -1010,13 +1149,15 @@ const StudentDetail: React.FC = () => {
             </div>
 
             <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
-              <div className="grid grid-cols-12 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700">
+              {/* Cabecera desktop */}
+              <div className="hidden md:grid grid-cols-12 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700">
                 <div className="col-span-5">Diagrama</div>
                 <div className="col-span-2">Modo</div>
                 <div className="col-span-2">Preguntas</div>
                 <div className="col-span-2">Fecha</div>
                 <div className="col-span-1 text-right">Ver</div>
               </div>
+
               {filteredTests.length === 0 ? (
                 <div className="p-6 text-gray-500">Sin tests.</div>
               ) : (
@@ -1033,37 +1174,68 @@ const StudentDetail: React.FC = () => {
                     return (
                       <div
                         key={(it as any).id || (it as any).sessionId}
-                        className="grid grid-cols-12 gap-3 px-4 py-3 items-center hover:bg-gray-50"
+                        className="px-4 py-3"
                       >
-                        <div className="col-span-5">
-                          <div className="font-medium whitespace-normal break-words">
+                        {/* Desktop grid */}
+                        <div className="hidden md:grid grid-cols-12 gap-3 items-center hover:bg-gray-50">
+                          <div className="col-span-5">
+                            <div className="font-medium whitespace-normal break-words">
+                              {it.diagram?.title || "—"}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {acc} · {fmtDuration(it.summary?.durationSeconds)}
+                            </div>
+                          </div>
+                          <div className="col-span-2 text-sm">
+                            {it.mode === "learning"
+                              ? "Aprendizaje"
+                              : it.mode === "exam"
+                              ? "Examen"
+                              : "Errores"}
+                          </div>
+                          <div className="col-span-2 text-sm">
+                            {it.questionCount ?? 0}
+                          </div>
+                          <div className="col-span-2 text-sm">
+                            {fmtDateTime(it.startedAt)}
+                          </div>
+                          <div className="col-span-1 flex justify-end">
+                            <button
+                              onClick={() => openDetail(it)}
+                              className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-sm hover:bg-gray-50"
+                              title="Ver detalle"
+                            >
+                              <Eye size={16} /> Ver
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Mobile card */}
+                        <div className="md:hidden space-y-1 rounded-xl border p-3">
+                          <div className="text-sm text-gray-500">Diagrama</div>
+                          <div className="font-medium">
                             {it.diagram?.title || "—"}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {it.mode === "learning"
+                              ? "Aprendizaje"
+                              : it.mode === "exam"
+                              ? "Examen"
+                              : "Errores"}{" "}
+                            · {fmtDateTime(it.startedAt)}
                           </div>
                           <div className="text-xs text-gray-500">
                             {acc} · {fmtDuration(it.summary?.durationSeconds)}
                           </div>
-                        </div>
-                        <div className="col-span-2 text-sm">
-                          {it.mode === "learning"
-                            ? "Aprendizaje"
-                            : it.mode === "exam"
-                            ? "Examen"
-                            : "Errores"}
-                        </div>
-                        <div className="col-span-2 text-sm">
-                          {it.questionCount ?? 0}
-                        </div>
-                        <div className="col-span-2 text-sm">
-                          {fmtDateTime(it.startedAt)}
-                        </div>
-                        <div className="col-span-1 flex justify-end">
-                          <button
-                            onClick={() => openDetail(it)}
-                            className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-sm hover:bg-gray-50"
-                            title="Ver detalle"
-                          >
-                            <Eye size={16} /> Ver
-                          </button>
+                          <div className="pt-2">
+                            <button
+                              onClick={() => openDetail(it)}
+                              className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-sm hover:bg-gray-50"
+                              title="Ver detalle"
+                            >
+                              <Eye size={16} /> Ver
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
@@ -1082,32 +1254,29 @@ const StudentDetail: React.FC = () => {
                 <div className="text-gray-500">Sin preguntas creadas.</div>
               ) : (
                 <div className="rounded-xl border border-gray-200 overflow-hidden">
-                  <div className="grid grid-cols-12 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700">
+                  {/* Cabecera desktop */}
+                  <div className="hidden md:grid grid-cols-12 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700">
                     <div className="col-span-1">Diagrama</div>
                     <div className="col-span-5">Enunciado</div>
                     <div className="col-span-3">Opciones</div>
                     <div className="col-span-1 text-center">Estado</div>
                     <div className="col-span-2">Resolución</div>
                   </div>
-                  <div className="divide-y">
-                    {myQuestions.map((q) => {
-                      const qi: any = q;
-                      const options = Array.isArray(qi.options)
-                        ? [...qi.options].sort(
-                            (a: any, b: any) =>
-                              (a?.orderIndex ?? 0) - (b?.orderIndex ?? 0)
-                          )
-                        : [];
-                      const correctIdx: number | undefined =
-                        typeof qi.correctOptionIndex === "number"
-                          ? qi.correctOptionIndex
-                          : undefined;
 
-                      return (
-                        <div
-                          key={(qi as any).id}
-                          className="grid grid-cols-12 gap-3 px-4 py-3 items-start"
-                        >
+                  {myQuestions.slice(0, visibleQ).map((q) => {
+                    const qi: any = q;
+                    const options: string[] = Array.isArray(qi.options)
+                      ? qi.options
+                      : [];
+                    const correctIdx: number =
+                      typeof qi.correctIndex === "number"
+                        ? qi.correctIndex
+                        : -1;
+
+                    return (
+                      <div key={qi.id} className="px-4 py-3">
+                        {/* ===== Desktop fila ===== */}
+                        <div className="hidden md:grid grid-cols-12 gap-3 items-start">
                           {/* Diagrama */}
                           <div className="col-span-1">
                             {qi.diagram?.path ? (
@@ -1131,8 +1300,11 @@ const StudentDetail: React.FC = () => {
                           </div>
 
                           {/* Enunciado */}
-                          <div className="col-span-5">
-                            <div className="font-medium">{qi.prompt}</div>
+                          <div className="col-span-5 min-w-0">
+                            <ExpandableText
+                              text={qi.prompt || ""}
+                              className="font-medium"
+                            />
                             <div className="text-xs text-gray-500 mt-1">
                               {qi.diagram?.title || "—"}
                               {qi.createdAt
@@ -1145,19 +1317,32 @@ const StudentDetail: React.FC = () => {
                           <div className="col-span-3">
                             {options.length ? (
                               <div className="space-y-1">
-                                {options.map((op: any, i: number) => (
+                                {options.map((opt, i) => (
                                   <div
-                                    key={op.id || i}
-                                    className={`rounded-lg border px-2 py-1 text-sm ${
+                                    key={i}
+                                    className={`rounded-lg border px-3 py-2 text-sm ${
                                       i === correctIdx
-                                        ? "border-emerald-300 bg-emerald-50"
-                                        : "border-gray-200 bg-white"
+                                        ? "border-gray-200 bg-gray-50"
+                                        : "border-gray-100 bg-white"
                                     }`}
                                   >
                                     <span className="font-semibold mr-2">
                                       {letter(i)}.
                                     </span>
-                                    {op.text}
+                                    <ExpandableText
+                                      text={opt}
+                                      minToHalf={MIN_HALF_TOGGLE_OPT}
+                                      className="inline"
+                                    />
+                                    {i === correctIdx && (
+                                      <span className="ml-2 inline-flex items-center text-gray-600">
+                                        <CheckCircle2
+                                          size={14}
+                                          className="mr-1"
+                                        />
+                                        Seleccionada
+                                      </span>
+                                    )}
                                   </div>
                                 ))}
                               </div>
@@ -1171,15 +1356,118 @@ const StudentDetail: React.FC = () => {
                             <StatusBadge status={qi.status} />
                           </div>
 
-                          {/* Resolución */}
+                          {/* Resolución (solo si rechazada) */}
                           <div className="col-span-2">
                             {normStatus(qi.status) === "REJECTED"
                               ? renderResolution(qi.reviewComment)
                               : null}
                           </div>
                         </div>
-                      );
-                    })}
+
+                        {/* ===== Mobile card ===== */}
+                        <div className="md:hidden">
+                          {/* Imagen */}
+                          <div className="mb-3 rounded-xl border bg-white overflow-hidden">
+                            <div className="relative w-full pt-[56.25%]">
+                              {qi.diagram?.path ? (
+                                <img
+                                  src={qi.diagram.path}
+                                  alt={qi.diagram.title || "Diagrama"}
+                                  title="Toca para ampliar"
+                                  className="absolute inset-0 h-full w-full object-contain bg-white"
+                                  onClick={() =>
+                                    setPreviewImg({
+                                      src: qi.diagram!.path!,
+                                      title: qi.diagram?.title || "Diagrama",
+                                    })
+                                  }
+                                />
+                              ) : (
+                                <div className="absolute inset-0 grid place-items-center text-gray-400">
+                                  <ImageIcon size={18} />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Enunciado */}
+                          <ExpandableText
+                            text={qi.prompt || ""}
+                            className="font-medium"
+                          />
+                          <div className="mt-1 text-xs text-gray-500">
+                            {qi.diagram?.title || "—"}
+                            {qi.createdAt
+                              ? ` · Creada el ${fmtDate(qi.createdAt)}`
+                              : ""}
+                          </div>
+
+                          {/* Opciones */}
+                          {options.length ? (
+                            <div className="mt-2 space-y-1">
+                              {options.map((opt, i) => (
+                                <div
+                                  key={i}
+                                  className={`rounded-lg border px-3 py-2 text-sm ${
+                                    i === correctIdx
+                                      ? "border-gray-200 bg-gray-50"
+                                      : "border-gray-100 bg-white"
+                                  }`}
+                                >
+                                  <span className="font-semibold mr-2">
+                                    {letter(i)}.
+                                  </span>
+                                  <ExpandableText
+                                    text={opt}
+                                    minToHalf={MIN_HALF_TOGGLE_OPT}
+                                    className="inline"
+                                  />
+                                  {i === correctIdx && (
+                                    <span className="ml-2 inline-flex items-center text-gray-600">
+                                      <CheckCircle2
+                                        size={14}
+                                        className="mr-1"
+                                      />
+                                      Seleccionada
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
+
+                          {/* Estado + Resolución */}
+                          <div className="mt-2 flex items-start justify-between gap-3">
+                            <StatusBadge status={qi.status} />
+                            {normStatus(qi.status) === "REJECTED" &&
+                            qi.reviewComment?.trim() ? (
+                              <div className="inline-flex items-start gap-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-700">
+                                <MessageSquare size={14} className="mt-0.5" />
+                                <span className="whitespace-pre-wrap break-words">
+                                  {qi.reviewComment}
+                                </span>
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Footer paginación preguntas */}
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <span className="text-xs text-gray-500">
+                      Mostrando {Math.min(visibleQ, myQuestions.length)} de{" "}
+                      {myQuestions.length}
+                    </span>
+                    {visibleQ < myQuestions.length && (
+                      <button
+                        onClick={() => setVisibleQ((v) => v + PAGE_SIZE)}
+                        className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm hover:bg-gray-50"
+                      >
+                        Cargar más
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -1216,140 +1504,251 @@ const StudentDetail: React.FC = () => {
               </div>
             </div>
 
-            {/* tabla */}
+            {/* tabla/listado responsive */}
             <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
-              <div className="grid grid-cols-12 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700">
+              {/* Cabecera desktop */}
+              <div className="hidden md:grid grid-cols-12 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700">
                 <div className="col-span-1">Diagrama</div>
                 <div className="col-span-5">Enunciado</div>
                 <div className="col-span-3">Tu resp. / Test</div>
                 <div className="col-span-1 text-center">Estado</div>
                 <div className="col-span-2">Resolución</div>
               </div>
+
               {filteredClaims.length === 0 ? (
                 <div className="p-6 text-gray-500">Sin reclamaciones.</div>
               ) : (
-                <div className="divide-y">
-                  {filteredClaims.map((c) => {
-                    const ci: any = c;
+                <>
+                  <div className="divide-y">
+                    {filteredClaims.slice(0, visibleC).map((c) => {
+                      const ci: any = c;
 
-                    const letter = (i?: number) =>
-                      typeof i === "number" && i >= 0
-                        ? String.fromCharCode(65 + i)
-                        : "—";
+                      const letterL = (i?: number) =>
+                        typeof i === "number" && i >= 0
+                          ? String.fromCharCode(65 + i)
+                          : "—";
 
-                    // Lectura “como alumno”
-                    const prompt =
-                      ci.promptSnapshot ??
-                      ci.prompt ??
-                      ci.question?.prompt ??
-                      "—";
+                      const prompt =
+                        ci.promptSnapshot ??
+                        ci.prompt ??
+                        ci.question?.prompt ??
+                        "—";
 
-                    const options: string[] = Array.isArray(ci.optionsSnapshot)
-                      ? ci.optionsSnapshot
-                      : Array.isArray(ci.options)
-                      ? ci.options
-                      : [];
+                      const options: string[] = Array.isArray(
+                        ci.optionsSnapshot
+                      )
+                        ? ci.optionsSnapshot
+                        : Array.isArray(ci.options)
+                        ? ci.options
+                        : [];
 
-                    const chosenIndex: number | undefined =
-                      typeof ci.chosenIndex === "number"
-                        ? ci.chosenIndex
-                        : undefined;
+                      const chosenIndex: number | undefined =
+                        typeof ci.chosenIndex === "number"
+                          ? ci.chosenIndex
+                          : undefined;
 
-                    const correctIndex: number | undefined =
-                      typeof ci.correctIndexAtSubmission === "number"
-                        ? ci.correctIndexAtSubmission
-                        : typeof ci.correctIndex === "number"
-                        ? ci.correctIndex
-                        : undefined;
+                      const correctIndex: number | undefined =
+                        typeof ci.correctIndexAtSubmission === "number"
+                          ? ci.correctIndexAtSubmission
+                          : typeof ci.correctIndex === "number"
+                          ? ci.correctIndex
+                          : undefined;
 
-                    const chosenTxt =
-                      typeof chosenIndex === "number" && options?.[chosenIndex]
-                        ? `${letter(chosenIndex)}. ${options[chosenIndex]}`
-                        : typeof chosenIndex === "number"
-                        ? letter(chosenIndex)
-                        : "—";
+                      const chosenTxt =
+                        typeof chosenIndex === "number" &&
+                        options?.[chosenIndex]
+                          ? `${letterL(chosenIndex)}. ${options[chosenIndex]}`
+                          : typeof chosenIndex === "number"
+                          ? letterL(chosenIndex)
+                          : "—";
 
-                    const correctTxt =
-                      typeof correctIndex === "number" &&
-                      options?.[correctIndex]
-                        ? `${letter(correctIndex)}. ${options[correctIndex]}`
-                        : typeof correctIndex === "number"
-                        ? letter(correctIndex)
-                        : "—";
+                      const correctTxt =
+                        typeof correctIndex === "number" &&
+                        options?.[correctIndex]
+                          ? `${letterL(correctIndex)}. ${options[correctIndex]}`
+                          : typeof correctIndex === "number"
+                          ? letterL(correctIndex)
+                          : "—";
 
-                    return (
-                      <div
-                        key={ci.id}
-                        className="grid grid-cols-12 gap-3 px-4 py-3 items-start"
-                      >
-                        {/* Diagrama */}
-                        <div className="col-span-1">
-                          {ci.diagram?.path ? (
-                            <img
-                              src={ci.diagram.path}
-                              alt={ci.diagram.title || "Diagrama"}
-                              title="Haz clic para ampliar"
-                              className="h-12 w-12 object-cover rounded border cursor-zoom-in"
-                              onClick={() =>
-                                setPreviewImg({
-                                  src: ci.diagram!.path!,
-                                  title: ci.diagram?.title || "Diagrama",
-                                })
-                              }
-                            />
-                          ) : (
-                            <div className="h-12 w-12 grid place-items-center rounded border text-gray-400">
-                              <ImageIcon size={16} />
+                      return (
+                        <div key={ci.id} className="px-4 py-3">
+                          {/* Desktop fila */}
+                          <div className="hidden md:grid grid-cols-12 gap-3 items-start">
+                            {/* Diagrama */}
+                            <div className="col-span-1">
+                              {ci.diagram?.path ? (
+                                <img
+                                  src={ci.diagram.path}
+                                  alt={ci.diagram.title || "Diagrama"}
+                                  title="Haz clic para ampliar"
+                                  className="h-12 w-12 object-cover rounded border cursor-zoom-in"
+                                  onClick={() =>
+                                    setPreviewImg({
+                                      src: ci.diagram!.path!,
+                                      title: ci.diagram?.title || "Diagrama",
+                                    })
+                                  }
+                                />
+                              ) : (
+                                <div className="h-12 w-12 grid place-items-center rounded border text-gray-400">
+                                  <ImageIcon size={16} />
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
 
-                        {/* Enunciado + meta */}
-                        <div className="col-span-5">
-                          <div className="font-medium whitespace-normal break-words">
-                            {prompt}
-                          </div>
-                          <div className="mt-1 text-xs text-gray-500">
-                            {ci.diagram?.title?.trim() || "—"}
-                            {ci.createdAt
-                              ? ` · Enviada el ${fmtDate(ci.createdAt)}`
-                              : ""}
-                          </div>
-                        </div>
+                            {/* Enunciado + meta */}
+                            <div className="col-span-5 min-w-0">
+                              <ExpandableText
+                                text={prompt || "—"}
+                                className="font-medium"
+                              />
+                              <div className="mt-1 text-xs text-gray-500">
+                                {ci.diagram?.title?.trim() || "—"}
+                                {ci.createdAt
+                                  ? ` · Enviada el ${fmtDate(ci.createdAt)}`
+                                  : ""}
+                              </div>
+                            </div>
 
-                        {/* Tu resp. / Test (igual que alumno) */}
-                        <div className="col-span-3">
-                          <div className="text-xs text-gray-500">
-                            Tu respuesta
-                          </div>
-                          <div className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-sm">
-                            {chosenTxt}
-                          </div>
-                          <div className="mt-2 text-xs text-gray-500">
-                            Respuesta del test
-                          </div>
-                          <div className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-sm">
-                            {correctTxt}
-                          </div>
-                        </div>
+                            {/* Tu resp. / Test */}
+                            <div className="col-span-3">
+                              <div className="text-xs text-gray-500">
+                                Tu respuesta
+                              </div>
+                              <div className="rounded-lg border border-gray-100 bg-gray-50 px-2 py-1 text-sm">
+                                <ExpandableText
+                                  text={chosenTxt}
+                                  minToHalf={MIN_HALF_TOGGLE_OPT}
+                                  className="whitespace-pre-wrap break-words"
+                                />
+                              </div>
+                              <div className="mt-2 text-xs text-gray-500">
+                                Respuesta del test
+                              </div>
+                              <div className="rounded-lg border border-gray-100 bg-gray-50 px-2 py-1 text-sm">
+                                <ExpandableText
+                                  text={correctTxt}
+                                  minToHalf={MIN_HALF_TOGGLE_OPT}
+                                  className="whitespace-pre-wrap break-words"
+                                />
+                              </div>
+                            </div>
 
-                        {/* Estado */}
-                        <div className="col-span-1 flex items-center justify-center">
-                          <StatusBadge status={ci.status} />
-                        </div>
+                            {/* Estado */}
+                            <div className="col-span-1 flex items-center justify-center">
+                              <StatusBadge status={ci.status} />
+                            </div>
 
-                        {/* Resolución */}
-                        <div className="col-span-2">
-                          {normStatus(ci.status) === "REJECTED"
-                            ? renderResolution(
+                            {/* Resolución */}
+                            <div className="col-span-2">
+                              {normStatus(ci.status) === "REJECTED"
+                                ? renderResolution(
+                                    ci.reviewerComment ?? ci.resolution?.comment
+                                  )
+                                : null}
+                            </div>
+                          </div>
+
+                          {/* Mobile card */}
+                          <div className="md:hidden">
+                            {/* Imagen */}
+                            <div className="mb-2">
+                              {ci.diagram?.path ? (
+                                <img
+                                  src={ci.diagram.path}
+                                  alt={ci.diagram.title || "Diagrama"}
+                                  title="Toca para ampliar"
+                                  className="w-full max-h-64 object-contain rounded-xl border bg-white"
+                                  onClick={() =>
+                                    setPreviewImg({
+                                      src: ci.diagram!.path!,
+                                      title: ci.diagram?.title || "Diagrama",
+                                    })
+                                  }
+                                />
+                              ) : (
+                                <div className="w-full h-40 grid place-items-center rounded-xl border text-gray-400 bg-white">
+                                  <ImageIcon size={18} />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Enunciado */}
+                            <ExpandableText
+                              text={prompt || "—"}
+                              className="font-medium"
+                            />
+                            <div className="mt-1 text-xs text-gray-500">
+                              {ci.diagram?.title?.trim() || "—"}
+                              {ci.createdAt
+                                ? ` · Enviada el ${fmtDate(ci.createdAt)}`
+                                : ""}
+                            </div>
+
+                            {/* Comparativa */}
+                            <div className="mt-2 space-y-2">
+                              <div>
+                                <div className="text-[11px] text-gray-500">
+                                  Tu respuesta
+                                </div>
+                                <div className="rounded-lg border border-gray-100 bg-gray-50 px-2 py-1 text-sm">
+                                  <ExpandableText
+                                    text={chosenTxt}
+                                    minToHalf={MIN_HALF_TOGGLE_OPT}
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-[11px] text-gray-500">
+                                  Respuesta del test
+                                </div>
+                                <div className="rounded-lg border border-gray-100 bg-gray-50 px-2 py-1 text-sm">
+                                  <ExpandableText
+                                    text={correctTxt}
+                                    minToHalf={MIN_HALF_TOGGLE_OPT}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Estado + Resolución */}
+                            <div className="mt-2 flex items-start justify-between gap-3">
+                              <StatusBadge status={ci.status} />
+                              {normStatus(ci.status) === "REJECTED" &&
+                              (
                                 ci.reviewerComment ?? ci.resolution?.comment
-                              )
-                            : null}
+                              )?.trim() ? (
+                                <div className="inline-flex items-start gap-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-700">
+                                  <MessageSquare size={14} className="mt-0.5" />
+                                  <span className="whitespace-pre-wrap break-words">
+                                    {ci.reviewerComment ??
+                                      ci.resolution?.comment}
+                                  </span>
+                                </div>
+                              ) : null}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Footer paginación reclamaciones */}
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <span className="text-xs text-gray-500">
+                      Mostrando {Math.min(visibleC, filteredClaims.length)} de{" "}
+                      {filteredClaims.length}
+                    </span>
+                    {visibleC < filteredClaims.length && (
+                      <button
+                        onClick={() => setVisibleC((v) => v + PAGE_SIZE)}
+                        className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm hover:bg-gray-50"
+                      >
+                        Cargar más
+                      </button>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -1683,8 +2082,12 @@ const StudentDetail: React.FC = () => {
                           <div className="text-sm font-semibold">
                             {b.label?.trim() || "Objetivo semanal completado"}
                           </div>
-                         
-                          
+                          {b.earnedAt ? (
+                            <div className="text-xs text-gray-500">
+                              Conseguida:{" "}
+                              {new Date(b.earnedAt).toLocaleDateString()}
+                            </div>
+                          ) : null}
                         </div>
                       </div>
                     ))}

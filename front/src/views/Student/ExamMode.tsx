@@ -107,7 +107,7 @@ const ExamMode: React.FC = () => {
       } catch (e: any) {
         if (reason !== 'unload') toast.error(e?.message || 'No se pudo finalizar el examen');
       } finally {
-        if (reason !== 'unload') navigate('/student/my-tests');
+        if (reason !== 'unload') navigate('/student/dashboard');
       }
     },
     [flushCurrentTime, navigate]

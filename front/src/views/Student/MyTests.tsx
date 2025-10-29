@@ -214,7 +214,7 @@ const MyTests: React.FC = () => {
         <div className="mb-4 flex items-start justify-between">
           <div className="flex items-start gap-3">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => navigate("student")}
               className="rounded-xl border border-gray-300 bg-white p-2 hover:bg-gray-50"
               aria-label="Volver"
               title="Volver"

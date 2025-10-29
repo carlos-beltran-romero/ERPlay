@@ -1,4 +1,6 @@
 // src/services/questions.ts
+import { fetchAuth, API_URL } from './http';
+
 export interface PendingQuestion {
   id: string;
   prompt: string;
@@ -22,18 +24,9 @@ type MyQuestion = {
   correctIndex?: number;
 };
 
-const API_URL = (import.meta as any).env.VITE_API_URL as string;
-
-function auth() {
-  const t = localStorage.getItem('accessToken');
-  if (!t) throw new Error('No autenticado');
-  return { Authorization: `Bearer ${t}` };
-}
-
 const toAbs = (p?: string) =>
   p && !p.startsWith('http') ? `${API_URL}${p}` : (p || '');
 
-// --- NUEVO: normalizador robusto de estado ---
 function normalizeReviewStatus(v: any): 'PENDING' | 'APPROVED' | 'REJECTED' {
   if (typeof v === 'string') {
     const s = v.toUpperCase();
@@ -42,43 +35,32 @@ function normalizeReviewStatus(v: any): 'PENDING' | 'APPROVED' | 'REJECTED' {
     if (s.includes('REJECT')) return 'REJECTED';
   }
   if (typeof v === 'number') {
-    // por si llega como enum numérico (0/1/2)
     if (v === 0) return 'PENDING';
     if (v === 1) return 'APPROVED';
     if (v === 2) return 'REJECTED';
   }
-  if (typeof v === 'boolean') {
-    // por si en algún endpoint se usa "verified"
-    return v ? 'APPROVED' : 'PENDING';
-  }
-  // valor por defecto seguro
+  if (typeof v === 'boolean') return v ? 'APPROVED' : 'PENDING';
   return 'PENDING';
 }
 
 export async function getPendingCount(): Promise<number> {
-  const res = await fetch(`${API_URL}/api/questions/pending/count`, {
-    headers: auth(),
-  });
+  const res = await fetchAuth(`${API_URL}/api/questions/pending/count`);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || 'No disponible');
   return Number(data?.count ?? 0);
 }
 
 export async function listPendingQuestions(): Promise<PendingQuestion[]> {
-  const res = await fetch(`${API_URL}/api/questions/pending`, {
-    headers: auth(),
-  });
+  const res = await fetchAuth(`${API_URL}/api/questions/pending`);
   const raw = await res.json().catch(() => ([]));
   if (!res.ok) throw new Error(raw?.error || 'No se pudieron cargar las preguntas');
 
   return (Array.isArray(raw) ? raw : []).map((q: any) => {
-    // 1) opciones: pueden venir como strings o como objetos {text, orderIndex}
     let options: string[] = [];
     if (Array.isArray(q.options)) {
       if (q.options.length && typeof q.options[0] === 'string') {
         options = q.options as string[];
       } else {
-        // objetos
         const arr = (q.options as any[])
           .map(o => (o?.text ? { text: String(o.text), orderIndex: Number(o.orderIndex ?? 0) } : null))
           .filter(Boolean) as { text: string; orderIndex: number }[];
@@ -89,7 +71,6 @@ export async function listPendingQuestions(): Promise<PendingQuestion[]> {
       options = (q.optionTexts as any[]).map(String);
     }
 
-    // 2) índice correcto: puede venir como correctIndex o correctOptionIndex
     let correctIndex = Number(
       q.correctIndex ?? q.correct_option_index ?? q.correctOptionIndex ?? 0
     );
@@ -97,7 +78,6 @@ export async function listPendingQuestions(): Promise<PendingQuestion[]> {
       correctIndex = 0;
     }
 
-    // 3) diagrama: puede venir anidado o en campos sueltos
     const dq = q.diagram || q.Diagram || null;
     const diagram = dq
       ? {
@@ -137,9 +117,9 @@ export async function verifyQuestion(
   decision: 'approve' | 'reject',
   comment?: string
 ): Promise<void> {
-  const res = await fetch(`${API_URL}/api/questions/${id}/verify`, {
+  const res = await fetchAuth(`${API_URL}/api/questions/${id}/verify`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...auth() },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ decision, comment }),
   });
   const data = await res.json().catch(() => ({}));
@@ -147,21 +127,15 @@ export async function verifyQuestion(
 }
 
 export async function listMyQuestions(): Promise<MyQuestion[]> {
-  const API_URL = import.meta.env.VITE_API_URL;
-  const token = localStorage.getItem('accessToken');
-  const res = await fetch(`${API_URL}/api/questions/mine`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
+  const res = await fetchAuth(`${API_URL}/api/questions/mine`);
   const data = await res.json().catch(() => ([]));
   if (!res.ok) throw new Error(data?.error || 'No se pudieron cargar tus preguntas');
 
   return (Array.isArray(data) ? data : []).map((q: any) => {
-    // Estado robusto
     const status = normalizeReviewStatus(
       q.status ?? q.reviewStatus ?? q.state ?? (typeof q.verified === 'boolean' ? q.verified : undefined)
     ) as MyQuestion['status'];
 
-    // ✅ Normaliza OPCIONES: strings u objetos { text, orderIndex } (o optionTexts)
     let options: string[] = [];
     if (Array.isArray(q.options)) {
       if (q.options.length && typeof q.options[0] === 'string') {
@@ -177,7 +151,6 @@ export async function listMyQuestions(): Promise<MyQuestion[]> {
       options = (q.optionTexts as any[]).map(String);
     }
 
-    // ✅ Normaliza ÍNDICE CORRECTO: distintos nombres posibles
     let correctIndex = Number(
       q.correctIndex ?? q.correct_option_index ?? q.correctOptionIndex ?? 0
     );
@@ -190,23 +163,20 @@ export async function listMyQuestions(): Promise<MyQuestion[]> {
       prompt: String(q.prompt ?? ''),
       status,
       reviewComment: q.reviewComment ?? null,
-      diagram: q.diagram ? {
-        id: String(q.diagram.id ?? ''),
-        title: String(q.diagram.title ?? ''),
-        path: q.diagram.path && !q.diagram.path.startsWith('http')
-          ? `${API_URL}${q.diagram.path}`
-          : q.diagram.path
-      } : undefined,
+      diagram: q.diagram
+        ? {
+            id: String(q.diagram.id ?? ''),
+            title: String(q.diagram.title ?? ''),
+            path: toAbs(q.diagram.path),
+          }
+        : undefined,
       createdAt: q.createdAt,
       reviewedAt: q.reviewedAt ?? null,
-
-      // 👇 ya normalizados
       options,
       correctIndex,
     } as MyQuestion;
   });
 }
-
 
 export async function createQuestion(payload: {
   diagramId: string;
@@ -215,16 +185,9 @@ export async function createQuestion(payload: {
   options: string[];
   correctIndex: number;
 }): Promise<{ id: string; status: 'PENDING' | 'APPROVED' | 'REJECTED' }> {
-  const API_URL = import.meta.env.VITE_API_URL;
-  const token = localStorage.getItem('accessToken');
-  if (!token) throw new Error('No autenticado');
-
-  const res = await fetch(`${API_URL}/api/questions`, {
+  const res = await fetchAuth(`${API_URL}/api/questions`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
 

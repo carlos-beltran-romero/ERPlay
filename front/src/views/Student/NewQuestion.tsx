@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+// src/views/NewQuestion.tsx
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PageWithHeader from '../PageWithHeader';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import { Image as ImageIcon, Plus, Save, Search,ArrowLeft } from 'lucide-react';
+import { Image as ImageIcon, Plus, Save, Search, ArrowLeft } from 'lucide-react';
 import { listPublicDiagrams } from '../../services/diagrams';
 import { createQuestion } from '../../services/questions';
 
@@ -28,6 +29,10 @@ const NewQuestion: React.FC = () => {
   const [options, setOptions] = useState<string[]>(['', '']);
   const [correctIndex, setCorrectIndex] = useState<number>(0);
 
+  // Confirmación de salida sin guardar
+  const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
+  const initialSnapRef = useRef<string>('');
+
   useEffect(() => {
     (async () => {
       try {
@@ -41,15 +46,25 @@ const NewQuestion: React.FC = () => {
     })();
   }, []);
 
+  // Snapshot inicial del formulario vacío (para detectar cambios)
+  useEffect(() => {
+    initialSnapRef.current = JSON.stringify({
+      diagramId: '',
+      prompt: '',
+      hint: '',
+      options: ['', ''],
+    });
+  }, []);
+
   // Filtrado por título
   const filtered = useMemo(() => {
     const needle = normalize(q.trim());
     if (!needle) return diagrams;
-    return diagrams.filter(d => normalize(d.title).includes(needle));
+    return diagrams.filter((d) => normalize(d.title).includes(needle));
   }, [diagrams, q]);
 
   const selectedDiagram = useMemo(
-    () => diagrams.find(d => d.id === selectedDiagramId),
+    () => diagrams.find((d) => d.id === selectedDiagramId),
     [diagrams, selectedDiagramId]
   );
 
@@ -59,7 +74,7 @@ const NewQuestion: React.FC = () => {
     next[i] = v;
     setOptions(next);
   };
-  const addOption = () => setOptions(prev => [...prev, '']);
+  const addOption = () => setOptions((prev) => [...prev, '']);
   const removeOption = (i: number) => {
     if (options.length <= 2) return;
     const next = options.filter((_, idx) => idx !== i);
@@ -71,7 +86,7 @@ const NewQuestion: React.FC = () => {
   };
 
   // Validación simple
-  const nonEmpty = options.map(o => o.trim()).filter(Boolean);
+  const nonEmpty = options.map((o) => o.trim()).filter(Boolean);
   const canSave =
     !!selectedDiagramId &&
     prompt.trim().length > 0 &&
@@ -80,6 +95,27 @@ const NewQuestion: React.FC = () => {
     correctIndex >= 0 &&
     correctIndex < options.length &&
     options[correctIndex].trim().length > 0;
+
+  // Detección de cambios para el modal
+  const currentSnap = useMemo(
+    () =>
+      JSON.stringify({
+        diagramId: selectedDiagramId,
+        prompt,
+        hint,
+        options,
+      }),
+    [selectedDiagramId, prompt, hint, options]
+  );
+  const isDirty = currentSnap !== initialSnapRef.current;
+
+  const goBack = () => {
+    if (isDirty) {
+      setConfirmLeaveOpen(true);
+      return;
+    }
+    navigate(-1);
+  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,9 +130,18 @@ const NewQuestion: React.FC = () => {
         diagramId: selectedDiagramId,
         prompt: prompt.trim(),
         hint: hint.trim(),
-        options: options.map(o => o.trim()),
+        options: options.map((o) => o.trim()),
         correctIndex,
       });
+
+      // (Opcional) resetea snapshot para no avisar si el usuario permanece en la página
+      initialSnapRef.current = JSON.stringify({
+        diagramId: '',
+        prompt: '',
+        hint: '',
+        options: ['', ''],
+      });
+
       toast.success('Pregunta enviada para revisión');
       navigate('/student/questions', { replace: true });
     } catch (e: any) {
@@ -121,7 +166,7 @@ const NewQuestion: React.FC = () => {
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
             <button
-              onClick={() => navigate(-1)}
+              onClick={goBack}
               className="rounded-xl border border-gray-300 bg-white p-2 hover:bg-gray-50"
               aria-label="Volver"
               title="Volver"
@@ -130,9 +175,7 @@ const NewQuestion: React.FC = () => {
             </button>
             <div>
               <h1 className="text-2xl font-semibold">Nueva pregunta</h1>
-              <p className="text-gray-600">
-                Asocia tu pregunta a un diagrama existente.
-              </p>
+              <p className="text-gray-600">Asocia tu pregunta a un diagrama existente.</p>
             </div>
           </div>
         </div>
@@ -141,9 +184,7 @@ const NewQuestion: React.FC = () => {
         <div className="mt-5 rounded-2xl border border-gray-200 bg-white p-5">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="md:col-span-2 space-y-3">
-              <label className="block text-sm text-gray-600">
-                Buscar diagrama por nombre
-              </label>
+              <label className="block text-sm text-gray-600">Buscar diagrama por nombre</label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
@@ -155,9 +196,7 @@ const NewQuestion: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-600 mb-1">
-                  Diagrama *
-                </label>
+                <label className="block text-sm text-gray-600 mb-1">Diagrama *</label>
                 <select
                   value={selectedDiagramId}
                   onChange={(e) => setSelectedDiagramId(e.target.value)}
@@ -172,9 +211,7 @@ const NewQuestion: React.FC = () => {
                 </select>
 
                 {q.trim() && filtered.length === 0 && (
-                  <div className="mt-2 text-sm text-gray-500">
-                    Sin resultados para “{q}”.
-                  </div>
+                  <div className="mt-2 text-sm text-gray-500">Sin resultados para “{q}”.</div>
                 )}
               </div>
             </div>
@@ -183,13 +220,9 @@ const NewQuestion: React.FC = () => {
             <div className="md:col-span-1">
               <div className="text-sm text-gray-600 mb-1">Seleccionado</div>
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                <div className="font-medium truncate">
-                  {selectedDiagram?.title || "Ninguno"}
-                </div>
+                <div className="font-medium truncate">{selectedDiagram?.title || 'Ninguno'}</div>
                 <div className="mt-1 text-xs text-gray-500">
-                  {selectedDiagram
-                    ? "Imagen abajo ↓"
-                    : "Elige un diagrama para ver su imagen"}
+                  {selectedDiagram ? 'Imagen abajo ↓' : 'Elige un diagrama para ver su imagen'}
                 </div>
               </div>
             </div>
@@ -200,9 +233,7 @@ const NewQuestion: React.FC = () => {
         <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-5">
           {selectedDiagram?.path ? (
             <>
-              <div className="mb-2 text-sm font-medium text-gray-700">
-                {selectedDiagram.title}
-              </div>
+              <div className="mb-2 text-sm font-medium text-gray-700">{selectedDiagram.title}</div>
               <div className="flex items-center justify-center">
                 <img
                   src={selectedDiagram.path}
@@ -222,9 +253,7 @@ const NewQuestion: React.FC = () => {
         <form onSubmit={onSubmit} className="mt-5 space-y-6">
           {/* Enunciado */}
           <div className="rounded-2xl border border-gray-200 bg-white p-5">
-            <label className="block text-sm text-gray-600 mb-1">
-              Enunciado *
-            </label>
+            <label className="block text-sm text-gray-600 mb-1">Enunciado *</label>
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
@@ -235,9 +264,7 @@ const NewQuestion: React.FC = () => {
 
           {/* Opciones (arriba) */}
           <div className="rounded-2xl border border-gray-200 bg-white p-5">
-            <div className="mb-2 text-sm text-gray-600">
-              Opciones (mínimo 2)
-            </div>
+            <div className="mb-2 text-sm text-gray-600">Opciones (mínimo 2)</div>
             <div className="space-y-2">
               {options.map((opt, i) => (
                 <div key={i} className="flex items-center gap-2">
@@ -293,7 +320,7 @@ const NewQuestion: React.FC = () => {
           <div className="flex items-center justify-end gap-2">
             <button
               type="button"
-              onClick={() => navigate("/student/questions")}
+              onClick={goBack}
               className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50"
             >
               Cancelar
@@ -302,21 +329,43 @@ const NewQuestion: React.FC = () => {
               type="submit"
               disabled={!canSave || saving}
               className={`inline-flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-medium text-white ${
-                !canSave || saving
-                  ? "bg-indigo-300 cursor-not-allowed"
-                  : "bg-indigo-600 hover:bg-indigo-500"
+                !canSave || saving ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-500'
               }`}
-              title={
-                !canSave
-                  ? "Completa todos los campos y selecciona un diagrama"
-                  : "Crear pregunta"
-              }
+              title={!canSave ? 'Completa todos los campos y selecciona un diagrama' : 'Crear pregunta'}
             >
               <Save size={16} />
-              {saving ? "Creando…" : "Crear pregunta"}
+              {saving ? 'Creando…' : 'Crear pregunta'}
             </button>
           </div>
         </form>
+
+        {/* Modal confirmar salida sin guardar */}
+        {confirmLeaveOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-md rounded-2xl bg-white shadow-xl border border-gray-200">
+              <div className="px-5 py-4 border-b">
+                <h3 className="text-lg font-semibold">Salir sin guardar</h3>
+                <p className="mt-1 text-sm text-gray-600">
+                  Tienes cambios sin guardar. ¿Seguro que quieres salir?
+                </p>
+              </div>
+              <div className="flex items-center justify-end gap-2 px-5 py-4">
+                <button
+                  onClick={() => setConfirmLeaveOpen(false)}
+                  className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50"
+                >
+                  Seguir editando
+                </button>
+                <button
+                  onClick={() => navigate("student/dashboard")}
+                  className="rounded-xl px-5 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-500"
+                >
+                  Salir sin guardar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </PageWithHeader>
   );
