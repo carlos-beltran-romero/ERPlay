@@ -6,8 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "start": "vite preview --host",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "echo \"Sin pruebas definidas en el frontend por ahora\"",
+    "test:ci": "echo \"Sin pruebas definidas en el frontend por ahora\""
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.10",

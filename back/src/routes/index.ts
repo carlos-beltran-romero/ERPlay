@@ -1,58 +1,34 @@
-// src/routes/index.ts
-import { Express } from 'express';
-import express from 'express';
-
+import express, { Express } from 'express';
+import path from 'node:path';
 import authRoutes from './auth';
-import userRoutes from './users';
-import diagramRoutes from './diagrams';
-import path from 'path';
-import examsRouter from './exams';
 import claimsRoutes from './claims';
-import testSessionsRouter from './testSession';
-import progressRoutes from './progress';
 import dashboardRoutes from './dashboard';
-import supervisorRoutes from './supervisor';
+import diagramRoutes from './diagrams';
 import diagramStatsRoutes from './diagramStats';
-
-
-
-
-
+import examsRouter from './exams';
+import progressRoutes from './progress';
 import questionsRouter from './questions';
+import supervisorRoutes from './supervisor';
+import testSessionsRouter from './testSession';
+import userRoutes from './users';
 
-
-export default function registerRoutes(app: Express) {
-  app.use('/api', (req, _res, next) => {
-    console.log('[API IN]', req.method, req.path);
-    next();
-  });
-  
+export default function registerRoutes(app: Express): void {
   app.use('/api/auth', authRoutes);
   app.use('/api/users', userRoutes);
   app.use('/api/diagrams', diagramRoutes);
-  app.use(
-    '/uploads',
-    express.static(path.join(process.cwd(), 'uploads'), {
-      fallthrough: true, // 404 si no existe el archivo
-    })
-  );
   app.use('/api/questions', questionsRouter);
   app.use('/api/exams', examsRouter);
   app.use('/api/claims', claimsRoutes);
   app.use('/api/test-sessions', testSessionsRouter);
   app.use('/api/progress', progressRoutes);
   app.use('/api/dashboard', dashboardRoutes);
-  app.use('/api', (req, _res, next) => {
-    console.log('[API IN]', req.method, req.path);
-    next();
-  });
   app.use('/api/supervisor', supervisorRoutes);
-
   app.use('/api/admin/diagrams', diagramStatsRoutes);
 
-
-
-
-  
-
+  app.use(
+    '/uploads',
+    express.static(path.join(process.cwd(), 'uploads'), {
+      fallthrough: true,
+    })
+  );
 }

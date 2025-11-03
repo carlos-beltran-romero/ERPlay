@@ -1,0 +1,70 @@
+version: '3.9'
+
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-erplay}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-erplay}
+      MYSQL_USER: ${DB_USER:-erplay}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-erplay}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD-SHELL', 'mysqladmin ping -h localhost -u"$MYSQL_USER" -p"$MYSQL_PASSWORD"']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      target: backend-dev
+    working_dir: /app/back
+    command: npm run dev
+    env_file:
+      - back/.env
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-erplay}
+      DB_PASSWORD: ${DB_PASSWORD:-erplay}
+      DB_NAME: ${DB_NAME:-erplay}
+      FRONTEND_URL: http://localhost:5173
+      PUBLIC_API_BASE_URL: http://localhost:3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./back/src:/app/back/src
+      - ./back/uploads:/app/back/uploads
+      - back_node_modules:/app/back/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    profiles: ['frontend']
+    build:
+      context: .
+      target: frontend-dev
+    working_dir: /app/front
+    command: npm run dev -- --host 0.0.0.0 --port 5173
+    environment:
+      VITE_API_URL: http://localhost:3000
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./front/src:/app/front/src
+      - ./front/public:/app/front/public
+      - front_node_modules:/app/front/node_modules
+    depends_on:
+      api:
+        condition: service_started
+
+volumes:
+  mysql_data:
+  back_node_modules:
+  front_node_modules:

@@ -1,0 +1,11 @@
+# Entornos locales
+back/.env
+back/.env.test.local
+front/.env*
+.env
+
+# Cobertura
+back/coverage
+
+# Archivos temporales
+.DS_Store

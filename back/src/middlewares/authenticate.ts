@@ -1,4 +1,3 @@
-// src/middlewares/authenticate.ts
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { UserRole } from '../models/User';
@@ -18,9 +17,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
     }
     req.user = { id: decoded.id, role: decoded.role };
     next();
-  } catch {
-    // 👇 importante: 401 para token inválido/EXPIRADO
-    res.status(401).json({ error: 'Token inválido o expirado' });
-    return;
+    } catch {
+      res.status(401).json({ error: 'Token inválido o expirado' });
+    }
   }
-}

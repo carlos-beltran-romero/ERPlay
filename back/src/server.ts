@@ -1,5 +1,5 @@
 // src/server.ts
-import express, { Request, Response, NextFunction } from 'express';
+import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import registerRoutes from './routes';
@@ -12,34 +12,26 @@ import errorHandler from './middlewares/errorHandler';
 
 const app = express();
 
-// Security headers
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
   })
 );
-// Enable CORS
-app.use(cors({
-    origin: process.env.FRONTEND_URL,   // orígenes permitidos
-    credentials: true                  // si envías cookies o Authorization
-  }));
-// HTTP request logging
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL,
+    credentials: true,
+  })
+);
 app.use(logger);
 
-// Body parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Register application routes
 registerRoutes(app);
 
-// Handle file upload errors (e.g., multer)
 app.use(uploadErrorHandler);
-
-// 404 handler for unknown routes
 app.use(notFound);
-
-// Global error handler
 app.use(errorHandler);
 
 export default app;

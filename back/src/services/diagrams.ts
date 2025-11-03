@@ -1,24 +1,66 @@
-// src/services/diagrams.service.ts
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { AppDataSource } from '../data-source';
 import { Diagram } from '../models/Diagram';
-import { Question, ReviewStatus } from '../models/Question';
 import { Option } from '../models/Option';
+import { Question, QuestionSource, ReviewStatus } from '../models/Question';
 import { User, UserRole } from '../models/User';
-import fs from 'fs';
-import path from 'path';
 
 export type QuestionInput = {
+  id?: string;
   prompt: string;
   hint: string;
-  options: string[];     // >= 2
-  correctIndex: number;  // 0..n-1
+  options: string[];
+  correctIndex: number;
 };
 
+type NormalizedQuestion = Required<Omit<QuestionInput, 'id'>> & {
+  id?: string;
+};
+
+function normalizeQuestion(raw: QuestionInput, index: number): NormalizedQuestion {
+  const prompt = raw.prompt?.trim() ?? '';
+  const hint = raw.hint?.trim() ?? '';
+  const options = Array.isArray(raw.options) ? raw.options.map((option) => option?.trim() ?? '') : [];
+  const correctIndex = raw.correctIndex;
+
+  if (!prompt) {
+    throw new Error(`Pregunta ${index + 1}: el enunciado es obligatorio`);
+  }
+  if (!hint) {
+    throw new Error(`Pregunta ${index + 1}: la pista es obligatoria`);
+  }
+  if (options.length < 2) {
+    throw new Error(`Pregunta ${index + 1}: mínimo dos opciones`);
+  }
+  if (options.some((option) => !option)) {
+    throw new Error(`Pregunta ${index + 1}: las opciones no pueden estar vacías`);
+  }
+  if (correctIndex < 0 || correctIndex >= options.length) {
+    throw new Error(`Pregunta ${index + 1}: índice de opción correcta inválido`);
+  }
+
+  return {
+    id: raw.id,
+    prompt,
+    hint,
+    options,
+    correctIndex,
+  };
+}
+
+function resolveUploadPath(publicPath: string): string {
+  const relative = publicPath.replace(/^\/+/, '');
+  const safePath = relative.startsWith('uploads') ? relative : path.join('uploads', relative);
+  return path.resolve(safePath);
+}
+
 export class DiagramsService {
-  private diagramRepo = AppDataSource.getRepository(Diagram);
-  private questionRepo = AppDataSource.getRepository(Question);
-  private optionRepo = AppDataSource.getRepository(Option);
-  private userRepo = AppDataSource.getRepository(User);
+  private readonly diagramRepo = AppDataSource.getRepository(Diagram);
+
+  private readonly questionRepo = AppDataSource.getRepository(Question);
+
+  private readonly userRepo = AppDataSource.getRepository(User);
 
   async createDiagram(params: {
     title: string;
@@ -27,37 +69,35 @@ export class DiagramsService {
     questions: QuestionInput[];
   }): Promise<{ id: string; path: string }> {
     const creator = await this.userRepo.findOneByOrFail({ id: params.creatorId });
+    if (!params.questions || params.questions.length === 0) {
+      throw new Error('Debes incluir al menos una pregunta');
+    }
+    const questions = params.questions.map((q, index) => normalizeQuestion(q, index));
 
-    // Validaciones mínimas
-    if (!params.title.trim()) throw new Error('Título requerido');
-    if (!params.questions || params.questions.length === 0) throw new Error('Debes incluir al menos 1 pregunta');
-    for (const q of params.questions) {
-      if (!q.prompt?.trim()) throw new Error('Cada pregunta debe tener enunciado');
-      if (!q.hint?.trim()) throw new Error('Cada pregunta debe tener pista');
-      if (!Array.isArray(q.options) || q.options.length < 2) throw new Error('Cada pregunta requiere ≥ 2 opciones');
-      if (q.options.some(o => !o || !o.trim())) throw new Error('Las opciones no pueden estar vacías');
-      if (q.correctIndex < 0 || q.correctIndex >= q.options.length) throw new Error('Índice de opción correcta inválido');
+    if (!params.title?.trim()) {
+      throw new Error('El título es obligatorio');
     }
 
-    // Transacción
     return AppDataSource.transaction(async (manager) => {
       const diagram = manager.create(Diagram, {
         title: params.title.trim(),
         filename: params.file.filename,
         path: `/uploads/diagrams/${params.file.filename}`,
-        creator, // si tu modelo Diagram tiene creator
+        creator,
       });
       await manager.save(diagram);
 
       const supervisor = creator.role === UserRole.SUPERVISOR;
+      const source = supervisor ? QuestionSource.CATALOG : QuestionSource.STUDENT;
 
-      for (const q of params.questions) {
+      for (const questionInput of questions) {
         const question = manager.create(Question, {
-          prompt: q.prompt.trim(),
-          hint: q.hint.trim(),
-          correctOptionIndex: q.correctIndex,
+          prompt: questionInput.prompt,
+          hint: questionInput.hint,
+          correctOptionIndex: questionInput.correctIndex,
           diagram,
-          creator: creator, // marca autor
+          creator,
+          source,
           status: supervisor ? ReviewStatus.APPROVED : ReviewStatus.PENDING,
           reviewedBy: supervisor ? creator : null,
           reviewedAt: supervisor ? new Date() : null,
@@ -65,8 +105,8 @@ export class DiagramsService {
         });
         await manager.save(question);
 
-        const options = q.options.map((text, idx) =>
-          manager.create(Option, { text: text.trim(), orderIndex: idx, question })
+        const options = questionInput.options.map((text, orderIndex) =>
+          manager.create(Option, { text, orderIndex, question })
         );
         await manager.save(options);
       }
@@ -75,49 +115,56 @@ export class DiagramsService {
     });
   }
 
-
-  async listDiagrams(): Promise<(Diagram & { questionsCount: number })[]> {
+  async listDiagrams(): Promise<Array<Diagram & { questionsCount: number }>> {
     const rows = await this.diagramRepo
-      .createQueryBuilder('d')
+      .createQueryBuilder('diagram')
       .loadRelationCountAndMap(
-        'd.questionsCount',
-        'd.questions',
-        'q',
-        qb => qb.andWhere('q.status = :st', { st: ReviewStatus.APPROVED })
+        'diagram.questionsCount',
+        'diagram.questions',
+        'question',
+        (qb) => qb.where('question.status = :status', { status: ReviewStatus.APPROVED })
       )
-      .orderBy('d.createdAt', 'DESC')
+      .orderBy('diagram.createdAt', 'DESC')
       .getMany();
-  
-    return rows as (Diagram & { questionsCount: number })[];
+
+    return rows as Array<Diagram & { questionsCount: number }>;
   }
-  
 
   async getDiagramById(id: string): Promise<{
     id: string;
     title: string;
     path: string;
     createdAt: Date;
-    questions: { prompt: string; hint: string; correctIndex: number; options: string[] }[];
+    questions: Array<{
+      id: string;
+      prompt: string;
+      hint: string;
+      correctIndex: number;
+      options: string[];
+      source: QuestionSource;
+    }>;
   }> {
-    const diagram = await this.diagramRepo.findOne({
-      where: { id },
-    });
-    if (!diagram) throw new Error('Test no encontrado');
+    const diagram = await this.diagramRepo.findOne({ where: { id } });
+    if (!diagram) {
+      throw new Error('Diagrama no encontrado');
+    }
 
-    // ⬇️ Cargar SOLO preguntas aprobadas (con sus opciones)
-    const approvedQs = await this.questionRepo.find({
+    const approvedQuestions = await this.questionRepo.find({
       where: { diagram: { id: diagram.id }, status: ReviewStatus.APPROVED },
       relations: { options: true },
       order: { createdAt: 'ASC' },
     });
 
-    const questions = approvedQs.map(q => ({
-      prompt: q.prompt,
-      hint: q.hint,
-      correctIndex: q.correctOptionIndex,
-      options: [...(q.options || [])]
+    const questions = approvedQuestions.map((question) => ({
+      id: question.id,
+      prompt: question.prompt,
+      hint: question.hint,
+      correctIndex: question.correctOptionIndex,
+      options: (question.options ?? [])
+        .slice()
         .sort((a, b) => a.orderIndex - b.orderIndex)
-        .map(o => o.text),
+        .map((option) => option.text),
+      source: question.source,
     }));
 
     return {
@@ -129,9 +176,6 @@ export class DiagramsService {
     };
   }
 
-  // -------------------
-  // UPDATE (imagen opcional)
-  // -------------------
   async updateDiagram(params: {
     id: string;
     title: string;
@@ -139,111 +183,140 @@ export class DiagramsService {
     newFile?: { filename: string; path: string };
     actorId: string;
   }): Promise<void> {
-    // helpers para firmas estables
-    const norm = (s?: string) => (s || '').trim().replace(/\s+/g, ' ');
-    const makeSignature = (q: { prompt: string; hint: string; options: string[]; correctIndex: number }) => {
-      const opts = (q.options || []).map(o => norm(o)).join('||');
-      return `${norm(q.prompt)}|${norm(q.hint)}|${opts}|#${q.correctIndex}`;
-    };
-  
-    let oldPublicPath: string | null = null;
-  
+    if (!params.title?.trim()) {
+      throw new Error('El título es obligatorio');
+    }
+
+    const normalizedQuestions = params.questions.map((question, index) => normalizeQuestion(question, index));
+
+    let previousPath: string | null = null;
+
     await AppDataSource.transaction(async (manager) => {
-      const diagram = await manager.findOneBy(Diagram, { id: params.id });
-      if (!diagram) throw new Error('Test no encontrado');
-  
-      const actor = await manager.findOneBy(User, { id: params.actorId });
-      if (!actor) throw new Error('Usuario no encontrado');
-      const supervisor = actor.role === UserRole.SUPERVISOR;
-  
-      // 1) Cargar preguntas existentes con opciones y creador
-      const existingQs = await manager.find(Question, {
+      const diagram = await manager.findOne(Diagram, {
+        where: { id: params.id },
+        relations: { creator: true },
+      });
+      if (!diagram) {
+        throw new Error('Diagrama no encontrado');
+      }
+
+      const actor = await manager.findOne(User, { where: { id: params.actorId } });
+      if (!actor) {
+        throw new Error('Usuario no encontrado');
+      }
+
+      const existingQuestions = await manager.find(Question, {
         where: { diagram: { id: diagram.id } },
         relations: { options: true, creator: true },
         order: { createdAt: 'ASC' },
       });
-  
-      // 2) Mapa firma -> creador original (y status original para info si quisieras)
-      const existingSignatureCreator = new Map<string, User>();
-      for (const q of existingQs) {
-        const optTexts = (q.options || []).slice().sort((a,b)=>a.orderIndex-b.orderIndex).map(o => o.text);
-        const sig = makeSignature({
-          prompt: q.prompt,
-          hint: q.hint || '',
-          options: optTexts,
-          correctIndex: q.correctOptionIndex ?? 0,
-        });
-        if (q.creator) existingSignatureCreator.set(sig, q.creator);
-      }
-  
-      // 3) Actualizar título/imagen
-      oldPublicPath = params.newFile ? diagram.path : null;
+
+      const supervisor = actor.role === UserRole.SUPERVISOR;
+
       diagram.title = params.title.trim();
       if (params.newFile) {
+        previousPath = diagram.path;
         diagram.filename = params.newFile.filename;
         diagram.path = `/uploads/diagrams/${params.newFile.filename}`;
       }
       await manager.save(diagram);
-  
-      // 4) Borrar TODAS las existentes (como antes)…
-      //    …pero conservamos el mapa de creadores por firma
-      for (const q of existingQs) {
-        if (q.options?.length) await manager.remove(Option, q.options);
+
+      const catalogQuestions = existingQuestions.filter((question) => question.source === QuestionSource.CATALOG);
+      const catalogById = new Map(catalogQuestions.map((question) => [question.id, question] as const));
+
+      const payloadById = new Map(
+        normalizedQuestions
+          .filter((question) => question.id)
+          .map((question) => [question.id as string, question])
+      );
+
+      const idsToRemove = catalogQuestions
+        .filter((question) => !payloadById.has(question.id))
+        .map((question) => question.id);
+
+      if (idsToRemove.length > 0) {
+        const optionsToDelete = catalogQuestions
+          .filter((question) => idsToRemove.includes(question.id))
+          .flatMap((question) => question.options ?? []);
+        if (optionsToDelete.length > 0) {
+          await manager.remove(Option, optionsToDelete);
+        }
+        const questionsToDelete = catalogQuestions.filter((question) => idsToRemove.includes(question.id));
+        await manager.remove(Question, questionsToDelete);
       }
-      if (existingQs.length) await manager.remove(Question, existingQs);
-  
-      // 5) Re-crear preservando el creador cuando la firma coincide
-      for (const q of params.questions) {
-        const sig = makeSignature(q);
-        const originalCreator = existingSignatureCreator.get(sig);
-        const creatorToUse = originalCreator ?? actor; // 👈 clave del fix
-  
+
+      for (const [questionId, payload] of payloadById) {
+        const existing = catalogById.get(questionId);
+        if (!existing) {
+          continue;
+        }
+
+        existing.prompt = payload.prompt;
+        existing.hint = payload.hint;
+        existing.correctOptionIndex = payload.correctIndex;
+        existing.creator = actor;
+        existing.source = QuestionSource.CATALOG;
+        existing.status = supervisor ? ReviewStatus.APPROVED : ReviewStatus.PENDING;
+        existing.reviewComment = null;
+        existing.reviewedBy = supervisor ? actor : null;
+        existing.reviewedAt = supervisor ? new Date() : null;
+
+        if (existing.options?.length) {
+          await manager.remove(Option, existing.options);
+        }
+
+        const newOptions = payload.options.map((text, orderIndex) =>
+          manager.create(Option, { text, orderIndex, question: existing })
+        );
+        await manager.save(newOptions);
+        await manager.save(existing);
+      }
+
+      const newQuestions = normalizedQuestions.filter((question) => !question.id);
+      for (const payload of newQuestions) {
         const question = manager.create(Question, {
-          prompt: q.prompt.trim(),
-          hint: q.hint.trim(),
-          correctOptionIndex: q.correctIndex,
+          prompt: payload.prompt,
+          hint: payload.hint,
+          correctOptionIndex: payload.correctIndex,
           diagram,
-          creator: creatorToUse,
+          creator: actor,
+          source: QuestionSource.CATALOG,
           status: supervisor ? ReviewStatus.APPROVED : ReviewStatus.PENDING,
           reviewedBy: supervisor ? actor : null,
           reviewedAt: supervisor ? new Date() : null,
           reviewComment: null,
         });
         await manager.save(question);
-  
-        const options = q.options.map((text, idx) =>
-          manager.create(Option, { text: text.trim(), orderIndex: idx, question })
+
+        const options = payload.options.map((text, orderIndex) =>
+          manager.create(Option, { text, orderIndex, question })
         );
         await manager.save(options);
       }
     });
-  
-    if (oldPublicPath) {
-      const absolute = path.resolve(oldPublicPath.replace(/^\/+/, ''));
-      fs.unlink(absolute, () => { /* ignore */ });
+
+    if (previousPath) {
+      const absolute = resolveUploadPath(previousPath);
+      await fs.unlink(absolute).catch(() => undefined);
     }
   }
-  // -------------------
-  // DELETE
-  // -------------------
+
   async deleteDiagram(id: string): Promise<void> {
-    let oldPublicPath: string | null = null;
+    let previousPath: string | null = null;
 
     await AppDataSource.transaction(async (manager) => {
       const diagram = await manager.findOneBy(Diagram, { id });
-      if (!diagram) throw new Error('Test no encontrado');
+      if (!diagram) {
+        throw new Error('Diagrama no encontrado');
+      }
 
-      oldPublicPath = diagram.path;
-      await manager.remove(Diagram, diagram); // cascade borra preguntas/opciones
+      previousPath = diagram.path;
+      await manager.remove(Diagram, diagram);
     });
 
-    if (oldPublicPath) {
-      const absolute = path.resolve(oldPublicPath.replace(/^\/+/, ''));
-      fs.unlink(absolute, () => {/* ignore */});
+    if (previousPath) {
+      const absolute = resolveUploadPath(previousPath);
+      await fs.unlink(absolute).catch(() => undefined);
     }
   }
-
-
-
-
 }

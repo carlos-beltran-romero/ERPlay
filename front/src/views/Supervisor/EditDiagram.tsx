@@ -7,12 +7,17 @@ import { getDiagram, updateDiagram } from '../../services/diagrams';
 import { Plus, Trash2, CheckCircle2, Image as ImageIcon, Save, ArrowLeft } from 'lucide-react';
 
 type QuestionForm = {
+  id?: string;
   prompt: string;
   hint: string;
   options: string[];
   correctIndex: number;
 };
 
+/**
+ * Formulario para editar un diagrama existente y su banco de preguntas.
+ * @public
+ */
 const EditDiagram: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -42,6 +47,7 @@ const EditDiagram: React.FC = () => {
         setTitle(d.title || '');
         setImagePreview(d.path || '');
         const qNorm = (d.questions || []).map((q: any) => ({
+          id: q.id as string | undefined,
           prompt: q.prompt || '',
           hint: q.hint || '',
           options: Array.isArray(q.options) ? q.options : [],
@@ -80,7 +86,7 @@ const EditDiagram: React.FC = () => {
   const addQuestion = () => {
     setQuestions(prev => [
       ...prev,
-      { prompt: '', hint: '', options: ['', ''], correctIndex: 0 },
+      { id: undefined, prompt: '', hint: '', options: ['', ''], correctIndex: 0 },
     ]);
   };
 
@@ -181,6 +187,7 @@ const EditDiagram: React.FC = () => {
         'questions',
         JSON.stringify(
           questions.map(q => ({
+            id: q.id,
             prompt: q.prompt.trim(),
             hint: q.hint.trim(),
             options: q.options.map(o => o.trim()),
@@ -198,6 +205,7 @@ const EditDiagram: React.FC = () => {
       initialSnapRef.current = JSON.stringify({
         title: title.trim(),
         questions: questions.map(q => ({
+          id: q.id,
           prompt: q.prompt.trim(),
           hint: q.hint.trim(),
           options: q.options.map(o => o.trim()),

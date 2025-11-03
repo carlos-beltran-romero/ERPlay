@@ -1,17 +1,19 @@
-// src/services/diagrams.ts
-import { fetchAuth, API_URL } from './http';
+import { API_URL, fetchAuth } from './http';
+
+export type QuestionSource = 'catalog' | 'student';
 
 export interface QuestionInput {
+  id?: string;
   prompt: string;
-  options: string[];      // >=2
-  correctIndex: number;   // 0..n-1
   hint: string;
+  options: string[];
+  correctIndex: number;
 }
 
 export interface DiagramSummary {
   id: string;
   title: string;
-  path: string;           // url pública de la imagen
+  path: string;
   createdAt: string;
   questionsCount?: number;
 }
@@ -20,76 +22,124 @@ export interface DiagramDetail {
   id: string;
   title: string;
   path: string;
-  questions: QuestionInput[];
+  questions: Array<QuestionInput & { source: QuestionSource }>;
 }
 
-const toAbs = (p?: string) =>
-  (p && !p.startsWith('http') ? `${API_URL}${p}` : p ?? '');
+const toAbsolutePath = (publicPath?: string): string =>
+  publicPath && !publicPath.startsWith('http') ? `${API_URL}${publicPath}` : publicPath ?? '';
 
-// Crear diagrama (FormData → NO forzar Content-Type)
+/**
+ * Sube un nuevo diagrama con sus preguntas asociadas.
+ * @public
+ * @param payload Datos del formulario con archivo y preguntas.
+ * @returns Identificador y ruta pública del recurso creado.
+ */
 export async function uploadDiagram(payload: {
   title: string;
   imageFile: File;
   questions: QuestionInput[];
-}): Promise<{ id: string }> {
-  const fd = new FormData();
-  fd.append('title', payload.title);
-  fd.append('image', payload.imageFile);
-  fd.append('questions', JSON.stringify(payload.questions));
+}): Promise<{ id: string; path: string }> {
+  const formData = new FormData();
+  formData.append('title', payload.title);
+  formData.append('image', payload.imageFile);
+  formData.append('questions', JSON.stringify(payload.questions));
 
-  const res = await fetchAuth(`${API_URL}/api/diagrams`, {
+  const response = await fetchAuth(`${API_URL}/api/diagrams`, {
     method: 'POST',
-    body: fd,
+    body: formData,
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || 'No se pudo subir el diagrama');
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.error || 'No se pudo subir el diagrama');
+  }
   return data;
 }
 
+/**
+ * Recupera el listado de diagramas disponibles para supervisión.
+ * @public
+ * @returns Colección de resúmenes de diagramas.
+ */
 export async function listDiagrams(): Promise<DiagramSummary[]> {
-  const res = await fetchAuth(`${API_URL}/api/diagrams`);
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.error || 'No se pudo cargar la lista de tests');
+  const response = await fetchAuth(`${API_URL}/api/diagrams`);
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data?.error || 'No se pudo cargar la lista de tests');
+  }
   return data;
 }
 
-export async function getDiagram(id: string) {
-  const res = await fetchAuth(`${API_URL}/api/diagrams/${id}`);
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.error || 'No se pudo cargar el test');
-  return { ...data, path: toAbs(data.path) };
+/**
+ * Obtiene el detalle de un diagrama concreto.
+ * @public
+ * @param id Identificador del diagrama.
+ * @returns Datos normalizados del diagrama, incluida la ruta absoluta.
+ */
+export async function getDiagram(id: string): Promise<DiagramDetail> {
+  const response = await fetchAuth(`${API_URL}/api/diagrams/${id}`);
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data?.error || 'No se pudo cargar el test');
+  }
+  return {
+    ...data,
+    path: toAbsolutePath(data.path),
+  };
 }
 
-export async function updateDiagram(id: string, formData: FormData) {
-  const res = await fetchAuth(`${API_URL}/api/diagrams/${id}`, {
+/**
+ * Actualiza un diagrama existente.
+ * @public
+ * @param id Identificador del diagrama.
+ * @param formData FormData con campos a actualizar.
+ * @returns Mensaje de confirmación.
+ */
+export async function updateDiagram(
+  id: string,
+  formData: FormData,
+): Promise<{ message: string }> {
+  const response = await fetchAuth(`${API_URL}/api/diagrams/${id}`, {
     method: 'PUT',
     body: formData,
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || 'No se pudo actualizar');
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.error || 'No se pudo actualizar');
+  }
   return data;
 }
 
+/**
+ * Elimina un diagrama existente.
+ * @public
+ * @param id Identificador del diagrama.
+ */
 export async function deleteDiagram(id: string): Promise<void> {
-  const res = await fetchAuth(`${API_URL}/api/diagrams/${id}`, {
+  const response = await fetchAuth(`${API_URL}/api/diagrams/${id}`, {
     method: 'DELETE',
   });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
     throw new Error(data?.error || 'No se pudo eliminar el test');
   }
 }
 
-// Selector público (alumno/supervisor)
-export async function listPublicDiagrams() {
-  const res = await fetchAuth(`${API_URL}/api/diagrams/public`);
-  const data = await res.json().catch(() => ({}));
+/**
+ * Devuelve la lista pública de diagramas disponibles.
+ * @public
+ * @returns Resumen para selectores del alumnado.
+ */
+export async function listPublicDiagrams(): Promise<DiagramSummary[]> {
+  const response = await fetchAuth(`${API_URL}/api/diagrams/public`);
+  const data = await response.json().catch(() => ({}));
 
-  if (res.status === 401 || res.status === 403) {
-    const err: any = new Error('Acceso denegado');
-    err.code = res.status;
-    throw err;
+  if (response.status === 401 || response.status === 403) {
+    const error: Error & { code?: number } = new Error('Acceso denegado');
+    error.code = response.status;
+    throw error;
   }
-  if (!res.ok) throw new Error(data?.error || 'No se pudieron cargar los diagramas');
+  if (!response.ok) {
+    throw new Error(data?.error || 'No se pudieron cargar los diagramas');
+  }
   return data;
 }

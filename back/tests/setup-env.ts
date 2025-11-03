@@ -1,0 +1,13 @@
+process.env.NODE_ENV = 'test';
+process.env.DB_HOST = process.env.DB_HOST ?? '127.0.0.1';
+process.env.DB_PORT = process.env.DB_PORT ?? '3306';
+process.env.DB_USER = process.env.DB_USER ?? 'root';
+process.env.DB_PASSWORD = process.env.DB_PASSWORD ?? '';
+process.env.DB_NAME = process.env.DB_NAME ?? 'erplay_test';
+process.env.JWT_SECRET = process.env.JWT_SECRET ?? 'test-secret';
+process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'test-refresh-secret';
+process.env.JWT_RESET_SECRET = process.env.JWT_RESET_SECRET ?? 'test-reset-secret';
+process.env.SMTP_HOST = process.env.SMTP_HOST ?? 'localhost';
+process.env.SMTP_PORT = process.env.SMTP_PORT ?? '1025';
+process.env.SMTP_USER = process.env.SMTP_USER ?? 'user';
+process.env.SMTP_PASS = process.env.SMTP_PASS ?? 'pass';

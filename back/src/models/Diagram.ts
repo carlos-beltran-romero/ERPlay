@@ -1,16 +1,21 @@
 import {
-  Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn,
-  ManyToOne, OneToMany, BaseEntity,
+  BaseEntity,
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
-import { User } from './User';
 import { Question } from './Question';
+import { User } from './User';
 
 @Entity({ name: 'diagrams' })
 export class Diagram extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  // ✔️ Título que pide el front
   @Column({ type: 'varchar', length: 255, unique: true })
   title!: string;
 
@@ -20,7 +25,10 @@ export class Diagram extends BaseEntity {
   @Column({ type: 'varchar', length: 500 })
   path!: string;
 
-  @OneToMany(() => Question, (question) => question.diagram, { cascade: true })
+  @ManyToOne(() => User, (user) => user.diagrams, { nullable: false, onDelete: 'CASCADE' })
+  creator!: User;
+
+  @OneToMany(() => Question, (question) => question.diagram, { cascade: ['insert', 'update'] })
   questions!: Question[];
 
   @CreateDateColumn({ name: 'created_at' })

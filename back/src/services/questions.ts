@@ -1,6 +1,6 @@
 // src/services/questions
 import { AppDataSource } from '../data-source';
-import { Question, ReviewStatus } from '../models/Question';
+import { Question, QuestionSource, ReviewStatus } from '../models/Question';
 import { Option } from '../models/Option';
 import { User, UserRole } from '../models/User';
 import { Diagram } from '../models/Diagram';
@@ -43,12 +43,16 @@ export class QuestionsService {
       creator.role === UserRole.SUPERVISOR ? ReviewStatus.APPROVED : ReviewStatus.PENDING;
 
     const q = await AppDataSource.transaction(async (manager) => {
+      const source =
+        creator.role === UserRole.SUPERVISOR ? QuestionSource.CATALOG : QuestionSource.STUDENT;
+
       const question = manager.create(Question, {
         prompt: params.prompt.trim(),
         hint: params.hint.trim(),
         correctOptionIndex: params.correctIndex,
         diagram,
         creator,
+        source,
         status: initialStatus,
       });
       await manager.save(question);

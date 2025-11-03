@@ -1,20 +1,16 @@
-// src/index.ts
-import './server';          
-import 'dotenv/config';
 import { AppDataSource } from './data-source';
+import { env } from './config/env';
 
-const PORT = process.env.PORT || 3000;
+const port = env.PORT;
 
 AppDataSource.initialize()
-  .then(() => {
-    console.log('✅ Conexión a MySQL establecida (TypeORM).');
-    import('./server').then(({ default: app }) => {
-      app.listen(PORT, () =>
-        console.log(`🚀 API listening on http://localhost:${PORT}`)
-      );
+  .then(async () => {
+    const { default: app } = await import('./server');
+    app.listen(port, () => {
+      console.log(`API disponible en http://localhost:${port}`);
     });
   })
-  .catch((err) => {
-    console.error('❌ Error inicializando DataSource:', err);
+  .catch((error) => {
+    console.error('No se pudo iniciar la API', error);
     process.exit(1);
   });
