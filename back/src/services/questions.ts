@@ -1,17 +1,18 @@
-// src/services/questions
+/**
+ * @module services/questions
+ * Orquesta la creación, revisión y notificaciones de preguntas.
+ */
+import { defaultMailer } from '../config/mailer';
+import { env } from '../config/env';
+import { createHttpError } from '../core/errors/HttpError';
 import { AppDataSource } from '../data-source';
-import { Question, ReviewStatus } from '../models/Question';
-import { Option } from '../models/Option';
-import { User, UserRole } from '../models/User';
 import { Diagram } from '../models/Diagram';
-import nodemailer from 'nodemailer';
+import { Option } from '../models/Option';
+import { Question, ReviewStatus } from '../models/Question';
+import { User, UserRole } from '../models/User';
+import { escapeHtml, letterFromIndex, renderCardEmail } from './shared/emailTemplates';
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
-  secure: true,
-  auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-});
+const transporter = defaultMailer;
 
 type CreateQuestionParams = {
   diagramId: string;
@@ -22,22 +23,40 @@ type CreateQuestionParams = {
   creatorId: string;
 };
 
+/**
+ * Reglas de negocio para gestionar preguntas propuestas por estudiantes.
+ *
+ * @public
+ */
 export class QuestionsService {
   private questionRepo = AppDataSource.getRepository(Question);
   private optionRepo = AppDataSource.getRepository(Option);
   private diagramRepo = AppDataSource.getRepository(Diagram);
   private userRepo = AppDataSource.getRepository(User);
 
+  /**
+   * Registra una nueva pregunta propuesta por un estudiante o supervisor.
+   *
+   * @public
+   * @param params - Información mínima de la pregunta y su creador.
+   * @returns Identificador y estado inicial.
+   */
   async createQuestion(params: CreateQuestionParams): Promise<{ id: string; status: ReviewStatus }> {
     const diagram = await this.diagramRepo.findOneByOrFail({ id: params.diagramId });
     const creator = await this.userRepo.findOneByOrFail({ id: params.creatorId });
 
     // Validaciones simples
-    if (!params.prompt?.trim()) throw new Error('El enunciado es obligatorio');
-    if (!params.hint?.trim()) throw new Error('La pista es obligatoria');
-    if (!Array.isArray(params.options) || params.options.length < 2) throw new Error('Mínimo 2 opciones');
-    if (params.options.some(o => !o || !o.trim())) throw new Error('Las opciones no pueden estar vacías');
-    if (params.correctIndex < 0 || params.correctIndex >= params.options.length) throw new Error('Índice correcto inválido');
+    if (!params.prompt?.trim()) throw createHttpError(400, 'El enunciado es obligatorio');
+    if (!params.hint?.trim()) throw createHttpError(400, 'La pista es obligatoria');
+    if (!Array.isArray(params.options) || params.options.length < 2) {
+      throw createHttpError(400, 'Mínimo 2 opciones');
+    }
+    if (params.options.some((option) => !option || !option.trim())) {
+      throw createHttpError(400, 'Las opciones no pueden estar vacías');
+    }
+    if (params.correctIndex < 0 || params.correctIndex >= params.options.length) {
+      throw createHttpError(400, 'Índice correcto inválido');
+    }
 
     const initialStatus =
       creator.role === UserRole.SUPERVISOR ? ReviewStatus.APPROVED : ReviewStatus.PENDING;
@@ -69,10 +88,20 @@ export class QuestionsService {
     return { id: q.id, status: q.status };
   }
 
+  /**
+   * Devuelve la cantidad de preguntas pendientes de revisión.
+   *
+   * @public
+   */
   async getPendingCount(): Promise<number> {
     return this.questionRepo.count({ where: { status: ReviewStatus.PENDING } });
   }
 
+  /**
+   * Lista preguntas en espera de revisión para los supervisores.
+   *
+   * @public
+   */
   async listPending(): Promise<Array<{
     id: string;
     prompt: string;
@@ -112,6 +141,12 @@ export class QuestionsService {
     });
   }
 
+  /**
+   * Aprueba o rechaza una pregunta según la decisión del supervisor.
+   *
+   * @public
+   * @param params - Identificador de la pregunta y decisión tomada.
+   */
   async verifyQuestion(params: {
     questionId: string;
     reviewerId: string;
@@ -122,7 +157,7 @@ export class QuestionsService {
       where: { id: params.questionId },
       relations: { creator: true, diagram: true, options: true },
     });
-    if (!q) throw new Error('Pregunta no encontrada');
+    if (!q) throw createHttpError(404, 'Pregunta no encontrada');
 
     const reviewer = await this.userRepo.findOneByOrFail({ id: params.reviewerId });
 
@@ -149,60 +184,10 @@ export class QuestionsService {
     }
   }
 
-  // =========================================================
-  // =====================  EMAILS (CARD) ====================
-  // =========================================================
-
-  /** Plantilla común con “recuadro” y cabecera con acento */
-  private renderEmail(opts: {
-    title: string;
-    bodyHtml: string;
-    accent?: string;     // color del header (hex)
-    footerHtml?: string; // pie opcional
-  }) {
-    const accent = opts.accent ?? '#F3F4F6';
-    const year = new Date().getFullYear();
-    return `
-      <div style="background:#f5f7fb;padding:24px 16px;">
-        <div style="
-          max-width:680px;margin:0 auto;background:#ffffff;
-          border:1px solid #e5e7eb;border-radius:12px;
-          box-shadow:0 2px 10px rgba(17,24,39,0.06);
-          overflow:hidden;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-          color:#111827;
-        ">
-          <div style="padding:14px 20px;background:${accent};border-bottom:1px solid #e5e7eb;">
-            <h2 style="margin:0;font-size:18px;line-height:1.3;color:#111827">${opts.title}</h2>
-          </div>
-
-          <div style="padding:20px">
-            ${opts.bodyHtml}
-          </div>
-
-          <div style="padding:12px 20px;border-top:1px solid #e5e7eb;text-align:center;color:#6b7280;font-size:12px;">
-            ${opts.footerHtml ?? `&copy; ${year} ERPlay`}
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  private letter(i: number) {
-    const n = Number.isFinite(i) ? i : 0;
-    return String.fromCharCode(65 + Math.max(0, n));
-  }
-
-  private escapeHtml(s: string) {
-    return (s ?? '')
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
   /** Email a supervisores: nueva pregunta pendiente (con opciones y correcta) */
   private async notifySupervisorsNewPending(questionId: string) {
     // Destinatarios
-    const fixed = process.env.SUPERVISOR_NOTIFY_EMAIL;
+    const fixed = env.SUPERVISOR_NOTIFY_EMAIL;
     let recipients: string[] = [];
     if (fixed) {
       recipients = [fixed];
@@ -225,7 +210,7 @@ export class QuestionsService {
     const creatorEmail = q.creator?.email ?? '';
     const fullName     = [creatorName, creatorLast].filter(Boolean).join(' ') || 'Alumno';
 
-    const frontURL  = process.env.FRONTEND_URL || process.env.APP_URL || '';
+    const frontURL = env.FRONTEND_URL ?? env.APP_URL ?? '';
     const reviewURL = frontURL ? `${frontURL.replace(/\/+$/,'')}/supervisor/questions/review` : '';
 
     const sortedOpts = (q.options ?? []).slice().sort((a,b)=>a.orderIndex-b.orderIndex);
@@ -237,8 +222,8 @@ export class QuestionsService {
               border:1px solid ${correct ? '#A7F3D0' : '#e5e7eb'};
               background:${correct ? '#ECFDF5' : '#ffffff'};
               border-radius:10px;padding:8px 10px;margin:6px 0;font-size:14px;">
-              <strong style="margin-right:6px">${this.letter(idx)}.</strong>
-              <span>${this.escapeHtml(o.text)}</span>
+              <strong style="margin-right:6px">${letterFromIndex(idx)}.</strong>
+              <span>${escapeHtml(o.text)}</span>
               ${correct ? `<span style="color:#065F46;margin-left:8px;font-weight:600">Correcta</span>` : ''}
             </div>
           `;
@@ -270,24 +255,24 @@ export class QuestionsService {
         <table role="presentation" style="width:100%;border-collapse:collapse">
           <tr>
             <td style="padding:6px 0;width:120px;color:#6b7280;">Diagrama</td>
-            <td style="padding:6px 0;"><strong>${this.escapeHtml(diagramTitle)}</strong></td>
+            <td style="padding:6px 0;"><strong>${escapeHtml(diagramTitle)}</strong></td>
           </tr>
           <tr>
             <td style="padding:6px 0;width:120px;color:#6b7280;">Autor</td>
             <td style="padding:6px 0;">
-              ${this.escapeHtml(fullName)}
+              ${escapeHtml(fullName)}
               ${creatorEmail ? `&nbsp;&middot;&nbsp;<a href="mailto:${creatorEmail}" style="color:#4f46e5;text-decoration:none">${creatorEmail}</a>` : ''}
             </td>
           </tr>
           <tr>
             <td style="padding:6px 0;width:120px;color:#6b7280;">Enviada</td>
-            <td style="padding:6px 0;">${this.escapeHtml(new Date(q.createdAt).toLocaleString())}</td>
+            <td style="padding:6px 0;">${escapeHtml(new Date(q.createdAt).toLocaleString())}</td>
           </tr>
         </table>
 
         <div style="margin:14px 0 8px 0;color:#6b7280;font-size:12px;">Pregunta</div>
         <div style="padding:12px;border:1px solid #e5e7eb;border-radius:10px;background:#F9FAFB">
-          ${this.escapeHtml(q.prompt)}
+          ${escapeHtml(q.prompt)}
         </div>
 
         <div style="margin:14px 0 8px 0;color:#6b7280;font-size:12px;">Opciones</div>
@@ -297,7 +282,7 @@ export class QuestionsService {
       </div>
     `;
 
-    const html = this.renderEmail({
+    const html = renderCardEmail({
       title: 'Nueva pregunta pendiente de revisión',
       bodyHtml: body,
       accent: '#FEF3C7', // ámbar (pendiente)
@@ -320,7 +305,7 @@ export class QuestionsService {
   }) {
     const approved = args.status === ReviewStatus.APPROVED;
 
-    const frontURL = (process.env.FRONTEND_URL || process.env.APP_URL || '').replace(/\/+$/, '');
+    const frontURL = (env.FRONTEND_URL ?? env.APP_URL ?? '').replace(/\/+$/, '');
     const myQuestionsURL = frontURL ? `${frontURL}/student/questions` : '';
 
     const statusBadge = approved
@@ -348,7 +333,7 @@ export class QuestionsService {
           <div style="font-size:14px;color:#64748b;margin-bottom:6px;">Motivo del rechazo</div>
           <div style="padding:12px;border:1px solid #fecaca;border-radius:10px;background:#fff1f2;
                       color:#7f1d1d;font-size:14px;">
-            ${this.escapeHtml(args.comment.trim())}
+            ${escapeHtml(args.comment.trim())}
           </div>
         </div>`
       : (!approved
@@ -363,7 +348,7 @@ export class QuestionsService {
 
         <div style="margin:8px 0 6px 0;font-size:12px;color:#6b7280;">Pregunta</div>
         <div style="padding:12px;border:1px solid #e5e7eb;border-radius:10px;background:#F9FAFB">
-          ${this.escapeHtml(args.prompt)}
+          ${escapeHtml(args.prompt)}
         </div>
 
         ${rejectBlock}
@@ -378,7 +363,7 @@ export class QuestionsService {
       </div>
     `;
 
-    const html = this.renderEmail({
+    const html = renderCardEmail({
       title: 'Resultado de la revisión de tu pregunta',
       bodyHtml: body,
       accent: approved ? '#D1FAE5' : '#FEE2E2', // verde/rojo claro
@@ -394,6 +379,12 @@ export class QuestionsService {
 
   // =========================================================
 
+  /**
+   * Muestra al autor el histórico de sus preguntas con detalle.
+   *
+   * @public
+   * @param creatorId - Identificador del usuario creador.
+   */
   async listMine(creatorId: string): Promise<Array<{
     id: string;
     prompt: string;

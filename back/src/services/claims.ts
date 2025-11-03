@@ -1,17 +1,20 @@
+/**
+ * @module services/claims
+ * Reclamaciones sobre preguntas y resultados de test.
+ */
+
+import { env } from '../config/env';
+import { defaultMailer } from '../config/mailer';
+import { createHttpError } from '../core/errors/HttpError';
 import { AppDataSource } from '../data-source';
 import { Claim, ClaimStatus } from '../models/Claim';
-import { Question, ReviewStatus } from '../models/Question';
 import { Diagram } from '../models/Diagram';
-import { User, UserRole } from '../models/User';
+import { Question, ReviewStatus } from '../models/Question';
 import { TestResult } from '../models/TestResult';
-import nodemailer from 'nodemailer';
+import { User, UserRole } from '../models/User';
+import { escapeHtml, letterFromIndex, renderCardEmail } from './shared/emailTemplates';
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
-  secure: true,
-  auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-});
+const transporter = defaultMailer;
 
 // ===== helpers =====
 function norm(s: string) {
@@ -22,13 +25,13 @@ function arraysEqualText(a: string[], b: string[]) {
   for (let i = 0; i < a.length; i++) if (norm(a[i]) !== norm(b[i])) return false;
   return true;
 }
-function escapeHtml(s: string) {
-  return s
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
+/**
+ * Gestiona el ciclo de vida de las reclamaciones generadas por estudiantes.
+ * Encapsula transacciones, notificaciones y reglas de negocio.
+ *
+ * @public
+ */
 export class ClaimsService {
   private claimRepo = AppDataSource.getRepository(Claim);
   private questionRepo = AppDataSource.getRepository(Question);
@@ -37,6 +40,14 @@ export class ClaimsService {
   private resultRepo = AppDataSource.getRepository(TestResult);
 
   // ================== Crear reclamación ==================
+  /**
+   * Crea una nueva reclamación para una pregunta, enlazando el resultado si existe.
+   * Valida integridad, evita duplicados y dispara la notificación a supervisores.
+   *
+   * @public
+   * @param params - Datos enviados por el alumno.
+   * @returns Resumen de la reclamación creada.
+   */
   async createClaim(params: {
     studentId: string;
     testResultId?: string | null;   // ⬅️ NUEVO
@@ -50,13 +61,19 @@ export class ClaimsService {
   }) {
     const student = await this.userRepo.findOneByOrFail({ id: params.studentId });
     const diagram = await this.diagramRepo.findOneBy({ id: params.diagramId });
-    if (!diagram) throw new Error('Diagrama no encontrado');
+    if (!diagram) throw createHttpError(404, 'Diagrama no encontrado');
 
-    if (!params.prompt?.trim()) throw new Error('El enunciado es obligatorio');
-    if (!Array.isArray(params.options) || params.options.length < 2) throw new Error('Mínimo 2 opciones');
-    if (params.chosenIndex < 0 || params.chosenIndex >= params.options.length) throw new Error('Índice elegido inválido');
-    if (params.correctIndex < 0 || params.correctIndex >= params.options.length) throw new Error('Índice correcto inválido');
-    if (!params.explanation?.trim()) throw new Error('La explicación es obligatoria');
+    if (!params.prompt?.trim()) throw createHttpError(400, 'El enunciado es obligatorio');
+    if (!Array.isArray(params.options) || params.options.length < 2) {
+      throw createHttpError(400, 'Mínimo 2 opciones');
+    }
+    if (params.chosenIndex < 0 || params.chosenIndex >= params.options.length) {
+      throw createHttpError(400, 'Índice elegido inválido');
+    }
+    if (params.correctIndex < 0 || params.correctIndex >= params.options.length) {
+      throw createHttpError(400, 'Índice correcto inválido');
+    }
+    if (!params.explanation?.trim()) throw createHttpError(400, 'La explicación es obligatoria');
 
     const claim = await AppDataSource.transaction(async (m) => {
       const qRepo = m.getRepository(Question);
@@ -71,7 +88,7 @@ export class ClaimsService {
           lock: { mode: 'pessimistic_write' },
         });
         if (!testResult || testResult.session.user.id !== params.studentId) {
-          throw new Error('Resultado no válido para reclamar');
+          throw createHttpError(400, 'Resultado no válido para reclamar');
         }
         // evita duplicados de claim para el mismo resultado
         const dup = await m.getRepository(Claim).findOne({
@@ -152,6 +169,12 @@ export class ClaimsService {
   }
 
   // ================== Listados ==================
+  /**
+   * Recupera reclamaciones pendientes para los paneles de supervisión.
+   *
+   * @public
+   * @returns Array resumido con contexto del estudiante y del diagrama.
+   */
   async listPending() {
     const rows = await this.claimRepo.find({
       where: { status: ClaimStatus.PENDING },
@@ -181,10 +204,23 @@ export class ClaimsService {
     }));
   }
 
+  /**
+   * Cuenta el número de reclamaciones pendientes para mostrar indicadores.
+   *
+   * @public
+   * @returns Total de reclamaciones en estado pendiente.
+   */
   async getPendingCount() {
     return this.claimRepo.count({ where: { status: ClaimStatus.PENDING } });
   }
 
+  /**
+   * Lista las reclamaciones asociadas a un alumno concreto.
+   *
+   * @public
+   * @param studentId - Identificador del estudiante autenticado.
+   * @returns Historial de reclamaciones del alumno.
+   */
   async listMine(studentId: string) {
     const rows = await this.claimRepo.find({
       where: { student: { id: studentId } },
@@ -210,6 +246,13 @@ export class ClaimsService {
   }
 
   // ================== Decidir reclamación ==================
+  /**
+   * Registra la decisión de un supervisor sobre una reclamación pendiente.
+   * Actualiza la pregunta, notifica al alumno y deja registro del revisor.
+   *
+   * @public
+   * @param params - Datos de la resolución emitida por el supervisor.
+   */
   async decideClaim(params: {
     claimId: string;
     reviewerId: string;
@@ -217,7 +260,7 @@ export class ClaimsService {
     comment?: string;
   }) {
     const reviewer = await this.userRepo.findOneByOrFail({ id: params.reviewerId });
-    if (reviewer.role !== UserRole.SUPERVISOR) throw new Error('No autorizado');
+    if (reviewer.role !== UserRole.SUPERVISOR) throw createHttpError(403, 'No autorizado');
 
     await AppDataSource.transaction(async (m) => {
       const claim = await m.getRepository(Claim).findOne({
@@ -225,8 +268,10 @@ export class ClaimsService {
         relations: { question: true, student: true, diagram: true },
         lock: { mode: 'pessimistic_write' },
       });
-      if (!claim) throw new Error('Reclamación no encontrada');
-      if (claim.status !== ClaimStatus.PENDING) throw new Error('La reclamación ya fue resuelta');
+      if (!claim) throw createHttpError(404, 'Reclamación no encontrada');
+      if (claim.status !== ClaimStatus.PENDING) {
+        throw createHttpError(409, 'La reclamación ya fue resuelta');
+      }
 
       // Carga pregunta con opciones si existe (para recalcular índice por texto)
       const q = claim.question
@@ -293,42 +338,9 @@ export class ClaimsService {
   }
 
   // ================== Emails ==================
-  private letter(i: number) {
-    const n = Number.isFinite(i) ? i : 0;
-    return String.fromCharCode(65 + Math.max(0, n));
-  }
-
-  /** Plantilla sencilla con cabecera coloreada */
-  private renderEmail(opts: {
-    title: string;
-    bodyHtml: string;
-    accent?: string;
-    footerHtml?: string;
-  }) {
-    const accent = opts.accent ?? '#F3F4F6';
-    const year = new Date().getFullYear();
-    return `
-      <div style="background:#f5f7fb;padding:24px 16px;">
-        <div style="
-          max-width:680px;margin:0 auto;background:#ffffff;
-          border:1px solid #e5e7eb;border-radius:12px;
-          box-shadow:0 2px 10px rgba(17,24,39,0.06);
-          overflow:hidden;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-          color:#111827;">
-          <div style="padding:14px 20px;background:${accent};border-bottom:1px solid #e5e7eb;">
-            <h2 style="margin:0;font-size:18px;line-height:1.3;color:#111827">${opts.title}</h2>
-          </div>
-          <div style="padding:20px">${opts.bodyHtml}</div>
-          <div style="padding:12px 20px;border-top:1px solid #e5e7eb;text-align:center;color:#6b7280;font-size:12px;">
-            ${opts.footerHtml ?? `&copy; ${year} ERPlay`}
-          </div>
-        </div>
-      </div>
-    `;
-  }
 
   private async notifySupervisorsNewClaim(claim: Claim) {
-    const fixed = process.env.SUPERVISOR_NOTIFY_EMAIL;
+    const fixed = env.SUPERVISOR_NOTIFY_EMAIL;
     let recipients: string[] = [];
     if (fixed) {
       recipients = [fixed];
@@ -370,12 +382,12 @@ export class ClaimsService {
         <div style="display:flex;gap:8px;margin:10px 0 16px;flex-wrap:wrap">
           <span style="display:inline-block;border:1px solid #D1D5DB;border-radius:10px;padding:6px 10px;background:#ffffff;">
             <strong>Resp. alumno</strong>:
-            <span style="font-variant-numeric:tabular-nums">${this.letter(claim.chosenIndex)}</span>
+            <span style="font-variant-numeric:tabular-nums">${letterFromIndex(claim.chosenIndex)}</span>
             ${chosenTxt ? `· ${escapeHtml(chosenTxt)}` : ''}
           </span>
           <span style="display:inline-block;border:1px solid #D1D5DB;border-radius:10px;padding:6px 10px;background:#ffffff;">
             <strong>Resp. oficial</strong>:
-            <span style="font-variant-numeric:tabular-nums">${this.letter(claim.correctIndexAtSubmission)}</span>
+            <span style="font-variant-numeric:tabular-nums">${letterFromIndex(claim.correctIndexAtSubmission)}</span>
             ${correctTxt ? `· ${escapeHtml(correctTxt)}` : ''}
           </span>
         </div>
@@ -389,7 +401,7 @@ export class ClaimsService {
       </div>
     `;
 
-    const html = this.renderEmail({
+    const html = renderCardEmail({
       title: 'Nueva reclamación pendiente',
       bodyHtml: body,
       accent: '#FEF3C7',
@@ -439,12 +451,12 @@ export class ClaimsService {
         <div style="display:flex;gap:8px;margin:10px 0 16px;flex-wrap:wrap">
           <span style="display:inline-block;border:1px solid #D1D5DB;border-radius:10px;padding:6px 10px;background:#ffffff;">
             <strong>Tu respuesta</strong>:
-            <span style="font-variant-numeric:tabular-nums">${this.letter(args.chosenIndex)}</span>
+            <span style="font-variant-numeric:tabular-nums">${letterFromIndex(args.chosenIndex)}</span>
             ${chosenTxt ? `· ${escapeHtml(chosenTxt)}` : ''}
           </span>
           <span style="display:inline-block;border:1px solid #D1D5DB;border-radius:10px;padding:6px 10px;background:#ffffff;">
             <strong>Respuesta oficial tras revisión</strong>:
-            <span style="font-variant-numeric:tabular-nums">${this.letter(args.correctIndexNow)}</span>
+            <span style="font-variant-numeric:tabular-nums">${letterFromIndex(args.correctIndexNow)}</span>
             ${correctTxt ? `· ${escapeHtml(correctTxt)}` : ''}
           </span>
         </div>
@@ -462,7 +474,7 @@ export class ClaimsService {
       </div>
     `;
 
-    const html = this.renderEmail({
+    const html = renderCardEmail({
       title: 'Resultado de tu reclamación',
       bodyHtml: body,
       accent: approved ? '#D1FAE5' : '#FEE2E2',

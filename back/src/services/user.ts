@@ -1,6 +1,8 @@
+import bcrypt from 'bcrypt';
+
+import { createHttpError } from '../core/errors/HttpError';
 import { AppDataSource } from '../data-source';
 import { User, UserRole } from '../models/User';
-import bcrypt from 'bcrypt';
 
 export interface UpdateUserDTO {
   name?: string;
@@ -23,16 +25,6 @@ export interface SafeUser {
   email: string;
   role: UserRole;
   createdAt: Date;
-}
-
-export class AppError extends Error {
-  status: number;
-  details?: any;
-  constructor(status: number, message: string, details?: any) {
-    super(message);
-    this.status = status;
-    this.details = details;
-  }
 }
 
 export class UsersService {
@@ -128,13 +120,13 @@ export class UsersService {
       where: { id: userId },
       select: ['id', 'name', 'lastName', 'email', 'role', 'createdAt'],
     });
-    if (!user) throw new AppError(404, 'Usuario no encontrado');
+    if (!user) throw createHttpError(404, 'Usuario no encontrado');
     return user as SafeUser;
   }
 
   async updateUser(userId: string, dto: UpdateUserDTO): Promise<SafeUser> {
     const user = await this.userRepo.findOne({ where: { id: userId } });
-    if (!user) throw new AppError(404, 'Usuario no encontrado');
+    if (!user) throw createHttpError(404, 'Usuario no encontrado');
 
     // Email en uso por otro usuario
     if (dto.email) {
@@ -142,7 +134,7 @@ export class UsersService {
         where: { email: dto.email.toLowerCase() },
       });
       if (exists && exists.id !== user.id) {
-        throw new AppError(409, 'El email ya está registrado');
+        throw createHttpError(409, 'El email ya está registrado');
       }
       user.email = dto.email.toLowerCase().trim();
     }
@@ -167,9 +159,9 @@ export class UsersService {
 
   async deleteStudent(userId: string): Promise<void> {
     const user = await this.userRepo.findOne({ where: { id: userId } });
-    if (!user) throw new AppError(404, 'Usuario no encontrado');
+    if (!user) throw createHttpError(404, 'Usuario no encontrado');
     if (user.role !== UserRole.STUDENT) {
-      throw new AppError(403, 'Solo se pueden eliminar alumnos');
+      throw createHttpError(403, 'Solo se pueden eliminar alumnos');
     }
     await this.userRepo.remove(user);
   }

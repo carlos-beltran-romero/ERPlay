@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
+import { env } from '../config/env';
 import { UsersService } from '../services/user';
 import * as progressSvc from '../services/progress';
 import { QuestionsService } from '../services/questions';
@@ -44,7 +45,7 @@ const LimitQ = z.object({
 const serviceBaseUrl = (req: Request) => {
   const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol;
   const host = req.get('host');
-  const base = process.env.PUBLIC_API_BASE_URL || `${proto}://${host}`;
+  const base = env.PUBLIC_API_BASE_URL ?? `${proto}://${host}`;
   return base.replace(/\/+$/, '');
 };
 const withBase = (req: Request, maybePath?: string | null) => {

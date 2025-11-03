@@ -1,72 +1,61 @@
+/**
+ * @module services/weeklyGoal
+ * Gestión de objetivos semanales y notificaciones a estudiantes.
+ */
+
+import { env } from '../config/env';
+import { createMailer } from '../config/mailer';
+import { createHttpError } from '../core/errors/HttpError';
 import { AppDataSource } from '../data-source';
-import { WeeklyGoal } from '../models/WeeklyGoal';
 import { TestSession } from '../models/TestSession';
 import { User, UserRole } from '../models/User';
-import nodemailer from 'nodemailer';
+import { WeeklyGoal } from '../models/WeeklyGoal';
+import { escapeHtml, renderCardEmail } from './shared/emailTemplates';
 
 /* ===================== Helpers de fecha ===================== */
 
+/**
+ * Calcula el lunes (00:00 UTC) de la semana ISO del día indicado.
+ * @internal
+ */
 function startOfISOWeek(d: Date) {
   const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
   const day = x.getUTCDay() || 7; // 1..7 (lunes..domingo)
   if (day > 1) x.setUTCDate(x.getUTCDate() - (day - 1));
   return x; // lunes 00:00 UTC
 }
+/**
+ * Calcula el domingo correspondiente a la semana ISO.
+ * @internal
+ */
 function endOfISOWeek(d: Date) {
   const s = startOfISOWeek(d);
   const e = new Date(s);
   e.setUTCDate(e.getUTCDate() + 6);
   return e; // domingo (solo usamos YYYY-MM-DD)
 }
+/**
+ * Normaliza una fecha a formato YYYY-MM-DD.
+ * @internal
+ */
 function toISODate(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
 /* ===================== Email (transporter + plantilla) ===================== */
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
-  secure: true,
-  // Pool para no bloquear la respuesta HTTP mientras se envían correos
+const transporter = createMailer({
   pool: true,
   maxConnections: 5,
   maxMessages: 100,
   rateDelta: 1000,
   rateLimit: 5,
-  auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
 });
 
-function renderEmail(opts: { title: string; bodyHtml: string; accent?: string; footerHtml?: string }) {
-  const accent = opts.accent ?? '#DBEAFE';
-  const year = new Date().getFullYear();
-  return `
-    <div style="background:#f5f7fb;padding:24px 16px;">
-      <div style="
-        max-width:680px;margin:0 auto;background:#ffffff;
-        border:1px solid #e5e7eb;border-radius:12px;
-        box-shadow:0 2px 10px rgba(17,24,39,0.06);
-        overflow:hidden;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-        color:#111827;">
-        <div style="padding:14px 20px;background:${accent};border-bottom:1px solid #e5e7eb;">
-          <h2 style="margin:0;font-size:18px;line-height:1.3;color:#111827">${opts.title}</h2>
-        </div>
-        <div style="padding:20px">
-          ${opts.bodyHtml}
-        </div>
-        <div style="padding:12px 20px;border-top:1px solid #e5e7eb;text-align:center;color:#6b7280;font-size:12px;">
-          ${opts.footerHtml ?? `&copy; ${year} ERPlay`}
-        </div>
-      </div>
-    </div>
-  `;
-}
-function esc(s: string) {
-  return (s ?? '')
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
+/**
+ * Envía la notificación del nuevo objetivo a todos los estudiantes.
+ * @internal
+ */
 async function notifyAllStudentsNewGoal(args: { weekStart: string; weekEnd: string; targetTests: number }) {
   const students = await AppDataSource.getRepository(User).find({
     where: { role: UserRole.STUDENT },
@@ -75,7 +64,7 @@ async function notifyAllStudentsNewGoal(args: { weekStart: string; weekEnd: stri
   const recipients = students.map((s) => s.email).filter(Boolean);
   if (!recipients.length) return;
 
-  const frontBase = (process.env.FRONTEND_URL || process.env.APP_URL || '').replace(/\/+$/, '');
+  const frontBase = (env.FRONTEND_URL ?? env.APP_URL ?? '').replace(/\/+$/, '');
   const ctaUrl = frontBase ? `${frontBase}/student/progress` : '';
 
   const body = `
@@ -89,10 +78,10 @@ async function notifyAllStudentsNewGoal(args: { weekStart: string; weekEnd: stri
 
       <p style="margin:0 0 10px 0;">
         Se ha establecido un nuevo <strong>objetivo semanal</strong>:
-        <strong>completar ${esc(String(args.targetTests))} tests</strong>.
+        <strong>completar ${escapeHtml(String(args.targetTests))} tests</strong>.
       </p>
       <p style="margin:0 0 10px 0;">
-        Período: <strong>${esc(args.weekStart)}</strong> — <strong>${esc(args.weekEnd)}</strong>.
+        Período: <strong>${escapeHtml(args.weekStart)}</strong> — <strong>${escapeHtml(args.weekEnd)}</strong>.
       </p>
       <p style="margin:0 0 16px 0;">¡Ánimo! Al cumplirlo recibirás el galardón de la semana.</p>
 
@@ -105,15 +94,15 @@ async function notifyAllStudentsNewGoal(args: { weekStart: string; weekEnd: stri
     </div>
   `;
 
-  const html = renderEmail({
+  const html = renderCardEmail({
     title: 'Nuevo objetivo semanal',
     bodyHtml: body,
     accent: '#DBEAFE',
   });
 
   await transporter.sendMail({
-    from: process.env.SMTP_FROM || '"ERPlay" <no-reply@erplay.com>',
-    to: process.env.SMTP_FROM || 'no-reply@erplay.com', // destinatario genérico
+    from: env.SMTP_FROM || '"ERPlay" <no-reply@erplay.com>',
+    to: env.SMTP_FROM || 'no-reply@erplay.com',
     bcc: recipients.join(','),                           // alumnos en BCC (privacidad)
     subject: 'Nuevo objetivo semanal',
     html,
@@ -122,6 +111,12 @@ async function notifyAllStudentsNewGoal(args: { weekStart: string; weekEnd: stri
 
 /* ===================== Servicios públicos ===================== */
 
+/**
+ * Recupera el objetivo semanal activo cuyo rango incluye la fecha actual.
+ *
+ * @public
+ * @returns Objetivo vigente o `null` si no existe.
+ */
 export async function getCurrentWeeklyGoal() {
   const repo = AppDataSource.getRepository(WeeklyGoal);
   const today = toISODate(new Date());
@@ -137,6 +132,12 @@ export async function getCurrentWeeklyGoal() {
   return current || null;
 }
 
+/**
+ * Crea o actualiza el objetivo semanal y, opcionalmente, notifica a los alumnos.
+ *
+ * @public
+ * @param params - Datos del objetivo y banderas de notificación.
+ */
 export async function setWeeklyGoal(params: {
   adminId: string;
   targetTests: number;
@@ -147,7 +148,7 @@ export async function setWeeklyGoal(params: {
   const { adminId, targetTests } = params;
 
   if (!Number.isFinite(targetTests) || targetTests <= 0) {
-    throw new Error('El objetivo debe ser un número mayor que 0');
+    throw createHttpError(400, 'El objetivo debe ser un número mayor que 0');
   }
 
   // valida admin
@@ -197,6 +198,13 @@ export async function setWeeklyGoal(params: {
   return goal;
 }
 
+/**
+ * Obtiene el progreso semanal de todos los estudiantes para un rango dado.
+ *
+ * @public
+ * @param weekStart - Límite inferior en formato ISO.
+ * @param weekEnd - Límite superior en formato ISO.
+ */
 export async function listWeeklyProgress(weekStart?: string, weekEnd?: string) {
   const repo = AppDataSource.getRepository(WeeklyGoal);
   let s = weekStart;

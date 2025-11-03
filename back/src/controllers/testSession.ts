@@ -1,117 +1,96 @@
+/**
+ * @module controllers/testSession
+ */
 import { RequestHandler } from 'express';
-import { TestSessionsService } from '../services/testSession';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 
-const svc = new TestSessionsService();
+import { env } from '../config/env';
+import { createHttpError } from '../core/errors/HttpError';
+import { asyncHandler } from '../utils/asyncHandler';
+import { TestSessionsService } from '../services/testSession';
 
-function authUserId(req: any): string {
-  // 1) Si ya viene de un middleware, úsalo
-  const inCtx = req?.user?.id || req?.auth?.userId || req?.auth?.id;
-  if (inCtx) return String(inCtx);
+const testSessionsService = new TestSessionsService();
 
-  // 2) Si no, intenta leer Authorization: Bearer <token>
-  const auth = (req.headers?.authorization || '').trim();
-  const m = auth.match(/^Bearer\s+(.+)$/i);
-  if (!m) throw new Error('No autenticado');
+const resolveUserId = (req: any): string => {
+  const contextualId = req?.user?.id || req?.auth?.userId || req?.auth?.id;
+  if (contextualId) return String(contextualId);
 
-  const token = m[1];
-  const secret = process.env.JWT_SECRET;
-  if (!secret) throw new Error('Falta JWT_SECRET en el servidor');
+  const authorization = (req.headers?.authorization || '').trim();
+  const match = authorization.match(/^Bearer\s+(.+)$/i);
+  if (!match) throw createHttpError(401, 'No autenticado');
 
-  // Nota: si usas RS256, aquí usarías la PUBLIC KEY en verify()
-  const payload = jwt.verify(token, secret) as JwtPayload | any;
+  const token = match[1];
+  const secret = env.JWT_SECRET;
+  const payload = jwt.verify(token, secret) as JwtPayload & {
+    id?: string;
+    userId?: string;
+    uid?: string;
+  };
 
-  const uid = payload?.sub || payload?.id || payload?.userId || payload?.uid;
-  if (!uid) throw new Error('Token inválido (sin user id)');
+  const uid = payload.sub ?? payload.id ?? payload.userId ?? payload.uid;
+  if (!uid) throw createHttpError(401, 'Token inválido (sin user id)');
+
   return String(uid);
-}
-
-// Inicia sesión de test
-export const startTestSession: RequestHandler = async (req, res) => {
-  try {
-    const userId = authUserId(req);
-    const { mode, limit } = req.body as { mode: 'learning' | 'exam' | 'errors'; limit?: number };
-    if (!mode) {
-      res.status(400).json({ error: 'mode es obligatorio' });
-      return;
-    }
-    const payload = await svc.startSession({ userId, mode, limit });
-    res.json(payload);
-  } catch (e: any) {
-    res.status(400).json({ error: e?.message || 'No se pudo iniciar el test' });
-  }
 };
 
-// Actualiza resultado (respuesta, tiempo, etc.)
-export const patchTestResult: RequestHandler = async (req, res) => {
-  try {
-    const userId = authUserId(req);
-    const { sessionId, resultId } = req.params;
-    const body = req.body as Partial<{
-      selectedIndex: number | null;
-      attemptsDelta: number;
-      usedHint: boolean;
-      revealedAnswer: boolean;
-      timeSpentSecondsDelta: number;
-    }>;
-    await svc.patchResult({ userId, sessionId, resultId, body });
-    res.json({ ok: true });
-  } catch (e: any) {
-    res.status(400).json({ error: e?.message || 'No se pudo guardar' });
+export const startTestSession: RequestHandler = asyncHandler(async (req, res) => {
+  const userId = resolveUserId(req);
+  const { mode, limit } = req.body as { mode: 'learning' | 'exam' | 'errors'; limit?: number };
+  if (!mode) {
+    throw createHttpError(400, 'mode es obligatorio');
   }
-};
 
-// Log de eventos
-export const logTestEvent: RequestHandler = async (req, res) => {
-  try {
-    const userId = authUserId(req);
-    const { sessionId } = req.params;
-    const body = req.body as { type: string; resultId?: string; payload?: any };
-    await svc.logEvent({ userId, sessionId, ...body });
-    res.json({ ok: true });
-  } catch {
-    // best-effort
-    res.json({ ok: true });
-  }
-};
+  const payload = await testSessionsService.startSession({ userId, mode, limit });
+  res.json(payload);
+});
 
-// Finaliza la sesión y calcula resumen
-export const finishTestSession: RequestHandler = async (req, res) => {
-  try {
-    const userId = authUserId(req);
-    const { sessionId } = req.params;
-    const payload = await svc.finishSession({ userId, sessionId });
-    res.json(payload);
-  } catch (e: any) {
-    res.status(400).json({ error: e?.message || 'No se pudo finalizar' });
-  }
-};
+export const patchTestResult: RequestHandler = asyncHandler(async (req, res) => {
+  const userId = resolveUserId(req);
+  const { sessionId, resultId } = req.params;
+  const body = req.body as Partial<{
+    selectedIndex: number | null;
+    attemptsDelta: number;
+    usedHint: boolean;
+    revealedAnswer: boolean;
+    timeSpentSecondsDelta: number;
+  }>;
 
-// ====== Endpoints para "Mis tests" ======
+  await testSessionsService.patchResult({ userId, sessionId, resultId, body });
+  res.json({ ok: true });
+});
 
-export const listMySessions: RequestHandler = async (req, res) => {
-  try {
-    const userId = authUserId(req);
-    const { mode, dateFrom, dateTo, q } = (req.query || {}) as {
-      mode?: 'learning' | 'exam' | 'errors';
-      dateFrom?: string;
-      dateTo?: string;
-      q?: string;
-    };
-    const rows = await svc.listMine({ userId, mode, dateFrom, dateTo, q });
-    res.json(rows);
-  } catch (e: any) {
-    res.status(400).json({ error: e?.message || 'No se pudo listar tus tests' });
-  }
-};
+export const logTestEvent: RequestHandler = asyncHandler(async (req, res) => {
+  const userId = resolveUserId(req);
+  const { sessionId } = req.params;
+  const body = req.body as { type: string; resultId?: string; payload?: unknown };
 
-export const getSessionDetail: RequestHandler = async (req, res) => {
-  try {
-    const userId = authUserId(req);
-    const { sessionId } = req.params;
-    const data = await svc.getOne({ userId, sessionId });
-    res.json(data);
-  } catch (e: any) {
-    res.status(404).json({ error: e?.message || 'Test no encontrado' });
-  }
-};
+  await testSessionsService.logEvent({ userId, sessionId, ...body });
+  res.json({ ok: true });
+});
+
+export const finishTestSession: RequestHandler = asyncHandler(async (req, res) => {
+  const userId = resolveUserId(req);
+  const { sessionId } = req.params;
+  const payload = await testSessionsService.finishSession({ userId, sessionId });
+  res.json(payload);
+});
+
+export const listMySessions: RequestHandler = asyncHandler(async (req, res) => {
+  const userId = resolveUserId(req);
+  const { mode, dateFrom, dateTo, q } = (req.query || {}) as {
+    mode?: 'learning' | 'exam' | 'errors';
+    dateFrom?: string;
+    dateTo?: string;
+    q?: string;
+  };
+
+  const rows = await testSessionsService.listMine({ userId, mode, dateFrom, dateTo, q });
+  res.json(rows);
+});
+
+export const getSessionDetail: RequestHandler = asyncHandler(async (req, res) => {
+  const userId = resolveUserId(req);
+  const { sessionId } = req.params;
+  const data = await testSessionsService.getOne({ userId, sessionId });
+  res.json(data);
+});

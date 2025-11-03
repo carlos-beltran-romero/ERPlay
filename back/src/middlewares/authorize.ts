@@ -1,18 +1,22 @@
-// src/middlewares/authorize.ts
+/**
+ * @module middlewares/authorize
+ */
 import { RequestHandler } from 'express';
 
+import { createHttpError } from '../core/errors/HttpError';
+
 /**
- * Middleware de autorización por roles.
- * Solo deja pasar si req.user?.role está en allowedRoles.
+ * Middleware de autorización basado en roles.
+ * @public
  */
 export default function authorize(...allowedRoles: string[]): RequestHandler {
-  return (req, res, next) => {
+  return (req, _res, next) => {
     const role = req.user?.role;
     if (!role || !allowedRoles.includes(role)) {
-      // No devolvemos el response, sino que enviamos y hacemos return void.
-      res.status(403).json({ error: 'Acceso denegado' });
+      next(createHttpError(403, 'Acceso denegado'));
       return;
     }
+
     next();
   };
 }

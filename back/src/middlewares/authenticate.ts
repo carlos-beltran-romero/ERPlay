@@ -1,26 +1,33 @@
-// src/middlewares/authenticate.ts
-import { Request, Response, NextFunction } from 'express';
+/**
+ * @module middlewares/authenticate
+ */
+import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+
+import { env } from '../config/env';
+import { createHttpError } from '../core/errors/HttpError';
 import { UserRole } from '../models/User';
 
 export function authenticate(req: Request, res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
-    res.status(401).json({ error: 'Token no proporcionado' });
+    next(createHttpError(401, 'Token no proporcionado'));
     return;
   }
+
   const token = authHeader.split(' ')[1];
+
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: string; role: UserRole };
+    const decoded = jwt.verify(token, env.JWT_SECRET) as { id: string; role: UserRole };
+
     if (!Object.values(UserRole).includes(decoded.role)) {
-      res.status(403).json({ error: 'Rol no válido' });
+      next(createHttpError(403, 'Rol no válido'));
       return;
     }
+
     req.user = { id: decoded.id, role: decoded.role };
     next();
   } catch {
-    // 👇 importante: 401 para token inválido/EXPIRADO
-    res.status(401).json({ error: 'Token inválido o expirado' });
-    return;
+    next(createHttpError(401, 'Token inválido o expirado'));
   }
 }

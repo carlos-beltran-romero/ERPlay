@@ -1,4 +1,13 @@
-// src/middlewares/logger.ts
+/**
+ * @module middlewares/logger
+ * Registro uniforme de peticiones HTTP.
+ */
 import morgan from 'morgan';
 
-export default morgan('combined');
+/**
+ * Middleware de logging en formato Apache combinado.
+ * @public
+ */
+const httpLogger = morgan('combined');
+
+export default httpLogger;

@@ -1,30 +1,39 @@
-import { Request, Response, NextFunction } from 'express';
+/**
+ * @module controllers/diagrams
+ */
+import { Request, Response } from 'express';
 import { z } from 'zod';
+
+import { createHttpError } from '../core/errors/HttpError';
+import { env } from '../config/env';
+import { asyncHandler } from '../utils/asyncHandler';
 import { DiagramsService } from '../services/diagrams';
 
-const QuestionZ = z.object({
+const QuestionSchema = z.object({
   prompt: z.string().min(1),
   hint: z.string().min(1),
   options: z.array(z.string().min(1)).min(2),
   correctIndex: z.number().int().min(0),
 });
 
-const BodyZ = z.object({
+const BodySchema = z.object({
   title: z.string().min(1),
-  questions: z.string().transform((val, ctx) => {
+  questions: z.string().transform((value, ctx) => {
     try {
-      const parsed = JSON.parse(val);
-      const arr = z.array(QuestionZ).parse(parsed);
-      arr.forEach((q, i) => {
-        if (q.correctIndex >= q.options.length) {
+      const parsed = JSON.parse(value);
+      const questions = z.array(QuestionSchema).parse(parsed);
+
+      questions.forEach((question, index) => {
+        if (question.correctIndex >= question.options.length) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ['questions', i, 'correctIndex'],
+            path: ['questions', index, 'correctIndex'],
             message: 'correctIndex fuera de rango',
           });
         }
       });
-      return arr;
+
+      return questions;
     } catch {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'questions debe ser JSON válido' });
       return z.NEVER;
@@ -32,124 +41,93 @@ const BodyZ = z.object({
   }),
 });
 
-const serviceBaseUrl = (req: Request) => {
-    const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol;
-    const host = req.get('host');
-    const base = process.env.PUBLIC_API_BASE_URL || `${proto}://${host}`;
-    return base;
-  };
+const diagramsService = new DiagramsService();
 
-const service = new DiagramsService();
-
-// GET /api/diagrams
-export const listDiagrams = async (req, res) => {
-    try {
-      const base = serviceBaseUrl(req);
-      const rows = await service.listDiagrams();
-      res.json(rows.map(r => ({
-        id: r.id,
-        title: r.title,
-        path: r.path.startsWith('http') ? r.path : `${base}${r.path}`, // 👈
-        createdAt: r.createdAt,
-        questionsCount: (r as any).questionsCount ?? 0,
-      })));
-    } catch (err: any) {
-      res.status(400).json({ error: err.message || 'No se pudo listar' });
-    }
-  };
-
-// GET /api/diagrams/:id
-export const getDiagram = async (req, res) => {
-    try {
-      const base = serviceBaseUrl(req);
-      const d = await service.getDiagramById(req.params.id);
-      res.json({
-        ...d,
-        path: d.path.startsWith('http') ? d.path : `${base}${d.path}`, // 👈
-      });
-    } catch (err: any) {
-      res.status(404).json({ error: err.message || 'No encontrado' });
-    }
-  };
-
-// POST /api/diagrams  (crear)
-export const createDiagram = async (req: Request, res: Response): Promise<void> => {
-  try {
-    if (!req.file) {
-      res.status(400).json({ error: 'Imagen requerida (campo "image")' });
-      return;
-    }
-    const { title, questions } = BodyZ.parse({
-      title: req.body.title,
-      questions: req.body.questions,
-    });
-
-    const result = await service.createDiagram({
-      title,
-      creatorId: req.user!.id,
-      file: { filename: req.file.filename, path: req.file.path },
-      questions: questions.map(q => ({
-        prompt: q.prompt,
-        hint: q.hint,
-        options: q.options,
-        correctIndex: q.correctIndex,
-      })),
-    });
-
-    res.status(201).json({ id: result.id, path: result.path });
-  } catch (err: any) {
-    res.status(400).json({ error: err.message || 'Datos inválidos' });
-  }
+const resolvePublicBase = (req: Request) => {
+  const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol;
+  const host = req.get('host');
+  return env.PUBLIC_API_BASE_URL ?? `${proto}://${host}`;
 };
 
-// PUT /api/diagrams/:id  (actualizar)
-export const updateDiagram = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { title, questions } = BodyZ.parse({
-      title: req.body.title,
-      questions: req.body.questions,
-    });
+const resolvePath = (base: string, path: string) => (path.startsWith('http') ? path : `${base}${path}`);
 
-    await service.updateDiagram({
-      id: req.params.id,
-      title,
-      questions: questions.map(q => ({
-        prompt: q.prompt,
-        hint: q.hint,
-        options: q.options,
-        correctIndex: q.correctIndex,
-      })),
-      newFile: req.file ? { filename: req.file.filename, path: req.file.path } : undefined,
-      actorId: req.user!.id, // 👈 PASAMOS QUIÉN EDITA
-    });
+export const listDiagrams = asyncHandler(async (req: Request, res: Response) => {
+  const base = resolvePublicBase(req);
+  const rows = await diagramsService.listDiagrams();
+  res.json(
+    rows.map((row: any) => ({
+      id: row.id,
+      title: row.title,
+      path: resolvePath(base, row.path),
+      createdAt: row.createdAt,
+      questionsCount: row.questionsCount ?? 0,
+    })),
+  );
+});
 
-    res.json({ message: 'Actualizado' });
-  } catch (err: any) {
-    res.status(400).json({ error: err.message || 'No se pudo actualizar' });
+export const getDiagram = asyncHandler(async (req: Request, res: Response) => {
+  const base = resolvePublicBase(req);
+  const diagram = await diagramsService.getDiagramById(req.params.id);
+  res.json({
+    ...diagram,
+    path: resolvePath(base, diagram.path),
+  });
+});
+
+export const createDiagram = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.file) {
+    throw createHttpError(400, 'Imagen requerida (campo "image")');
   }
-};
 
-// DELETE /api/diagrams/:id
-export const deleteDiagram = async (req: Request, res: Response): Promise<void> => {
-  try {
-    await service.deleteDiagram(req.params.id);
-    res.sendStatus(204);
-  } catch (err: any) {
-    res.status(404).json({ error: err.message || 'No se pudo eliminar' });
-  }
-};
+  const { title, questions } = BodySchema.parse({ title: req.body.title, questions: req.body.questions });
 
-// --- NUEVO: listar diagramas para selector (alumno/supervisor) ---
-export const listPublicDiagrams = async (req: Request, res: Response) => {
-  try {
-    const base = ((req.headers['x-forwarded-proto'] as string) || req.protocol) + '://' + req.get('host');
-    const rows = await service.listDiagrams();
-    res.json(rows.map(r => ({
-      id: r.id,
-      title: r.title,
-      path: r.path?.startsWith('http') ? r.path : `${base}${r.path}`,
-    })));
-  } catch (err: any) {
-    res.status(400).json({ error: err.message || 'No se pudieron listar los diagramas' });
-  }
-};
+  const result = await diagramsService.createDiagram({
+    title,
+    creatorId: req.user!.id,
+    file: { filename: req.file.filename, path: req.file.path },
+    questions: questions.map((question) => ({
+      prompt: question.prompt,
+      hint: question.hint,
+      options: question.options,
+      correctIndex: question.correctIndex,
+    })),
+  });
+
+  res.status(201).json({ id: result.id, path: result.path });
+});
+
+export const updateDiagram = asyncHandler(async (req: Request, res: Response) => {
+  const { title, questions } = BodySchema.parse({ title: req.body.title, questions: req.body.questions });
+
+  await diagramsService.updateDiagram({
+    id: req.params.id,
+    title,
+    questions: questions.map((question) => ({
+      prompt: question.prompt,
+      hint: question.hint,
+      options: question.options,
+      correctIndex: question.correctIndex,
+    })),
+    newFile: req.file ? { filename: req.file.filename, path: req.file.path } : undefined,
+    actorId: req.user!.id,
+  });
+
+  res.json({ message: 'Actualizado' });
+});
+
+export const deleteDiagram = asyncHandler(async (req: Request, res: Response) => {
+  await diagramsService.deleteDiagram(req.params.id);
+  res.sendStatus(204);
+});
+
+export const listPublicDiagrams = asyncHandler(async (req: Request, res: Response) => {
+  const base = resolvePublicBase(req);
+  const rows = await diagramsService.listDiagrams();
+  res.json(
+    rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      path: resolvePath(base, row.path),
+    })),
+  );
+});
