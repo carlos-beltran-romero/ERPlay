@@ -1,6 +1,6 @@
 // src/views/SupervisorTests.tsx
 import React, { useEffect, useMemo, useState } from 'react';
-import PageWithHeader from '../PageWithHeader';
+import PageWithHeader from '../../components/layout/PageWithHeader';
 import { listDiagrams, deleteDiagram, type DiagramSummary } from '../../services/diagrams';
 import { toast } from 'react-toastify';
 import { Plus, Pencil, Trash2, Search, X, BarChart3, ArrowLeft } from 'lucide-react';
@@ -303,7 +303,7 @@ const SupervisorTests: React.FC = () => {
           </div>
         )}
       </div>
-    </PageWithHeader>
+   </PageWithHeader>
   );
 };
 

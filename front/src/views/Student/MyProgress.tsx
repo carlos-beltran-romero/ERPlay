@@ -3,7 +3,7 @@
 // Usa /api/progress/weekly-progress e /api/progress/badges y el estilo "antiguo" en Errores frecuentes.
 
 import React, { useEffect, useMemo, useState } from "react";
-import PageWithHeader from "../PageWithHeader";
+import PageWithHeader from "../../components/layout/PageWithHeader";
 import { toast } from "react-toastify";
 import badgeCompleted from "../../assets/completed.png";
 import { useNavigate } from "react-router-dom";
@@ -36,7 +36,6 @@ import {
   CheckCircle,
   XCircle,
   MailCheck,
-  XCircle as XCircleIcon,
   ArrowLeft,
 } from "lucide-react";
 
@@ -459,14 +458,14 @@ const MyProgress: React.FC = () => {
     return (
       <PageWithHeader>
         <div className="mx-auto w-full max-w-6xl p-6">Cargando…</div>
-      </PageWithHeader>
+     </PageWithHeader>
     );
   }
   if (error) {
     return (
       <PageWithHeader>
         <div className="mx-auto w-full max-w-6xl p-6 text-red-600">{error}</div>
-      </PageWithHeader>
+     </PageWithHeader>
     );
   }
 
@@ -848,7 +847,7 @@ const MyProgress: React.FC = () => {
           </div>
         )}
       </div>
-    </PageWithHeader>
+   </PageWithHeader>
   );
 };
 

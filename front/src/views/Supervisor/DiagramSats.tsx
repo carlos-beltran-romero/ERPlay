@@ -1,13 +1,13 @@
 // src/views/Admin/DiagramStats.tsx
 import React, { useEffect, useState } from 'react';
-import PageWithHeader from '../PageWithHeader';
+import PageWithHeader from '../../components/layout/PageWithHeader';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getDiagram } from '../../services/diagrams';
 import { getDiagramStats, type DiagramStatsResponse } from '../../services/diagramStats';
 import { toast } from 'react-toastify';
 import {
   ArrowLeft, Activity, Trophy, AlertTriangle,
-  Timer, Lightbulb, Target, Sigma, BarChart3, TrendingUp, TrendingDown, Info
+  Lightbulb, Target, Sigma, BarChart3, TrendingUp, TrendingDown, Info
 } from 'lucide-react';
 
 /* ---------- Tipos opcionales (el back puede rellenarlos) ---------- */
@@ -219,7 +219,7 @@ const DiagramStats: React.FC = () => {
     return (
       <PageWithHeader>
         <div className="p-6">Cargando…</div>
-      </PageWithHeader>
+     </PageWithHeader>
     );
   }
 
@@ -227,7 +227,7 @@ const DiagramStats: React.FC = () => {
     return (
       <PageWithHeader>
         <div className="p-6 text-red-600">No hay datos.</div>
-      </PageWithHeader>
+     </PageWithHeader>
     );
   }
 
@@ -654,7 +654,7 @@ const DiagramStats: React.FC = () => {
           </CardBody>
         </Card>
       </div>
-    </PageWithHeader>
+   </PageWithHeader>
   );
 };
 

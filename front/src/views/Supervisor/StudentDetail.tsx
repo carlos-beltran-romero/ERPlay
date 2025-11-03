@@ -1,7 +1,7 @@
 // src/views/Supervisor/StudentDetail.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import PageWithHeader from "../PageWithHeader";
+import PageWithHeader from "../../components/layout/PageWithHeader";
 import { toast } from "react-toastify";
 import badgeCompleted from "../../assets/completed.png";
 import {
@@ -51,28 +51,16 @@ import {
   Target, // ⬅️ nuevo
   Award, // ⬅️ nuevo
 } from "lucide-react";
+import {
+  formatDateTime,
+  formatDate,
+  formatDuration,
+  formatDecimalSeconds,
+  formatPercent,
+} from "../../shared/utils/datetime";
+import { letterFromIndex } from "../../shared/utils/text";
 
 /* ---------- Helpers ---------- */
-const fmtPct = (n?: number | null) =>
-  typeof n === "number" ? `${Math.round(n)}%` : "—";
-const fmtSec1 = (sec?: number | null) =>
-  sec == null ? "—" : `${Math.max(0, sec).toFixed(1)} s`;
-const fmtDate = (iso?: string | null) =>
-  iso ? new Date(iso).toLocaleDateString() : "—";
-const fmtDateTime = (iso?: string | null) =>
-  iso ? new Date(iso).toLocaleString() : "—";
-const fmtDuration = (sec?: number | null) => {
-  if (sec == null) return "—";
-  const s = Math.max(0, sec);
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const r = s % 60;
-  if (h) return `${h}h ${m}m ${r}s`;
-  if (m) return `${m}m ${r}s`;
-  return `${r}s`;
-};
-const letter = (i?: number) =>
-  typeof i === "number" && i >= 0 ? String.fromCharCode(65 + i) : "—";
 const normStatus = (s?: string | null) => {
   const u = String(s || "").toUpperCase();
   if (u === "APPROVED") return "APPROVED";
@@ -464,39 +452,6 @@ const Donut: React.FC<{ value: number }> = ({ value }) => {
   );
 };
 
-// ---- Fallback "mejor racha" a partir de trends (consecutivos días con actividad) ----
-function calcBestStreakFromTrends(rows: SupTrendPoint[]): number {
-  if (!Array.isArray(rows) || rows.length === 0) return 0;
-  const data = [...rows]
-    .filter((r) => !!r.date)
-    .sort((a, b) => a.date.localeCompare(b.date));
-
-  let best = 0;
-  let current = 0;
-  let prev: Date | null = null;
-
-  const atMidnight = (d: Date) => {
-    const x = new Date(d);
-    x.setHours(0, 0, 0, 0);
-    return x;
-  };
-  const diffDays = (a: Date, b: Date) =>
-    Math.round((b.getTime() - a.getTime()) / 86400000);
-
-  for (const r of data) {
-    const active = (r.correctCount ?? 0) + (r.incorrectCount ?? 0) > 0;
-    const d = atMidnight(new Date(r.date));
-    if (prev && diffDays(prev, d) === 1) {
-      current = active ? current + 1 : 0;
-    } else {
-      current = active ? 1 : 0;
-    }
-    prev = d;
-    if (current > best) best = current;
-  }
-  return best;
-}
-
 /* ---------- Componente ---------- */
 const StudentDetail: React.FC = () => {
   const { studentId = "" } = useParams();
@@ -510,13 +465,6 @@ const StudentDetail: React.FC = () => {
   const [student, setStudent] = useState<SupStudent | null>(null);
   const [ov, setOv] = useState<SupOverview | null>(null);
   const [trends, setTrends] = useState<SupTrendPoint[]>([]);
-  const bestStreakDisplay = useMemo(() => {
-    const val = typeof ov?.bestStreakDays === "number" ? ov.bestStreakDays : 0;
-    if (val > 0) return `${val} días`;
-    const fb = calcBestStreakFromTrends(trends);
-    return fb ? `${fb} días` : "—";
-  }, [ov?.bestStreakDays, trends]);
-
   const [errorsTop, setErrorsTop] = useState<SupErrorItem[]>([]);
   const [claimsStats, setClaimsStats] = useState<SupClaimsStats | null>(null);
   const [myQuestions, setMyQuestions] = useState<SupQuestionItem[]>([]);
@@ -737,7 +685,7 @@ const StudentDetail: React.FC = () => {
     return (
       <PageWithHeader>
         <div className="mx-auto w-full max-w-6xl p-6">Cargando…</div>
-      </PageWithHeader>
+     </PageWithHeader>
     );
   }
 
@@ -816,12 +764,12 @@ const StudentDetail: React.FC = () => {
                 <KPI
                   icon={<BarChart3 className="h-5 w-5" />}
                   label="Acierto (learning)"
-                  value={fmtPct(ov.accuracyLearningPct)}
+                  value={formatPercent(ov.accuracyLearningPct)}
                 />
                 <KPI
                   icon={<Clock className="h-5 w-5" />}
                   label="Tiempo medio/preg."
-                  value={fmtSec1(ov.avgTimePerQuestionSec)}
+                  value={formatDecimalSeconds(ov.avgTimePerQuestionSec)}
                 />
                 <KPI
                   icon={<Gauge className="h-5 w-5" />}
@@ -1074,7 +1022,7 @@ const StudentDetail: React.FC = () => {
                         <div className="text-sm mt-1">
                           Tasa de error:{" "}
                           <span className="font-semibold">
-                            {fmtPct((e as any).errorRatePct)}
+                            {formatPercent((e as any).errorRatePct)}
                           </span>
                         </div>
                         {(e as any).commonChosenText ? (
@@ -1183,7 +1131,7 @@ const StudentDetail: React.FC = () => {
                               {it.diagram?.title || "—"}
                             </div>
                             <div className="text-xs text-gray-500">
-                              {acc} · {fmtDuration(it.summary?.durationSeconds)}
+                              {acc} · {formatDuration(it.summary?.durationSeconds)}
                             </div>
                           </div>
                           <div className="col-span-2 text-sm">
@@ -1197,7 +1145,7 @@ const StudentDetail: React.FC = () => {
                             {it.questionCount ?? 0}
                           </div>
                           <div className="col-span-2 text-sm">
-                            {fmtDateTime(it.startedAt)}
+                            {formatDateTime(it.startedAt)}
                           </div>
                           <div className="col-span-1 flex justify-end">
                             <button
@@ -1222,10 +1170,10 @@ const StudentDetail: React.FC = () => {
                               : it.mode === "exam"
                               ? "Examen"
                               : "Errores"}{" "}
-                            · {fmtDateTime(it.startedAt)}
+                            · {formatDateTime(it.startedAt)}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {acc} · {fmtDuration(it.summary?.durationSeconds)}
+                            {acc} · {formatDuration(it.summary?.durationSeconds)}
                           </div>
                           <div className="pt-2">
                             <button
@@ -1308,7 +1256,7 @@ const StudentDetail: React.FC = () => {
                             <div className="text-xs text-gray-500 mt-1">
                               {qi.diagram?.title || "—"}
                               {qi.createdAt
-                                ? ` · Creada el ${fmtDate(qi.createdAt)}`
+                                ? ` · Creada el ${formatDate(qi.createdAt)}`
                                 : ""}
                             </div>
                           </div>
@@ -1327,7 +1275,7 @@ const StudentDetail: React.FC = () => {
                                     }`}
                                   >
                                     <span className="font-semibold mr-2">
-                                      {letter(i)}.
+                                      {letterFromIndex(i)}.
                                     </span>
                                     <ExpandableText
                                       text={opt}
@@ -1398,7 +1346,7 @@ const StudentDetail: React.FC = () => {
                           <div className="mt-1 text-xs text-gray-500">
                             {qi.diagram?.title || "—"}
                             {qi.createdAt
-                              ? ` · Creada el ${fmtDate(qi.createdAt)}`
+                              ? ` · Creada el ${formatDate(qi.createdAt)}`
                               : ""}
                           </div>
 
@@ -1415,7 +1363,7 @@ const StudentDetail: React.FC = () => {
                                   }`}
                                 >
                                   <span className="font-semibold mr-2">
-                                    {letter(i)}.
+                                    {letterFromIndex(i)}.
                                   </span>
                                   <ExpandableText
                                     text={opt}
@@ -1523,11 +1471,6 @@ const StudentDetail: React.FC = () => {
                     {filteredClaims.slice(0, visibleC).map((c) => {
                       const ci: any = c;
 
-                      const letterL = (i?: number) =>
-                        typeof i === "number" && i >= 0
-                          ? String.fromCharCode(65 + i)
-                          : "—";
-
                       const prompt =
                         ci.promptSnapshot ??
                         ci.prompt ??
@@ -1557,17 +1500,17 @@ const StudentDetail: React.FC = () => {
                       const chosenTxt =
                         typeof chosenIndex === "number" &&
                         options?.[chosenIndex]
-                          ? `${letterL(chosenIndex)}. ${options[chosenIndex]}`
+                          ? `${letterFromIndex(chosenIndex)}. ${options[chosenIndex]}`
                           : typeof chosenIndex === "number"
-                          ? letterL(chosenIndex)
+                          ? letterFromIndex(chosenIndex)
                           : "—";
 
                       const correctTxt =
                         typeof correctIndex === "number" &&
                         options?.[correctIndex]
-                          ? `${letterL(correctIndex)}. ${options[correctIndex]}`
+                          ? `${letterFromIndex(correctIndex)}. ${options[correctIndex]}`
                           : typeof correctIndex === "number"
-                          ? letterL(correctIndex)
+                          ? letterFromIndex(correctIndex)
                           : "—";
 
                       return (
@@ -1605,7 +1548,7 @@ const StudentDetail: React.FC = () => {
                               <div className="mt-1 text-xs text-gray-500">
                                 {ci.diagram?.title?.trim() || "—"}
                                 {ci.createdAt
-                                  ? ` · Enviada el ${fmtDate(ci.createdAt)}`
+                                  ? ` · Enviada el ${formatDate(ci.createdAt)}`
                                   : ""}
                               </div>
                             </div>
@@ -1681,7 +1624,7 @@ const StudentDetail: React.FC = () => {
                             <div className="mt-1 text-xs text-gray-500">
                               {ci.diagram?.title?.trim() || "—"}
                               {ci.createdAt
-                                ? ` · Enviada el ${fmtDate(ci.createdAt)}`
+                                ? ` · Enviada el ${formatDate(ci.createdAt)}`
                                 : ""}
                             </div>
 
@@ -1803,9 +1746,9 @@ const StudentDetail: React.FC = () => {
                             : detail.mode === "exam"
                             ? "Examen"
                             : "Errores"
-                        } · ${fmtDateTime(detail.startedAt)}${
+                        } · ${formatDateTime(detail.startedAt)}${
                           detail.finishedAt
-                            ? ` · ${fmtDateTime(detail.finishedAt)}`
+                            ? ` · ${formatDateTime(detail.finishedAt)}`
                             : ""
                         }`
                       : "—"}
@@ -1842,7 +1785,7 @@ const StudentDetail: React.FC = () => {
                       <div className="rounded-xl bg-indigo-50 px-3 py-2 text-center">
                         <div className="text-xs text-gray-500">Duración</div>
                         <div className="text-base font-semibold">
-                          {fmtDuration(
+                          {formatDuration(
                             (detail as any).durationSeconds ??
                               (detail as any).summary?.durationSeconds
                           )}
@@ -1886,7 +1829,7 @@ const StudentDetail: React.FC = () => {
                       <div className="rounded-xl bg-indigo-50 px-3 py-2 text-center">
                         <div className="text-xs text-gray-500">Fecha</div>
                         <div className="text-base font-semibold">
-                          {fmtDate(detail.startedAt)}
+                          {formatDate(detail.startedAt)}
                         </div>
                       </div>
                       {detail.mode !== "exam" && (
@@ -2016,7 +1959,7 @@ const StudentDetail: React.FC = () => {
                               <div className="mt-3 grid grid-cols-2 md:grid-cols-5 gap-2 text-xs text-gray-600">
                                 <div className="inline-flex items-center gap-1">
                                   <Clock size={14} />{" "}
-                                  {fmtDuration(r.timeSpentSeconds)}
+                                  {formatDuration(r.timeSpentSeconds)}
                                 </div>
                                 {!isExam && (
                                   <div>Pista: {r.usedHint ? "Sí" : "No"}</div>
@@ -2098,7 +2041,7 @@ const StudentDetail: React.FC = () => {
           </div>
         )}
       </div>
-    </PageWithHeader>
+   </PageWithHeader>
   );
 };
 

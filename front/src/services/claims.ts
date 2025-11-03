@@ -1,8 +1,5 @@
-// src/services/claims.ts
-import { fetchAuth, API_URL } from './http';
-
-const toAbs = (p?: string | null) =>
-  p ? (p.startsWith('http') ? p : `${API_URL}${p}`) : '';
+import { apiJson } from './http';
+import { resolveAssetUrl } from '../shared/utils/url';
 
 export type MyClaim = {
   id: string;
@@ -47,20 +44,19 @@ export async function createClaim(payload: {
   correctIndex: number;
   explanation: string;
 }): Promise<void> {
-  const res = await fetchAuth(`${API_URL}/api/claims`, {
+  await apiJson<void>('/api/claims', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    auth: true,
+    json: payload,
+    fallbackError: 'No se pudo registrar la reclamación',
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || 'No se pudo registrar la reclamación');
 }
 
 export async function listMyClaims(): Promise<MyClaim[]> {
-  const res = await fetchAuth(`${API_URL}/api/claims/mine`);
-  const raw = await res.json().catch(() => ([]));
-  if (!res.ok) throw new Error(raw?.error || 'No se pudieron cargar tus reclamaciones');
-  // ... resto igual ...
+  const raw = await apiJson<any[]>('/api/claims/mine', {
+    auth: true,
+    fallbackError: 'No se pudieron cargar tus reclamaciones',
+  });
   const arr = Array.isArray(raw) ? raw : [];
   return arr.map((c: any) => {
     // ... normalización igual que la tuya ...
@@ -78,7 +74,7 @@ export async function listMyClaims(): Promise<MyClaim[]> {
         ? {
             id: String(c.diagram.id ?? ''),
             title: String(c.diagram.title ?? ''),
-            path: toAbs(c.diagram.path ?? c.diagram.imagePath ?? ''),
+            path: resolveAssetUrl(c.diagram.path ?? c.diagram.imagePath ?? '') ?? '',
           }
         : undefined,
       chosenIndex:
@@ -99,10 +95,10 @@ export async function listMyClaims(): Promise<MyClaim[]> {
 }
 
 export async function listPendingClaims(): Promise<PendingClaim[]> {
-  const res = await fetchAuth(`${API_URL}/api/claims/pending`);
-  const raw = await res.json().catch(() => ([]));
-  if (!res.ok) throw new Error(raw?.error || 'No se pudieron cargar las reclamaciones');
-  // ... resto igual ...
+  const raw = await apiJson<any[]>('/api/claims/pending', {
+    auth: true,
+    fallbackError: 'No se pudieron cargar las reclamaciones',
+  });
   const arr = Array.isArray(raw) ? raw : [];
   return arr.map((c: any) => {
     const options = normalizeOptions(c?.options);
@@ -133,7 +129,7 @@ export async function listPendingClaims(): Promise<PendingClaim[]> {
         ? {
             id: String(c.diagram.id ?? ''),
             title: String(c.diagram.title ?? ''),
-            path: toAbs(c.diagram.path ?? c.diagram.imagePath ?? ''),
+            path: resolveAssetUrl(c.diagram.path ?? c.diagram.imagePath ?? '') ?? '',
           }
         : undefined,
       question: { id: qId ?? undefined, prompt: qPrompt },
@@ -160,9 +156,10 @@ export async function listPendingClaims(): Promise<PendingClaim[]> {
 }
 
 export async function getPendingClaimsCount(): Promise<number> {
-  const res = await fetchAuth(`${API_URL}/api/claims/pending/count`);
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || 'No disponible');
+  const data = await apiJson<any>('/api/claims/pending/count', {
+    auth: true,
+    fallbackError: 'No disponible',
+  });
   return Number(data?.count ?? 0);
 }
 
@@ -171,13 +168,12 @@ export async function verifyClaim(
   decision: 'approve' | 'reject',
   comment?: string
 ): Promise<void> {
-  const res = await fetchAuth(`${API_URL}/api/claims/${id}/verify`, {
+  await apiJson<void>(`/api/claims/${id}/verify`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ decision, comment }),
+    auth: true,
+    json: { decision, comment },
+    fallbackError: 'No se pudo aplicar la revisión',
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || 'No se pudo aplicar la revisión');
 }
 
 /* helpers */

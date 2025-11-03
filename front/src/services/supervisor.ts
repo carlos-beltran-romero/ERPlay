@@ -1,15 +1,11 @@
-// src/services/supervisor.ts
-import { fetchAuth, API_URL } from './http';
+import { apiJson, API_URL, ApiError } from './http';
+import { resolveAssetUrl } from '../shared/utils/url';
 
-async function getJSON(url: string) {
-  const res = await fetchAuth(url);
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || 'Error de servidor');
-  return data;
+async function getJSON(url: string, fallbackError = 'Error de servidor') {
+  return apiJson<any>(url, { auth: true, fallbackError });
 }
 
-const toAbs = (p?: string | null) =>
-  p && !p.startsWith('http') ? `${API_URL}${p}` : (p || null);
+const toAbs = (p?: string | null) => resolveAssetUrl(p) ?? null;
 
 /* ===================== Tipos (sin cambios) ===================== */
 /* ===================== Tipos ===================== */
@@ -136,11 +132,13 @@ export async function supGetCreatedQuestions(
   userId: string,
   opts: { limit?: number } = {}
 ) {
-  const res = await fetchAuth(
-    `${API_URL}/api/supervisor/students/${userId}/questions?limit=${opts.limit ?? 200}`
+  const data = await apiJson<any>(
+    `${API_URL}/api/supervisor/students/${userId}/questions?limit=${opts.limit ?? 200}`,
+    {
+      auth: true,
+      fallbackError: 'No se pudieron cargar las preguntas del alumno',
+    }
   );
-  const data = await res.json().catch(() => ([]));
-  if (!res.ok) throw new Error(data?.error || 'No se pudieron cargar las preguntas del alumno');
 
   const rows = Array.isArray((data as any)?.items) ? (data as any).items : (Array.isArray(data) ? data : []);
   return rows.map((q: any) => {
@@ -174,7 +172,7 @@ export async function supGetCreatedQuestions(
         ? {
             id: String(q.diagram.id ?? ''),
             title: String(q.diagram.title ?? ''),
-            path: q.diagram.path && !q.diagram.path.startsWith('http') ? `${API_URL}${q.diagram.path}` : q.diagram.path,
+            path: toAbs(q.diagram.path),
           }
         : undefined,
       createdAt: q.createdAt,
@@ -324,28 +322,27 @@ export async function supPutWeeklyGoal(payload: {
   weekStart?: string;
   weekEnd?: string;
   notify?: boolean;
-}) {
+}): Promise<WeeklyGoalDTO> {
   const url = `${API_URL}/api/supervisor/weekly-goal`;
 
-  // Intento principal: PUT
-  let res = await fetchAuth(url, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-
-  // Fallback POST
-  if (!res.ok && (res.status === 404 || res.status === 405 || res.status === 501)) {
-    res = await fetchAuth(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+  try {
+    return await apiJson<WeeklyGoalDTO>(url, {
+      method: 'PUT',
+      auth: true,
+      json: payload,
+      fallbackError: 'No se pudo guardar el objetivo',
     });
+  } catch (error) {
+    if (error instanceof ApiError && [404, 405, 501].includes(error.status)) {
+      return apiJson<WeeklyGoalDTO>(url, {
+        method: 'POST',
+        auth: true,
+        json: payload,
+        fallbackError: 'No se pudo guardar el objetivo',
+      });
+    }
+    throw error;
   }
-
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || 'No se pudo guardar el objetivo');
-  return data;
 }
 
 export async function supGetWeeklyProgress(params?: {
@@ -358,11 +355,13 @@ export async function supGetWeeklyProgress(params?: {
   if (params?.weekEnd) qs.set('weekEnd', params.weekEnd);
   if (params?.userId) qs.set('userId', params.userId);
 
-  const res = await fetchAuth(
-    `${API_URL}/api/supervisor/weekly-goal/progress${qs.toString() ? `?${qs.toString()}` : ''}`
+  const data = await apiJson<any>(
+    `${API_URL}/api/supervisor/weekly-goal/progress${qs.toString() ? `?${qs.toString()}` : ''}`,
+    {
+      auth: true,
+      fallbackError: 'No disponible',
+    }
   );
-  const data = await res.json().catch(() => []);
-  if (!res.ok) throw new Error((data as any)?.error || 'No disponible');
   return Array.isArray(data) ? data : [];
 }
 

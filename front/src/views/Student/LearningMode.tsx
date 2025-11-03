@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import PageWithHeader from '../PageWithHeader';
+import PageWithHeader from '../../components/layout/PageWithHeader';
 import { toast } from 'react-toastify';
 // ⬇️ usamos el servicio de test-sessions
 import {
@@ -22,20 +22,7 @@ import {
   Flag,
   Info,
 } from 'lucide-react';
-
-// Convierte rutas relativas a URL absoluta usando la base del API o el origen actual
-const resolveImgUrl = (p?: string | null) => {
-  if (!p) return null;
-  if (/^https?:\/\//i.test(p)) return p;
-  // Base: VITE_API_URL (sin /api al final) o el origin actual
-  let base =
-    (import.meta.env.VITE_API_URL as string | undefined) ||
-    (typeof window !== 'undefined' ? window.location.origin : '');
-  base = (base || '').replace(/\/+$/, '').replace(/\/api$/i, '');
-  const rel = ('/' + String(p)).replace(/\/{2,}/g, '/');
-  return `${base}${rel}`;
-};
-
+import { resolveAssetUrl } from '../../shared/utils/url';
 
 type PracticeQuestion = {
   prompt: string;
@@ -62,7 +49,7 @@ const LearningMode: React.FC = () => {
   const [finished, setFinished] = useState(false);
 
   // control de tiempo
-  const [perQSeconds, setPerQSeconds] = useState<number[]>([]); // opcional, solo tracking UI
+  const [, setPerQSeconds] = useState<number[]>([]); // opcional, solo tracking UI
   const lastTickRef = useRef<number | null>(null); // timestamp ms de entrada a pregunta actual
 
   // ===== Estado de carga/payload =====
@@ -336,7 +323,7 @@ const LearningMode: React.FC = () => {
     return (
       <PageWithHeader>
         <div className="p-6 text-gray-600">Cargando práctica…</div>
-      </PageWithHeader>
+     </PageWithHeader>
     );
   }
 
@@ -344,7 +331,7 @@ const LearningMode: React.FC = () => {
     return (
       <PageWithHeader>
         <div className="p-6 text-gray-600">No se pudo cargar la práctica.</div>
-      </PageWithHeader>
+     </PageWithHeader>
     );
   }
 
@@ -382,7 +369,7 @@ const LearningMode: React.FC = () => {
             </div>
           </div>
         </div>
-      </PageWithHeader>
+     </PageWithHeader>
     );
   }
 
@@ -461,7 +448,7 @@ const LearningMode: React.FC = () => {
         <div className="mt-5 flex justify-center">
           {payload.diagram.path ? (
            <img
-           src={resolveImgUrl(payload.diagram.path) || undefined}
+           src={resolveAssetUrl(payload.diagram.path) || undefined}
            alt={payload.diagram.title}
            className="max-h-[28rem] w-full rounded-lg border object-contain"
          />
@@ -714,7 +701,7 @@ const LearningMode: React.FC = () => {
           </div>
         </div>
       )}
-    </PageWithHeader>
+   </PageWithHeader>
   );
 };
 

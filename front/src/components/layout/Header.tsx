@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getProfile, type UserProfile } from '../services/users';
-import { logout } from '../services/auth';
+import { getProfile, type UserProfile } from '../../services/users';
+import { logout } from '../../services/auth';
 import {
   LogOut,
   ChevronDown,
@@ -13,6 +13,9 @@ import {
   Layers,
 } from 'lucide-react';
 
+/**
+ * Cabecera principal con navegación contextual y menú de usuario.
+ */
 const Header: React.FC = () => {
   const [me, setMe] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,7 +42,6 @@ const Header: React.FC = () => {
     })();
   }, []);
 
-  // cerrar dropdown en click fuera / Escape
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -98,7 +100,6 @@ const Header: React.FC = () => {
   return (
     <header className="sticky top-0 z-40 backdrop-blur bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950 text-white border-b border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-        {/* Marca */}
         <button
           onClick={goDashboard}
           className="group flex items-center gap-3 focus:outline-none"
@@ -114,9 +115,7 @@ const Header: React.FC = () => {
           </div>
         </button>
 
-        {/* Acciones */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* CTA (solo alumno) */}
           {!isSupervisor && (
             <button
               onClick={() => go('/student/play-menu')}
@@ -127,7 +126,6 @@ const Header: React.FC = () => {
             </button>
           )}
 
-          {/* Usuario / Dropdown */}
           <div ref={menuRef} className="relative">
             <button
               onClick={() => setMenuOpen((v) => !v)}
@@ -136,7 +134,6 @@ const Header: React.FC = () => {
               className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-white/30"
               title="Cuenta"
             >
-              {/* Avatar con inicial */}
               <div className="h-7 w-7 rounded-full bg-white/15 grid place-items-center">
                 <span className="text-[12px] font-semibold">{initial}</span>
               </div>
@@ -149,7 +146,6 @@ const Header: React.FC = () => {
               <ChevronDown size={16} className={`hidden sm:block transition ${menuOpen ? 'rotate-180' : ''}`} />
             </button>
 
-            {/* Menú */}
             {menuOpen && (
               <div
                 role="menu"
@@ -199,18 +195,15 @@ const Header: React.FC = () => {
                       className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-white/10"
                     >
                       <Layers size={16} />
-                      Diagramas
+                      Tests
                     </button>
                   </>
                 )}
 
-                <div className="my-1 h-px bg-white/10" />
-
                 <button
                   onClick={handleLogout}
                   role="menuitem"
-                  className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-rose-300 hover:bg-white/10"
-                  title="Cerrar sesión"
+                  className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-white/10"
                 >
                   <LogOut size={16} />
                   Cerrar sesión

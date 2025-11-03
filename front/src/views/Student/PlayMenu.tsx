@@ -1,7 +1,7 @@
 // src/views/PlayMenu.tsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import PageWithHeader from '../PageWithHeader';
+import PageWithHeader from '../../components/layout/PageWithHeader';
 import { GraduationCap, BookOpenCheck, LayoutDashboard } from 'lucide-react';
 
 type TileProps = {
@@ -76,7 +76,7 @@ const PlayMenu: React.FC = () => {
           />
         </div>
       </div>
-    </PageWithHeader>
+   </PageWithHeader>
   );
 };
 

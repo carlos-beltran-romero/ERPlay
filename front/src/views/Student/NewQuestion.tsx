@@ -1,6 +1,6 @@
 // src/views/NewQuestion.tsx
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import PageWithHeader from '../PageWithHeader';
+import PageWithHeader from '../../components/layout/PageWithHeader';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import { Image as ImageIcon, Plus, Save, Search, ArrowLeft } from 'lucide-react';
@@ -155,7 +155,7 @@ const NewQuestion: React.FC = () => {
     return (
       <PageWithHeader>
         <div className="p-6 text-gray-600">Cargando…</div>
-      </PageWithHeader>
+     </PageWithHeader>
     );
   }
 
@@ -367,7 +367,7 @@ const NewQuestion: React.FC = () => {
           </div>
         )}
       </div>
-    </PageWithHeader>
+   </PageWithHeader>
   );
 };
 

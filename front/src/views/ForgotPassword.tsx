@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { toast } from 'react-toastify';
 import iconoWeb from '../assets/icono_web.png';
 import { forgotPassword } from '../services/auth';
 

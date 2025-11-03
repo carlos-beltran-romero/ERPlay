@@ -1,5 +1,4 @@
-// src/services/dashboard.ts
-import { fetchAuth, API_URL } from './http';
+import { apiJson } from './http';
 
 export type RecentActivityItem =
   | {
@@ -33,12 +32,11 @@ export async function getRecentActivity(params?: { limit?: number; offset?: numb
   const limit = params?.limit ?? 8;
   const offset = params?.offset ?? 0;
 
-  const res = await fetchAuth(`${API_URL}/api/dashboard/recent?limit=${limit}&offset=${offset}`);
-  const data = await res.json().catch(() => null);
+  const data = await apiJson<unknown>(`/api/dashboard/recent?limit=${limit}&offset=${offset}`, {
+    auth: true,
+    fallbackError: 'No se pudo cargar la actividad reciente',
+  });
 
-  if (!res.ok) {
-    throw new Error((data as any)?.error || `Error ${res.status}`);
-  }
   if (!Array.isArray(data)) {
     throw new Error('Respuesta inesperada de la API');
   }

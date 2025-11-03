@@ -1,7 +1,7 @@
 // src/views/Student/StudentDashboard.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import PageWithHeader from "../PageWithHeader";
+import PageWithHeader from "../../components/layout/PageWithHeader";
 import { getProfile, type UserProfile } from "../../services/users";
 import {
   getRecentActivity,
@@ -166,6 +166,7 @@ const StudentDashboard: React.FC = () => {
 
   useEffect(() => {
     fetchMore(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const renderItem = (it: RecentActivityItem) => {
@@ -396,7 +397,7 @@ const StudentDashboard: React.FC = () => {
           )}
         </div>
       </div>
-    </PageWithHeader>
+   </PageWithHeader>
   );
 };
 

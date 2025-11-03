@@ -1,11 +1,11 @@
-// src/services/review.ts
-import { fetchAuth, API_URL } from './http';
+import { apiJson } from './http';
 
 export async function getPendingStudentQuestionsCount(): Promise<number> {
   try {
-    const res = await fetchAuth(`${API_URL}/api/questions/pending/count`);
-    if (!res.ok) return 0;
-    const data = await res.json().catch(() => ({}));
+    const data = await apiJson<any>('/api/questions/pending/count', {
+      auth: true,
+      fallbackError: 'No disponible',
+    });
     return Number(data?.count ?? 0);
   } catch {
     return 0;

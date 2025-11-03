@@ -1,16 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import PageWithHeader from "../PageWithHeader";
-import {
-  getProfile,
-  type UserProfile,
-  fetchStudents,
-} from "../../services/users";
+import PageWithHeader from "../../components/layout/PageWithHeader";
+import { getProfile, type UserProfile } from "../../services/users";
 import { getPendingStudentQuestionsCount } from "../../services/review";
 import {
   UserCog,
   Users,
-  FileStack,
   HelpCircle,
   ClipboardList,
   CheckSquare,
@@ -28,18 +23,6 @@ import {
   type WeeklyProgressRow,
 } from "../../services/supervisor";
 import { toast } from "react-toastify";
-
-const StatCard = ({ title, value, Icon }: any) => (
-  <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow transition">
-    <div className="flex items-center gap-3">
-      <div className="rounded-xl bg-indigo-50 p-3">
-        <Icon size={20} />
-      </div>
-      <div className="text-sm text-gray-500">{title}</div>
-    </div>
-    <div className="mt-3 text-2xl font-semibold">{value}</div>
-  </div>
-);
 
 // ahora acepta badgeCount opcional
 const ActionCard = ({ title, subtitle, onClick, Icon, badgeCount }: any) => (
@@ -83,7 +66,6 @@ const SupervisorDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [me, setMe] = useState<UserProfile | null>(null);
 
-  const [studentsCount, setStudentsCount] = useState<number | null>(null);
   const [pendingCount, setPendingCount] = useState<number>(0);
 
   // Objetivo semanal
@@ -106,17 +88,6 @@ const SupervisorDashboard: React.FC = () => {
         const u = await getProfile();
         setMe(u);
       } catch {}
-    })();
-  }, []);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const students = await fetchStudents();
-        setStudentsCount(students.length);
-      } catch {
-        setStudentsCount(0);
-      }
     })();
   }, []);
 
@@ -188,11 +159,6 @@ const SupervisorDashboard: React.FC = () => {
       setOpenProgress(false);
     }
   }
-
-  const periodLabel =
-    goal?.weekStart && goal?.weekEnd
-      ? `${goal.weekStart} — ${goal.weekEnd}`
-      : "Semana actual";
 
   return (
     <PageWithHeader>
@@ -494,7 +460,7 @@ const SupervisorDashboard: React.FC = () => {
           )}
         </div>
       </div>
-    </PageWithHeader>
+   </PageWithHeader>
   );
 };
 

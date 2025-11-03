@@ -1,5 +1,4 @@
-// src/services/tests.ts
-import { fetchAuth, API_URL } from './http';
+import { apiJson, apiRequest, API_URL } from './http';
 
 export type TestMode = 'learning' | 'exam' | 'errors';
 
@@ -105,14 +104,12 @@ export type ListFilters = {
  * Sesión de test (jugar)
  * ========================= */
 export async function startTestSession(params: { mode: TestMode; limit?: number }) {
-  const res = await fetchAuth(`${API_URL}/api/test-sessions/start`, {
+  return apiJson<StartedSession>(`${API_URL}/api/test-sessions/start`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
+    auth: true,
+    json: params,
+    fallbackError: 'No se pudo iniciar el test',
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || 'No se pudo iniciar el test');
-  return data as StartedSession;
 }
 
 export async function patchResult(
@@ -126,18 +123,15 @@ export async function patchResult(
     timeSpentSecondsDelta: number;
   }>
 ) {
-  const res = await fetchAuth(
+  await apiJson<void>(
     `${API_URL}/api/test-sessions/${sessionId}/results/${resultId}`,
     {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      auth: true,
+      json: body,
+      fallbackError: 'No se pudo guardar',
     }
   );
-  if (!res.ok) {
-    const j = await res.json().catch(() => ({}));
-    throw new Error(j?.error || 'No se pudo guardar');
-  }
   return true;
 }
 
@@ -146,10 +140,10 @@ export async function logEvent(
   body: { type: string; resultId?: string; payload?: any }
 ) {
   try {
-    await fetchAuth(`${API_URL}/api/test-sessions/${sessionId}/events`, {
+    await apiRequest(`${API_URL}/api/test-sessions/${sessionId}/events`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      auth: true,
+      json: body,
     });
   } catch {
     // Silenciar errores de tracking
@@ -157,12 +151,11 @@ export async function logEvent(
 }
 
 export async function finishSession(sessionId: string) {
-  const res = await fetchAuth(`${API_URL}/api/test-sessions/${sessionId}/finish`, {
+  return apiJson(`${API_URL}/api/test-sessions/${sessionId}/finish`, {
     method: 'POST',
+    auth: true,
+    fallbackError: 'No se pudo finalizar',
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || 'No se pudo finalizar');
-  return data;
 }
 
 /* =========================
@@ -179,10 +172,10 @@ export async function listMyTests(filters: ListFilters = {}): Promise<ListMyTest
 
   const url = `${API_URL}/api/test-sessions/mine${params.toString() ? `?${params.toString()}` : ''}`;
 
-  const res = await fetchAuth(url);
-  const data = await res.json().catch(() => ({}));
-
-  if (!res.ok) throw new Error(data?.error || 'No se pudieron cargar tus tests');
+  const data = await apiJson<any>(url, {
+    auth: true,
+    fallbackError: 'No se pudieron cargar tus tests',
+  });
 
   const rawItems = (data.items || data.results || data) as any[];
   const items: TestSessionListItem[] = Array.isArray(rawItems)
@@ -233,9 +226,10 @@ export async function listMyTests(filters: ListFilters = {}): Promise<ListMyTest
 }
 
 export async function getTestDetail(sessionId: string): Promise<TestSessionDetail> {
-  const res = await fetchAuth(`${API_URL}/api/test-sessions/${sessionId}`);
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || 'No se pudo cargar el detalle del test');
+  const data = await apiJson<any>(`${API_URL}/api/test-sessions/${sessionId}`, {
+    auth: true,
+    fallbackError: 'No se pudo cargar el detalle del test',
+  });
 
   const results: TestResultItem[] = (data.results || []).map((r: any) => ({
     resultId: r.resultId ?? r.id,

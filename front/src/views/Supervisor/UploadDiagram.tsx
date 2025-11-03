@@ -1,7 +1,7 @@
 // src/views/UploadDiagram.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import PageWithHeader from "../PageWithHeader";
+import PageWithHeader from "../../components/layout/PageWithHeader";
 import { uploadDiagram } from "../../services/diagrams";
 import { toast } from "react-toastify";
 import {
@@ -557,7 +557,7 @@ const UploadDiagram: React.FC = () => {
           </div>
         )}
       </div>
-    </PageWithHeader>
+   </PageWithHeader>
   );
 };
 

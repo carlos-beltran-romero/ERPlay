@@ -1,7 +1,7 @@
 // src/views/Professor/VerifyQuestions.tsx
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import PageWithHeader from '../PageWithHeader';
+import PageWithHeader from '../../components/layout/PageWithHeader';
 import {
   listPendingQuestions,
   verifyQuestion,
@@ -622,7 +622,7 @@ const VerifyQuestions: React.FC = () => {
           </div>
         )}
       </div>
-    </PageWithHeader>
+   </PageWithHeader>
   );
 };
 

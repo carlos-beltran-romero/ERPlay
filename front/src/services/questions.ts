@@ -1,5 +1,5 @@
-// src/services/questions.ts
-import { fetchAuth, API_URL } from './http';
+import { apiJson } from './http';
+import { resolveAssetUrl } from '../shared/utils/url';
 
 export interface PendingQuestion {
   id: string;
@@ -24,9 +24,6 @@ type MyQuestion = {
   correctIndex?: number;
 };
 
-const toAbs = (p?: string) =>
-  p && !p.startsWith('http') ? `${API_URL}${p}` : (p || '');
-
 function normalizeReviewStatus(v: any): 'PENDING' | 'APPROVED' | 'REJECTED' {
   if (typeof v === 'string') {
     const s = v.toUpperCase();
@@ -44,16 +41,18 @@ function normalizeReviewStatus(v: any): 'PENDING' | 'APPROVED' | 'REJECTED' {
 }
 
 export async function getPendingCount(): Promise<number> {
-  const res = await fetchAuth(`${API_URL}/api/questions/pending/count`);
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || 'No disponible');
+  const data = await apiJson<any>('/api/questions/pending/count', {
+    auth: true,
+    fallbackError: 'No disponible',
+  });
   return Number(data?.count ?? 0);
 }
 
 export async function listPendingQuestions(): Promise<PendingQuestion[]> {
-  const res = await fetchAuth(`${API_URL}/api/questions/pending`);
-  const raw = await res.json().catch(() => ([]));
-  if (!res.ok) throw new Error(raw?.error || 'No se pudieron cargar las preguntas');
+  const raw = await apiJson<any[]>('/api/questions/pending', {
+    auth: true,
+    fallbackError: 'No se pudieron cargar las preguntas',
+  });
 
   return (Array.isArray(raw) ? raw : []).map((q: any) => {
     let options: string[] = [];
@@ -83,13 +82,13 @@ export async function listPendingQuestions(): Promise<PendingQuestion[]> {
       ? {
           id: String(dq.id ?? ''),
           title: String(dq.title ?? dq.name ?? ''),
-          path: toAbs(dq.path ?? dq.imagePath ?? ''),
+          path: resolveAssetUrl(dq.path ?? dq.imagePath ?? '') ?? '',
         }
       : (q.diagramTitle || q.diagramPath || q.diagramId)
       ? {
           id: String(q.diagramId ?? ''),
           title: String(q.diagramTitle ?? ''),
-          path: toAbs(q.diagramPath ?? ''),
+          path: resolveAssetUrl(q.diagramPath ?? '') ?? '',
         }
       : undefined;
 
@@ -117,19 +116,19 @@ export async function verifyQuestion(
   decision: 'approve' | 'reject',
   comment?: string
 ): Promise<void> {
-  const res = await fetchAuth(`${API_URL}/api/questions/${id}/verify`, {
+  await apiJson<void>(`/api/questions/${id}/verify`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ decision, comment }),
+    auth: true,
+    json: { decision, comment },
+    fallbackError: 'No se pudo verificar',
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || 'No se pudo verificar');
 }
 
 export async function listMyQuestions(): Promise<MyQuestion[]> {
-  const res = await fetchAuth(`${API_URL}/api/questions/mine`);
-  const data = await res.json().catch(() => ([]));
-  if (!res.ok) throw new Error(data?.error || 'No se pudieron cargar tus preguntas');
+  const data = await apiJson<any[]>('/api/questions/mine', {
+    auth: true,
+    fallbackError: 'No se pudieron cargar tus preguntas',
+  });
 
   return (Array.isArray(data) ? data : []).map((q: any) => {
     const status = normalizeReviewStatus(
@@ -167,7 +166,7 @@ export async function listMyQuestions(): Promise<MyQuestion[]> {
         ? {
             id: String(q.diagram.id ?? ''),
             title: String(q.diagram.title ?? ''),
-            path: toAbs(q.diagram.path),
+            path: resolveAssetUrl(q.diagram.path) ?? '',
           }
         : undefined,
       createdAt: q.createdAt,
@@ -185,13 +184,10 @@ export async function createQuestion(payload: {
   options: string[];
   correctIndex: number;
 }): Promise<{ id: string; status: 'PENDING' | 'APPROVED' | 'REJECTED' }> {
-  const res = await fetchAuth(`${API_URL}/api/questions`, {
+  return apiJson(`/api/questions`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    auth: true,
+    json: payload,
+    fallbackError: 'No se pudo crear la pregunta',
   });
-
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || 'No se pudo crear la pregunta');
-  return data;
 }

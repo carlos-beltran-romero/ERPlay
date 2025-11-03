@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { batchCreateStudents, type BatchStudent } from '../../services/users';
-import PageWithHeader from '../PageWithHeader';
+import PageWithHeader from '../../components/layout/PageWithHeader';
 import { toast } from 'react-toastify';
 import { Plus, Trash2, Save, ArrowLeft } from 'lucide-react';
 
@@ -326,7 +326,7 @@ const SupervisorBulkStudents: React.FC = () => {
           Consejo: puedes rellenar unas cuantas filas y guardar, luego volver a añadir más.
         </p>
       </div>
-    </PageWithHeader>
+   </PageWithHeader>
   );
 };
 

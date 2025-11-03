@@ -1,6 +1,6 @@
 // src/views/Student/MyQuestionsView.tsx
 import React, { useEffect, useMemo, useState } from "react";
-import PageWithHeader from "../PageWithHeader";
+import PageWithHeader from "../../components/layout/PageWithHeader";
 import { toast } from "react-toastify";
 import { listMyQuestions } from "../../services/questions";
 import { useNavigate } from "react-router-dom";
@@ -834,7 +834,7 @@ const MyQuestionsView: React.FC = () => {
           </div>
         )}
       </div>
-    </PageWithHeader>
+   </PageWithHeader>
   );
 };
 

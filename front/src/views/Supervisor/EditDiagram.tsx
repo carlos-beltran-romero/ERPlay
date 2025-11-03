@@ -1,7 +1,7 @@
 // src/views/EditDiagram.tsx
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import PageWithHeader from '../PageWithHeader';
+import PageWithHeader from '../../components/layout/PageWithHeader';
 import { toast } from 'react-toastify';
 import { getDiagram, updateDiagram } from '../../services/diagrams';
 import { Plus, Trash2, CheckCircle2, Image as ImageIcon, Save, ArrowLeft } from 'lucide-react';
@@ -219,7 +219,7 @@ const EditDiagram: React.FC = () => {
     return (
       <PageWithHeader>
         <div className="p-6 text-gray-600">Cargando…</div>
-      </PageWithHeader>
+     </PageWithHeader>
     );
   }
 
@@ -469,7 +469,7 @@ const EditDiagram: React.FC = () => {
           </div>
         )}
       </div>
-    </PageWithHeader>
+   </PageWithHeader>
   );
 };
 

@@ -1,6 +1,6 @@
 // src/views/Student/MyTests.tsx
 import React, { useEffect, useMemo, useState } from "react";
-import PageWithHeader from "../PageWithHeader";
+import PageWithHeader from "../../components/layout/PageWithHeader";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import {
@@ -22,35 +22,8 @@ import {
   Flag,
   ArrowLeft,
 } from "lucide-react";
-
-const resolveImgUrl = (p?: string | null) => {
-  if (!p) return null;
-  if (/^https?:\/\//i.test(p)) return p;
-  let base =
-    (import.meta.env.VITE_API_URL as string | undefined) ||
-    (typeof window !== "undefined" ? window.location.origin : "");
-  base = (base || "").replace(/\/+$/, "").replace(/\/api$/i, "");
-  const rel = ("/" + String(p)).replace(/\/{2,}/g, "/");
-  return `${base}${rel}`;
-};
-
-// Utils
-const fmtDateTime = (iso?: string | null) =>
-  iso ? new Date(iso).toLocaleString() : "—";
-
-const fmtDate = (iso?: string | null) =>
-  iso ? new Date(iso).toLocaleDateString() : "";
-
-const fmtDuration = (sec?: number | null) => {
-  if (!sec && sec !== 0) return "—";
-  const s = Math.max(0, sec);
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const r = s % 60;
-  if (h) return `${h}h ${m}m ${r}s`;
-  if (m) return `${m}m ${r}s`;
-  return `${r}s`;
-};
+import { formatDateTime, formatDate, formatDuration } from "../../shared/utils/datetime";
+import { resolveAssetUrl } from "../../shared/utils/url";
 
 const modeLabel: Record<"learning" | "exam", string> = {
   learning: "Aprendizaje",
@@ -401,7 +374,7 @@ const MyTests: React.FC = () => {
                             {it.diagram?.title || "—"}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {acc} · {fmtDuration(it.summary?.durationSeconds)}
+                            {acc} · {formatDuration(it.summary?.durationSeconds)}
                           </div>
                         </div>
 
@@ -415,7 +388,7 @@ const MyTests: React.FC = () => {
 
                         <div className="col-span-2">
                           <div className="text-sm">
-                            {fmtDateTime(it.startedAt)}
+                            {formatDateTime(it.startedAt)}
                           </div>
                         </div>
 
@@ -438,7 +411,7 @@ const MyTests: React.FC = () => {
                             {it.diagram?.title || "—"}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {acc} · {fmtDuration(it.summary?.durationSeconds)}
+                            {acc} · {formatDuration(it.summary?.durationSeconds)}
                           </div>
                         </div>
 
@@ -463,7 +436,7 @@ const MyTests: React.FC = () => {
                               Fecha
                             </div>
                             <div className="font-medium break-words">
-                              {fmtDateTime(it.startedAt)}
+                              {formatDateTime(it.startedAt)}
                             </div>
                           </div>
                         </div>
@@ -523,9 +496,9 @@ const MyTests: React.FC = () => {
                           : detail.mode === "learning"
                           ? modeLabel.learning
                           : "—"
-                      } · ${fmtDateTime(detail.startedAt)}${
+                      } · ${formatDateTime(detail.startedAt)}${
                         detail.finishedAt
-                          ? ` · ${fmtDateTime(detail.finishedAt)}`
+                          ? ` · ${formatDateTime(detail.finishedAt)}`
                           : ""
                       }`
                     : "—"}
@@ -561,7 +534,7 @@ const MyTests: React.FC = () => {
                     <div className="rounded-xl bg-indigo-50 px-3 py-2 text-center">
                       <div className="text-xs text-gray-500">Duración</div>
                       <div className="text-base font-semibold">
-                        {fmtDuration(
+                        {formatDuration(
                           detail.durationSeconds ??
                             detail.summary?.durationSeconds
                         )}
@@ -605,7 +578,7 @@ const MyTests: React.FC = () => {
                     <div className="rounded-xl bg-indigo-50 px-3 py-2 text-center">
                       <div className="text-xs text-gray-500">Fecha</div>
                       <div className="text-base font-semibold">
-                        {fmtDate(detail.startedAt)}
+                        {formatDate(detail.startedAt)}
                       </div>
                     </div>
 
@@ -626,7 +599,7 @@ const MyTests: React.FC = () => {
                   <div className="mt-4">
                     {detail.diagram?.path ? (
                       <img
-                        src={resolveImgUrl(detail.diagram.path) || undefined}
+                        src={resolveAssetUrl(detail.diagram.path) || undefined}
                         alt={detail.diagram.title || "Diagrama"}
                         className="max-h-[24rem] w-full rounded-lg border object-contain"
                       />
@@ -742,7 +715,7 @@ const MyTests: React.FC = () => {
                             <div className="mt-3 grid grid-cols-2 md:grid-cols-5 gap-2 text-xs text-gray-600">
                               <div className="inline-flex items-center gap-1">
                                 <Clock size={14} />{" "}
-                                {fmtDuration(r.timeSpentSeconds)}
+                                {formatDuration(r.timeSpentSeconds)}
                               </div>
                               {!isExam && (
                                 <div>Pista: {r.usedHint ? "Sí" : "No"}</div>
@@ -768,7 +741,7 @@ const MyTests: React.FC = () => {
           </div>
         </div>
       )}
-    </PageWithHeader>
+   </PageWithHeader>
   );
 };
 

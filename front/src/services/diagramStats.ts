@@ -1,4 +1,4 @@
-import { fetchAuth, API_URL } from './http';
+import { apiJson } from './http';
 
 /**
  * ===============================
@@ -124,10 +124,11 @@ export async function getDiagramStats(diagramId: string, params?: {
   if (params?.from) qs.set('from', params.from);
   if (params?.to) qs.set('to', params.to);
 
-  const url = `${API_URL}/api/admin/diagrams/${diagramId}/stats${qs.toString() ? `?${qs.toString()}` : ''}`;
-  const res = await fetchAuth(url);
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || 'No se pudieron cargar las estadísticas');
+  const url = `/api/admin/diagrams/${diagramId}/stats${qs.toString() ? `?${qs.toString()}` : ''}`;
+  const data = await apiJson<any>(url, {
+    auth: true,
+    fallbackError: 'No se pudieron cargar las estadísticas',
+  });
 
   // ----- KPIs (obligatorios) -----
   const kpis: DiagramKpis = {

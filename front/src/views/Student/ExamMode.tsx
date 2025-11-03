@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import PageWithHeader from '../PageWithHeader';
+import PageWithHeader from '../../components/layout/PageWithHeader';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -9,7 +9,8 @@ import {
   finishSession,
   type StartedSession,
 } from '../../services/tests';
-import { Clock, ChevronRight, Image as ImageIcon, Info } from 'lucide-react';
+import { Clock, ChevronRight, Image as ImageIcon } from 'lucide-react';
+import { resolveAssetUrl } from '../../shared/utils/url';
 
 type ExamQuestion = {
   prompt: string;
@@ -31,22 +32,10 @@ const formatTime = (secs: number) => {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 };
 
-const resolveImgUrl = (p?: string | null) => {
-  if (!p) return null;
-  if (/^https?:\/\//i.test(p)) return p;
-  let base =
-    (import.meta.env.VITE_API_URL as string | undefined) ||
-    (typeof window !== 'undefined' ? window.location.origin : '');
-  base = (base || '').replace(/\/+$/, '').replace(/\/api$/i, '');
-  const rel = ('/' + String(p)).replace(/\/{2,}/g, '/');
-  return `${base}${rel}`;
-};
-
 const ExamMode: React.FC = () => {
   const navigate = useNavigate();
 
   // ===== Estado sesión/test =====
-  const [sessionId, setSessionId] = useState<string>('');
   const sessionIdRef = useRef<string>('');
   const [payload, setPayload] = useState<ExamPayload | null>(null);
 
@@ -61,11 +50,9 @@ const ExamMode: React.FC = () => {
 
   // ===== Tiempo =====
   const [timeLeft, setTimeLeft] = useState(EXAM_SECONDS);
-  const [usedSeconds, setUsedSeconds] = useState(0);
   const tickerRef = useRef<number | null>(null);
 
   // ===== Tiempo por pregunta =====
-  const [perQSeconds, setPerQSeconds] = useState<number[]>([]);
   const lastTickRef = useRef<number | null>(null);
 
   const computeDeltaAndReset = () => {
@@ -76,11 +63,6 @@ const ExamMode: React.FC = () => {
     }
     const deltaSec = Math.max(0, Math.floor((now - lastTickRef.current) / 1000));
     lastTickRef.current = now;
-    setPerQSeconds(prev => {
-      const next = prev.slice();
-      next[current] = (next[current] || 0) + deltaSec;
-      return next;
-    });
     return deltaSec;
   };
 
@@ -128,7 +110,6 @@ const ExamMode: React.FC = () => {
         }
         return prev - 1;
       });
-      setUsedSeconds(prev => prev + 1);
     }, 1000);
     return () => {
       if (tickerRef.current) window.clearInterval(tickerRef.current);
@@ -169,14 +150,11 @@ const ExamMode: React.FC = () => {
           __resultId: q.resultId,
         })),
       };
-      setSessionId(data.sessionId);
       sessionIdRef.current = data.sessionId;
       setPayload(mapped);
       setAnswers(new Array(mapped.questions.length).fill(null));
-      setPerQSeconds(new Array(mapped.questions.length).fill(0));
       setCurrent(0);
       setTimeLeft(EXAM_SECONDS);
-      setUsedSeconds(0);
 
       setStarted(true);
       lastTickRef.current = Date.now();
@@ -329,7 +307,7 @@ const ExamMode: React.FC = () => {
         <div className="mt-5 flex justify-center">
           {payload.diagram.path ? (
             <img
-              src={resolveImgUrl(payload.diagram.path) || undefined}
+              src={resolveAssetUrl(payload.diagram.path) || undefined}
               alt={payload.diagram.title}
               className="h-72 md:h-96 rounded-lg border object-contain"
             />

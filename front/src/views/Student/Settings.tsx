@@ -1,6 +1,6 @@
 // src/views/Student/Settings.tsx
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import PageWithHeader from '../PageWithHeader';
+import PageWithHeader from '../../components/layout/PageWithHeader';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import {
@@ -176,7 +176,7 @@ const Settings: React.FC = () => {
     return (
       <PageWithHeader>
         <div className="p-6 text-gray-600">Cargando configuración…</div>
-      </PageWithHeader>
+     </PageWithHeader>
     );
   }
 
@@ -379,7 +379,7 @@ const Settings: React.FC = () => {
           </div>
         )}
       </div>
-    </PageWithHeader>
+   </PageWithHeader>
   );
 };
 

@@ -1,5 +1,4 @@
-// src/services/users.ts
-import { fetchAuth, API_URL } from './http';
+import { apiJson } from './http';
 
 export interface UserProfile {
   id: string;
@@ -31,24 +30,13 @@ export interface StudentSummary {
   createdAt?: string;
 }
 
-type UpdateMyProfileInput = {
-  name?: string;
-  lastName?: string;
-  email?: string;
-};
-
-// Helper: parsea JSON seguro
-async function safeJson(res: Response) {
-  const txt = await res.text();
-  try { return txt ? JSON.parse(txt) : {}; } catch { return {}; }
-}
-
 /* ======================== Perfil (yo) ======================== */
 
 export async function getProfile(): Promise<UserProfile> {
-  const res = await fetchAuth(`${API_URL}/api/users/me`);
-  if (!res.ok) throw new Error('No se pudo obtener el perfil');
-  const data = await safeJson(res);
+  const data = await apiJson<any>('/api/users/me', {
+    auth: true,
+    fallbackError: 'No se pudo obtener el perfil',
+  });
 
   return {
     id: String(data.id),
@@ -65,14 +53,12 @@ export async function updateMyProfile(input: { name: string; lastName: string; e
     email: String(input.email ?? '').trim(),
   };
 
-  const res = await fetchAuth(`${API_URL}/api/users/me`, {
+  const data = await apiJson<any>('/api/users/me', {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    auth: true,
+    json: payload,
+    fallbackError: 'No se pudo actualizar el perfil',
   });
-
-  const data = await safeJson(res);
-  if (!res.ok) throw new Error(data?.error || 'No se pudo actualizar el perfil');
 
   return {
     id: String(data.id),
@@ -83,16 +69,15 @@ export async function updateMyProfile(input: { name: string; lastName: string; e
 }
 
 export async function changeMyPassword(params: { currentPassword: string; newPassword: string }): Promise<void> {
-  const res = await fetchAuth(`${API_URL}/api/users/me/password`, {
+  await apiJson<void>('/api/users/me/password', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+    auth: true,
+    json: {
       currentPassword: params.currentPassword,
       newPassword: params.newPassword,
-    }),
+    },
+    fallbackError: 'No se pudo cambiar la contraseña',
   });
-  const data = await safeJson(res);
-  if (!res.ok) throw new Error(data?.error || 'No se pudo cambiar la contraseña');
 }
 
 /* ======================== Gestión alumnos ======================== */
@@ -101,39 +86,34 @@ export async function batchCreateStudents(students: BatchStudent[]): Promise<{
   created: Array<{ id: string; name: string; lastName: string; email: string; role: string; createdAt: string }>;
   skipped: { exists: string[]; payloadDuplicates: string[] };
 }> {
-  const res = await fetchAuth(`${API_URL}/api/users/batch`, {
+  return apiJson('/api/users/batch', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ users: students }),
+    auth: true,
+    json: { users: students },
+    fallbackError: 'No se pudo completar el alta masiva',
   });
-
-  const data = await safeJson(res);
-  if (!res.ok) throw new Error(data?.error || 'No se pudo completar el alta masiva');
-  return data;
 }
 
 export async function fetchStudents(): Promise<StudentSummary[]> {
-  const res = await fetchAuth(`${API_URL}/api/users`);
-  const data = await safeJson(res);
-  if (!res.ok) throw new Error(data?.error || 'No se pudieron cargar los alumnos');
-  return data as StudentSummary[];
+  return apiJson<StudentSummary[]>('/api/users', {
+    auth: true,
+    fallbackError: 'No se pudieron cargar los alumnos',
+  });
 }
 
 export async function updateStudent(userId: string, dto: UpdateStudentDTO): Promise<StudentSummary> {
-  const res = await fetchAuth(`${API_URL}/api/users/${userId}`, {
+  return apiJson<StudentSummary>(`/api/users/${userId}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(dto),
+    auth: true,
+    json: dto,
+    fallbackError: 'No se pudo actualizar el alumno',
   });
-  const data = await safeJson(res);
-  if (!res.ok) throw new Error(data?.error || 'No se pudo actualizar el alumno');
-  return data as StudentSummary;
 }
 
 export async function deleteStudent(userId: string): Promise<void> {
-  const res = await fetchAuth(`${API_URL}/api/users/${userId}`, { method: 'DELETE' });
-  if (!res.ok) {
-    const data = await safeJson(res);
-    throw new Error(data?.error || 'No se pudo eliminar el alumno');
-  }
+  await apiJson<void>(`/api/users/${userId}`, {
+    method: 'DELETE',
+    auth: true,
+    fallbackError: 'No se pudo eliminar el alumno',
+  });
 }

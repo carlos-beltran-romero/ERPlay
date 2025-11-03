@@ -1,5 +1,5 @@
-// src/services/diagrams.ts
-import { fetchAuth, API_URL } from './http';
+import { apiJson } from './http';
+import { resolveAssetUrl } from '../shared/utils/url';
 
 export interface QuestionInput {
   prompt: string;
@@ -23,9 +23,6 @@ export interface DiagramDetail {
   questions: QuestionInput[];
 }
 
-const toAbs = (p?: string) =>
-  (p && !p.startsWith('http') ? `${API_URL}${p}` : p ?? '');
-
 // Crear diagrama (FormData → NO forzar Content-Type)
 export async function uploadDiagram(payload: {
   title: string;
@@ -37,59 +34,54 @@ export async function uploadDiagram(payload: {
   fd.append('image', payload.imageFile);
   fd.append('questions', JSON.stringify(payload.questions));
 
-  const res = await fetchAuth(`${API_URL}/api/diagrams`, {
+  return apiJson('/api/diagrams', {
     method: 'POST',
+    auth: true,
     body: fd,
+    fallbackError: 'No se pudo subir el diagrama',
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || 'No se pudo subir el diagrama');
-  return data;
 }
 
 export async function listDiagrams(): Promise<DiagramSummary[]> {
-  const res = await fetchAuth(`${API_URL}/api/diagrams`);
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.error || 'No se pudo cargar la lista de tests');
-  return data;
+  const data = await apiJson<DiagramSummary[]>('/api/diagrams', {
+    auth: true,
+    fallbackError: 'No se pudo cargar la lista de tests',
+  });
+  return data.map((item) => ({ ...item, path: resolveAssetUrl(item.path) ?? '' }));
 }
 
 export async function getDiagram(id: string) {
-  const res = await fetchAuth(`${API_URL}/api/diagrams/${id}`);
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.error || 'No se pudo cargar el test');
-  return { ...data, path: toAbs(data.path) };
+  const data = await apiJson<any>(`/api/diagrams/${id}`, {
+    auth: true,
+    fallbackError: 'No se pudo cargar el test',
+  });
+  return { ...data, path: resolveAssetUrl(data.path) ?? '' };
 }
 
 export async function updateDiagram(id: string, formData: FormData) {
-  const res = await fetchAuth(`${API_URL}/api/diagrams/${id}`, {
+  return apiJson(`/api/diagrams/${id}`, {
     method: 'PUT',
+    auth: true,
     body: formData,
+    fallbackError: 'No se pudo actualizar',
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || 'No se pudo actualizar');
-  return data;
 }
 
 export async function deleteDiagram(id: string): Promise<void> {
-  const res = await fetchAuth(`${API_URL}/api/diagrams/${id}`, {
+  await apiJson<void>(`/api/diagrams/${id}`, {
     method: 'DELETE',
+    auth: true,
+    fallbackError: 'No se pudo eliminar el test',
   });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data?.error || 'No se pudo eliminar el test');
-  }
 }
 
 // Selector público (alumno/supervisor)
 export async function listPublicDiagrams() {
-  const res = await fetchAuth(`${API_URL}/api/diagrams/public`);
-  const data = await res.json().catch(() => ({}));
-
-  if (res.status === 401 || res.status === 403) {
-    const err: any = new Error('Acceso denegado');
-    err.code = res.status;
-    throw err;
-  }
-  if (!res.ok) throw new Error(data?.error || 'No se pudieron cargar los diagramas');
-  return data;
+  const data = await apiJson<any>(`/api/diagrams/public`, {
+    auth: true,
+    fallbackError: 'No se pudieron cargar los diagramas',
+  });
+  return Array.isArray(data)
+    ? data.map((item) => ({ ...item, path: resolveAssetUrl(item.path) }))
+    : data;
 }

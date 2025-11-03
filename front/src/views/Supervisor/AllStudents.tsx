@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useEffect as ReactUseEffect } from 'react';
-import PageWithHeader from '../PageWithHeader';
+import PageWithHeader from '../../components/layout/PageWithHeader';
 import { fetchStudents, updateStudent, deleteStudent, type StudentSummary } from '../../services/users';
 import { toast } from 'react-toastify';
 import { Pencil, Trash2, Search, X, AlertTriangle, BarChart3, ArrowLeft } from 'lucide-react';
@@ -448,7 +448,7 @@ const SupervisorStudents: React.FC = () => {
           </div>
         )}
       </div>
-    </PageWithHeader>
+   </PageWithHeader>
   );
 };
 
