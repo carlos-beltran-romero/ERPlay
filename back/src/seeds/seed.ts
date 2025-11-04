@@ -1,17 +1,17 @@
-import bcrypt from 'bcrypt';
+import bcrypt from "bcrypt";
 
-import { AppDataSource } from '../data-source';
-import { User, UserRole } from '../models/User';
-import { Diagram } from '../models/Diagram';
-import { Question } from '../models/Question';
-import { Option } from '../models/Option';
-import { Rating } from '../models/Rating';
-import { TestSession } from '../models/TestSession';
-import { TestResult } from '../models/TestResult';
-import { TestEvent } from '../models/TestEvent';
-import { Claim, ClaimStatus } from '../models/Claim';
-import { WeeklyGoal } from '../models/WeeklyGoal';
-import { UserBadge } from '../models/UserBadge';
+import { AppDataSource } from "../data-source";
+import { User, UserRole } from "../models/User";
+import { Diagram } from "../models/Diagram";
+import { Question } from "../models/Question";
+import { Option } from "../models/Option";
+import { Rating } from "../models/Rating";
+import { TestSession } from "../models/TestSession";
+import { TestResult } from "../models/TestResult";
+import { TestEvent } from "../models/TestEvent";
+import { Claim, ClaimStatus } from "../models/Claim";
+import { WeeklyGoal } from "../models/WeeklyGoal";
+import { UserBadge } from "../models/UserBadge";
 
 async function seed() {
   try {
@@ -23,51 +23,55 @@ async function seed() {
     const existingUsers = await userRepository.count();
 
     if (existingUsers > 0) {
-      console.log('⚠️  La base de datos ya contiene registros, se omite la semilla para evitar duplicados.');
+      console.log(
+        "⚠️  La base de datos ya contiene registros, se omite la semilla para evitar duplicados."
+      );
       return;
     }
 
     await AppDataSource.transaction(async (manager) => {
-      const supervisorPassword = await bcrypt.hash('Supervisor123*', 10);
-      const studentPassword = await bcrypt.hash('Alumno123*', 10);
+      const supervisorPassword = await bcrypt.hash("Supervisor123*", 10);
+      const studentPassword = await bcrypt.hash("Alumno123*", 10);
 
       const supervisor = manager.getRepository(User).create({
-        name: 'María',
-        lastName: 'Suárez',
-        email: 'maria.supervisor@erplay.com',
+        name: "María",
+        lastName: "Suárez",
+        email: "maria.supervisor@erplay.com",
         passwordHash: supervisorPassword,
         role: UserRole.SUPERVISOR,
       });
 
       const studentAna = manager.getRepository(User).create({
-        name: 'Ana',
-        lastName: 'Pérez',
-        email: 'ana.perez@erplay.com',
+        name: "Ana",
+        lastName: "Pérez",
+        email: "ana.perez@erplay.com",
         passwordHash: studentPassword,
         role: UserRole.STUDENT,
       });
 
       const studentLuis = manager.getRepository(User).create({
-        name: 'Luis',
-        lastName: 'Martínez',
-        email: 'luis.martinez@erplay.com',
+        name: "Luis",
+        lastName: "Martínez",
+        email: "luis.martinez@erplay.com",
         passwordHash: studentPassword,
         role: UserRole.STUDENT,
       });
 
-      await manager.getRepository(User).save([supervisor, studentAna, studentLuis]);
+      await manager
+        .getRepository(User)
+        .save([supervisor, studentAna, studentLuis]);
 
       const diagramRepo = manager.getRepository(Diagram);
       const erLibrary = diagramRepo.create({
-        title: 'Biblioteca Universitaria',
-        filename: 'biblioteca.png',
-        path: '/uploads/diagrams/biblioteca.png',
+        title: "Biblioteca Universitaria",
+        filename: "biblioteca.png",
+        path: "/uploads/diagrams/biblioteca.png",
       });
 
       const erHospital = diagramRepo.create({
-        title: 'Gestión Hospitalaria',
-        filename: 'hospital.png',
-        path: '/uploads/diagrams/hospital.png',
+        title: "Gestión Hospitalaria",
+        filename: "hospital.png",
+        path: "/uploads/diagrams/hospital.png",
       });
 
       await diagramRepo.save([erLibrary, erHospital]);
@@ -80,28 +84,28 @@ async function seed() {
 
       const questionsData = [
         {
-          prompt: '¿Cuál es la cardinalidad entre Autor y Libro?',
-          hint: 'Observa las relaciones AutorLibro en el diagrama.',
+          prompt: "¿Cuál es la cardinalidad entre Autor y Libro?",
+          hint: "Observa las relaciones AutorLibro en el diagrama.",
           correctOptionIndex: 1,
           diagram: erLibrary,
           target: libraryQuestions,
-          options: ['1:1', '1:N', 'N:1', 'N:M'],
+          options: ["1:1", "1:N", "N:1", "N:M"],
         },
         {
-          prompt: '¿Qué entidad almacena los préstamos realizados?',
-          hint: 'Busca entidades con fechas de devolución.',
+          prompt: "¿Qué entidad almacena los préstamos realizados?",
+          hint: "Busca entidades con fechas de devolución.",
           correctOptionIndex: 2,
           diagram: erLibrary,
           target: libraryQuestions,
-          options: ['Libro', 'Usuario', 'Prestamo', 'Bibliotecario'],
+          options: ["Libro", "Usuario", "Prestamo", "Bibliotecario"],
         },
         {
-          prompt: '¿Cuál es la entidad débil en el diagrama del hospital?',
-          hint: 'Fíjate en aquellas que dependen de Paciente.',
+          prompt: "¿Cuál es la entidad débil en el diagrama del hospital?",
+          hint: "Fíjate en aquellas que dependen de Paciente.",
           correctOptionIndex: 0,
           diagram: erHospital,
           target: hospitalQuestions,
-          options: ['HistorialClinico', 'Doctor', 'Habitacion', 'Tratamiento'],
+          options: ["HistorialClinico", "Doctor", "Habitacion", "Tratamiento"],
         },
       ];
 
@@ -120,11 +124,11 @@ async function seed() {
         const saved = await questionRepo.save(question);
         const withOptions = await questionRepo.findOne({
           where: { id: saved.id },
-          relations: ['options', 'diagram'],
+          relations: ["options", "diagram"],
         });
 
         if (!withOptions) {
-          throw new Error('No se pudo recuperar la pregunta recién creada.');
+          throw new Error("No se pudo recuperar la pregunta recién creada.");
         }
 
         questionData.target.push(withOptions);
@@ -132,22 +136,34 @@ async function seed() {
 
       const ratingRepo = manager.getRepository(Rating);
       await ratingRepo.save([
-        ratingRepo.create({ user: studentAna, question: libraryQuestions[0], rating: 5 }),
-        ratingRepo.create({ user: studentLuis, question: libraryQuestions[1], rating: 4 }),
-        ratingRepo.create({ user: studentAna, question: hospitalQuestions[0], rating: 5 }),
+        ratingRepo.create({
+          user: studentAna,
+          question: libraryQuestions[0],
+          rating: 5,
+        }),
+        ratingRepo.create({
+          user: studentLuis,
+          question: libraryQuestions[1],
+          rating: 4,
+        }),
+        ratingRepo.create({
+          user: studentAna,
+          question: hospitalQuestions[0],
+          rating: 5,
+        }),
       ]);
 
       const sessionRepo = manager.getRepository(TestSession);
       const session = sessionRepo.create({
         user: studentAna,
         diagram: erLibrary,
-        mode: 'learning',
+        mode: "learning",
         totalQuestions: 3,
         correctCount: 2,
         incorrectCount: 1,
         durationSeconds: 540,
         score: 78,
-        metadata: { source: 'seed', timeLimit: 900 },
+        metadata: { source: "seed", timeLimit: 900 },
         completedAt: new Date(),
       });
 
@@ -155,7 +171,9 @@ async function seed() {
 
       const resultRepo = manager.getRepository(TestResult);
       const questionOptions = (question: Question) =>
-        [...(question.options ?? [])].sort((a, b) => a.orderIndex - b.orderIndex).map((opt) => opt.text);
+        [...(question.options ?? [])]
+          .sort((a, b) => a.orderIndex - b.orderIndex)
+          .map((opt) => opt.text);
 
       const firstResult = resultRepo.create({
         session,
@@ -194,14 +212,17 @@ async function seed() {
         eventRepo.create({
           session,
           result: null,
-          type: 'start_session',
+          type: "start_session",
           payload: { startedAt: new Date().toISOString() },
         }),
         eventRepo.create({
           session,
           result: secondResult,
-          type: 'submit_answer',
-          payload: { selectedIndex: secondResult.selectedIndex, isCorrect: false },
+          type: "submit_answer",
+          payload: {
+            selectedIndex: secondResult.selectedIndex,
+            isCorrect: false,
+          },
         }),
       ]);
 
@@ -217,9 +238,11 @@ async function seed() {
           optionsSnapshot: questionOptions(libraryQuestions[1]),
           chosenIndex: secondResult.selectedIndex ?? 0,
           correctIndexAtSubmission: libraryQuestions[1].correctOptionIndex,
-          explanation: 'Creo que la respuesta correcta es Prestamo porque almacena las fechas.',
+          explanation:
+            "Creo que la respuesta correcta es Prestamo porque almacena las fechas.",
           reviewer: supervisor,
-          reviewerComment: 'Se ajustó la respuesta oficial para reflejar la aclaración.',
+          reviewerComment:
+            "Se ajustó la respuesta oficial para reflejar la aclaración.",
           reviewedAt: new Date(),
         })
       );
@@ -244,14 +267,22 @@ async function seed() {
 
       const badgeRepo = manager.getRepository(UserBadge);
       await badgeRepo.save([
-        badgeRepo.create({ user: studentAna, label: 'Primera semana completada', earnedAt: new Date() }),
-        badgeRepo.create({ user: studentLuis, label: 'Tres tests aprobados', earnedAt: new Date() }),
+        badgeRepo.create({
+          user: studentAna,
+          label: "Primera semana completada",
+          earnedAt: new Date(),
+        }),
+        badgeRepo.create({
+          user: studentLuis,
+          label: "Tres tests aprobados",
+          earnedAt: new Date(),
+        }),
       ]);
     });
 
-    console.log('✅ Base de datos poblada con datos de ejemplo.');
+    console.log("✅ Base de datos poblada con datos de ejemplo.");
   } catch (error) {
-    console.error('❌ Error generando la semilla:', error);
+    console.error("❌ Error generando la semilla:", error);
     process.exitCode = 1;
   } finally {
     if (AppDataSource.isInitialized) {

@@ -1,4 +1,4 @@
-import type { UserProfile } from './users';
+import type { UserProfile } from "./users";
 
 let cachedProfile: UserProfile | null = null;
 

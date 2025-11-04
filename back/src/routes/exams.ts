@@ -4,10 +4,10 @@
  * @module routes/exams
  */
 
-import { Router } from 'express';
-import { authenticate } from '../middlewares/authenticate';
-import authorize from '../middlewares/authorize';
-import { startExam } from '../controllers/exams';
+import { Router } from "express";
+import { authenticate } from "../middlewares/authenticate";
+import authorize from "../middlewares/authorize";
+import { startExam } from "../controllers/exams";
 
 const router = Router();
 
@@ -16,6 +16,6 @@ const router = Router();
  * Inicia una nueva sesión de examen para el estudiante
  * @access Privado (alumno)
  */
-router.get('/start', authenticate, authorize('alumno'), startExam);
+router.get("/start", authenticate, authorize("alumno"), startExam);
 
 export default router;

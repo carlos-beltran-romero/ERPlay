@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
-import iconoWeb from '../assets/icono_web.png';
-import { forgotPassword } from '../services/auth';
+import React, { useState } from "react";
+import iconoWeb from "../assets/icono_web.png";
+import { forgotPassword } from "../services/auth";
 
 const ForgotPassword: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'idle' | 'sent' | 'error'>('idle');
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "sent" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setStatus('idle');
+    setStatus("idle");
     setError(null);
 
     const start = Date.now();
@@ -18,21 +18,20 @@ const ForgotPassword: React.FC = () => {
 
     try {
       await forgotPassword(email);
-      // Asegura que el spinner dure al menos 1s
       const elapsed = Date.now() - start;
       const MIN = 1000;
       if (elapsed < MIN) {
-        await new Promise(res => setTimeout(res, MIN - elapsed));
+        await new Promise((res) => setTimeout(res, MIN - elapsed));
       }
-      setStatus('sent');
+      setStatus("sent");
     } catch (err: any) {
       const elapsed = Date.now() - start;
       const MIN = 1000;
       if (elapsed < MIN) {
-        await new Promise(res => setTimeout(res, MIN - elapsed));
+        await new Promise((res) => setTimeout(res, MIN - elapsed));
       }
-      setError(err.message || 'Error al enviar el enlace');
-      setStatus('error');
+      setError(err.message || "Error al enviar el enlace");
+      setStatus("error");
     } finally {
       setLoading(false);
     }
@@ -53,16 +52,17 @@ const ForgotPassword: React.FC = () => {
 
         {/* Description */}
         <p className="text-gray-600 text-center mb-6">
-          Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
+          Ingresa tu correo electrónico y te enviaremos un enlace para
+          restablecer tu contraseña.
         </p>
 
         {/* Feedback Messages */}
-        {status === 'sent' && (
+        {status === "sent" && (
           <p className="text-green-600 text-center mb-4">
             Si ese correo existe, recibirás un enlace en tu bandeja de entrada.
           </p>
         )}
-        {status === 'error' && error && (
+        {status === "error" && error && (
           <p className="text-red-600 text-center mb-4">{error}</p>
         )}
 
@@ -76,7 +76,7 @@ const ForgotPassword: React.FC = () => {
               type="email"
               id="email"
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="tucorreo@ejemplo.com"
               className="w-full px-5 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300"
               required
@@ -86,8 +86,8 @@ const ForgotPassword: React.FC = () => {
           <button
             type="submit"
             className={`w-full flex items-center justify-center space-x-2 py-3 bg-slate-800 text-white font-semibold rounded-lg transition-colors
-              ${loading ? 'cursor-wait opacity-75' : 'hover:bg-slate-700'}`}
-            disabled={loading || status === 'sent'}
+              ${loading ? "cursor-wait opacity-75" : "hover:bg-slate-700"}`}
+            disabled={loading || status === "sent"}
           >
             {loading ? (
               <>
@@ -113,17 +113,20 @@ const ForgotPassword: React.FC = () => {
                 </svg>
                 <span>Enviando...</span>
               </>
-            ) : status === 'sent' ? (
-              'Enlace enviado'
+            ) : status === "sent" ? (
+              "Enlace enviado"
             ) : (
-              'Enviar enlace'
+              "Enviar enlace"
             )}
           </button>
         </form>
 
         {/* Back Link */}
         <p className="mt-6 text-center text-sm text-gray-600">
-          <a href="/login" className="font-medium text-slate-500 hover:text-slate-700 hover:underline">
+          <a
+            href="/login"
+            className="font-medium text-slate-500 hover:text-slate-700 hover:underline"
+          >
             Volver al Login
           </a>
         </p>

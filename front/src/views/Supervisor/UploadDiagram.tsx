@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageWithHeader from "../../components/layout/PageWithHeader";
@@ -15,13 +14,13 @@ import {
 
 type QuestionForm = {
   prompt: string;
-  options: string[]; 
-  correctIndex: number; 
-  hint: string; 
+  options: string[];
+  correctIndex: number;
+  hint: string;
   errors?: {
     prompt?: string;
-    options?: string[]; 
-    optionsGeneral?: string; 
+    options?: string[];
+    optionsGeneral?: string;
     correctIndex?: string;
     hint?: string;
   };
@@ -46,11 +45,9 @@ const UploadDiagram: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
 
-  
   const initialSnapRef = useRef<string>("");
 
   useEffect(() => {
-    
     initialSnapRef.current = JSON.stringify({
       title: "",
       hasFile: false,
@@ -105,7 +102,6 @@ const UploadDiagram: React.FC = () => {
       prev.map((q, i) => {
         if (i !== qIdx || q.options.length <= MIN_OPTIONS) return q;
 
-        
         let newCorrect = q.correctIndex;
         if (optIdx === q.correctIndex) newCorrect = 0;
         else if (optIdx < q.correctIndex) newCorrect = q.correctIndex - 1;
@@ -127,7 +123,6 @@ const UploadDiagram: React.FC = () => {
     );
   };
 
-  
   const validate = (): boolean => {
     let ok = true;
     const next = questions.map((q) => {
@@ -166,7 +161,6 @@ const UploadDiagram: React.FC = () => {
     return ok;
   };
 
-  
   const canSubmit = useMemo(() => {
     if (!title.trim() || !file) return false;
     for (const q of questions) {
@@ -191,7 +185,6 @@ const UploadDiagram: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    
     if (!validate() || !file) return;
 
     setSubmitting(true);
@@ -208,11 +201,11 @@ const UploadDiagram: React.FC = () => {
       });
 
       toast.success("Diagrama subido correctamente");
-      
+
       setTitle("");
       setFile(null);
       setQuestions([emptyQuestion()]);
-      
+
       initialSnapRef.current = JSON.stringify({
         title: "",
         hasFile: false,
@@ -491,10 +484,9 @@ const UploadDiagram: React.FC = () => {
                 }
               `}
               onClick={(e) => {
-                
                 if (!canSubmit) {
                   e.preventDefault();
-                  validate(); 
+                  validate();
                 }
               }}
             >
@@ -557,7 +549,7 @@ const UploadDiagram: React.FC = () => {
           </div>
         )}
       </div>
-   </PageWithHeader>
+    </PageWithHeader>
   );
 };
 

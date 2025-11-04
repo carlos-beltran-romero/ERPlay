@@ -4,7 +4,7 @@
  * @module services/supervisor
  */
 
-import { fetchAuth, API_URL } from './http';
+import { fetchAuth, API_URL } from "./http";
 
 /**
  * Helper para peticiones JSON con manejo de errores
@@ -13,7 +13,7 @@ import { fetchAuth, API_URL } from './http';
 async function getJSON(url: string) {
   const res = await fetchAuth(url);
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || 'Error de servidor');
+  if (!res.ok) throw new Error(data?.error || "Error de servidor");
   return data;
 }
 
@@ -22,7 +22,7 @@ async function getJSON(url: string) {
  * @internal
  */
 const toAbs = (p?: string | null) =>
-  p && !p.startsWith('http') ? `${API_URL}${p}` : (p || null);
+  p && !p.startsWith("http") ? `${API_URL}${p}` : p || null;
 
 /* ===================== Tipos ===================== */
 
@@ -98,7 +98,13 @@ export type SupClaimsStats = { submitted: number; approved: number };
 export type SupQuestionItem = {
   id: string;
   prompt: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'pending' | 'approved' | 'rejected';
+  status:
+    | "PENDING"
+    | "APPROVED"
+    | "REJECTED"
+    | "pending"
+    | "approved"
+    | "rejected";
   diagram?: { id: string; title: string; path?: string };
   createdAt?: string;
   reviewedAt?: string | null;
@@ -107,7 +113,7 @@ export type SupQuestionItem = {
 /** Resumen de sesión de test */
 export type SupSessionSummary = {
   id: string;
-  mode: 'learning' | 'exam' | 'errors';
+  mode: "learning" | "exam" | "errors";
   startedAt: string;
   finishedAt?: string | null;
   diagram?: { id: string; title: string; path?: string | null } | null;
@@ -123,7 +129,13 @@ export type SupSessionSummary = {
 /** Reclamación vista desde supervisor */
 export type SupClaimItem = {
   id: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'pending' | 'approved' | 'rejected';
+  status:
+    | "PENDING"
+    | "APPROVED"
+    | "REJECTED"
+    | "pending"
+    | "approved"
+    | "rejected";
   createdAt?: string;
   reviewedAt?: string | null;
   reviewerComment?: string | null;
@@ -157,7 +169,9 @@ export async function supGetStudent(studentId: string) {
  * @returns Overview con métricas de rendimiento
  */
 export async function supGetOverview(studentId: string) {
-  return await getJSON(`${API_URL}/api/supervisor/students/${studentId}/progress/overview`);
+  return await getJSON(
+    `${API_URL}/api/supervisor/students/${studentId}/progress/overview`
+  );
 }
 
 /**
@@ -168,10 +182,12 @@ export async function supGetOverview(studentId: string) {
  */
 export async function supGetTrends(
   studentId: string,
-  { bucket = 'day' as 'day' | 'week' | 'month' } = {}
+  { bucket = "day" as "day" | "week" | "month" } = {}
 ) {
   const q = new URLSearchParams({ bucket }).toString();
-  return await getJSON(`${API_URL}/api/supervisor/students/${studentId}/progress/trends?${q}`);
+  return await getJSON(
+    `${API_URL}/api/supervisor/students/${studentId}/progress/trends?${q}`
+  );
 }
 
 /**
@@ -192,7 +208,9 @@ export async function supGetErrors(studentId: string, limit = 5) {
  * @returns Total enviadas y aprobadas
  */
 export async function supGetClaimsStats(studentId: string) {
-  return await getJSON(`${API_URL}/api/supervisor/students/${studentId}/claims/stats`);
+  return await getJSON(
+    `${API_URL}/api/supervisor/students/${studentId}/claims/stats`
+  );
 }
 
 /* ===================== Preguntas creadas por un usuario ===================== */
@@ -209,10 +227,15 @@ export async function supGetCreatedQuestions(
   opts: { limit?: number } = {}
 ) {
   const res = await fetchAuth(
-    `${API_URL}/api/supervisor/students/${userId}/questions?limit=${opts.limit ?? 200}`
+    `${API_URL}/api/supervisor/students/${userId}/questions?limit=${
+      opts.limit ?? 200
+    }`
   );
-  const data = await res.json().catch(() => ([]));
-  if (!res.ok) throw new Error(data?.error || 'No se pudieron cargar las preguntas del alumno');
+  const data = await res.json().catch(() => []);
+  if (!res.ok)
+    throw new Error(
+      data?.error || "No se pudieron cargar las preguntas del alumno"
+    );
 
   const rows = Array.isArray((data as any)?.items)
     ? (data as any).items
@@ -220,20 +243,25 @@ export async function supGetCreatedQuestions(
     ? data
     : [];
   return rows.map((q: any) => {
-    const status =
-      (q.status ??
-        q.reviewStatus ??
-        q.state ??
-        (typeof q.verified === 'boolean' ? (q.verified ? 'APPROVED' : 'PENDING') : 'PENDING')) as any;
+    const status = (q.status ??
+      q.reviewStatus ??
+      q.state ??
+      (typeof q.verified === "boolean"
+        ? q.verified
+          ? "APPROVED"
+          : "PENDING"
+        : "PENDING")) as any;
 
     let options: string[] = [];
     if (Array.isArray(q.options)) {
-      if (q.options.length && typeof q.options[0] === 'string') {
+      if (q.options.length && typeof q.options[0] === "string") {
         options = q.options as string[];
       } else {
         const arr = (q.options as any[])
           .map((o) =>
-            o?.text ? { text: String(o.text), orderIndex: Number(o.orderIndex ?? 0) } : null
+            o?.text
+              ? { text: String(o.text), orderIndex: Number(o.orderIndex ?? 0) }
+              : null
           )
           .filter(Boolean) as { text: string; orderIndex: number }[];
         arr.sort((a, b) => a.orderIndex - b.orderIndex);
@@ -250,15 +278,15 @@ export async function supGetCreatedQuestions(
 
     return {
       id: String(q.id),
-      prompt: String(q.prompt ?? ''),
+      prompt: String(q.prompt ?? ""),
       status,
       reviewComment: q.reviewComment ?? null,
       diagram: q.diagram
         ? {
-            id: String(q.diagram.id ?? ''),
-            title: String(q.diagram.title ?? ''),
+            id: String(q.diagram.id ?? ""),
+            title: String(q.diagram.title ?? ""),
             path:
-              q.diagram.path && !q.diagram.path.startsWith('http')
+              q.diagram.path && !q.diagram.path.startsWith("http")
                 ? `${API_URL}${q.diagram.path}`
                 : q.diagram.path,
           }
@@ -286,37 +314,50 @@ export async function supListUserSessions(
     dateFrom,
     dateTo,
     q,
-  }: { mode?: 'learning' | 'exam' | 'errors'; dateFrom?: string; dateTo?: string; q?: string }
+  }: {
+    mode?: "learning" | "exam" | "errors";
+    dateFrom?: string;
+    dateTo?: string;
+    q?: string;
+  }
 ) {
   const qs = new URLSearchParams();
-  if (mode) qs.set('mode', mode);
-  if (dateFrom) qs.set('dateFrom', dateFrom);
-  if (dateTo) qs.set('dateTo', dateTo);
-  if (q) qs.set('q', q);
+  if (mode) qs.set("mode", mode);
+  if (dateFrom) qs.set("dateFrom", dateFrom);
+  if (dateTo) qs.set("dateTo", dateTo);
+  if (q) qs.set("q", q);
 
   const data = await getJSON(
     `${API_URL}/api/supervisor/students/${studentId}/tests${
-      qs.toString() ? `?${qs.toString()}` : ''
+      qs.toString() ? `?${qs.toString()}` : ""
     }`
   );
 
-  const rows = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : [];
+  const rows = Array.isArray(data?.items)
+    ? data.items
+    : Array.isArray(data)
+    ? data
+    : [];
   return rows.map((s: any) => ({
     ...s,
     diagram: s.diagram
-      ? { id: s.diagram.id, title: s.diagram.title, path: toAbs(s.diagram.path) }
+      ? {
+          id: s.diagram.id,
+          title: s.diagram.title,
+          path: toAbs(s.diagram.path),
+        }
       : null,
   }));
 }
 
 /* ===================== Tests (detail) ===================== */
 
-import type { SessionDetail, TestResultItem } from './tests';
+import type { SessionDetail, TestResultItem } from "./tests";
 
 /**
  * Obtiene detalle completo de una sesión de test
  * Incluye respuestas, tiempo por pregunta y uso de pistas
- * 
+ *
  * @param studentId - ID del estudiante
  * @param sessionId - ID de la sesión
  * @returns Detalle con resultados por pregunta y totales
@@ -340,9 +381,10 @@ export async function supGetSessionDetail(
     attempts: Number(r.attempts ?? r.attemptsCount ?? 0),
     timeSpentSeconds: Number(r.timeSpentSeconds ?? 0),
     isCorrect:
-      typeof r.isCorrect === 'boolean'
+      typeof r.isCorrect === "boolean"
         ? r.isCorrect
-        : typeof r.correctIndex === 'number' && typeof r.selectedIndex === 'number'
+        : typeof r.correctIndex === "number" &&
+          typeof r.selectedIndex === "number"
         ? r.selectedIndex === r.correctIndex
         : undefined,
     claimed: !!r.claimed,
@@ -357,9 +399,15 @@ export async function supGetSessionDetail(
     startedAt: data.startedAt,
     finishedAt: data.finishedAt ?? null,
     durationSeconds:
-      typeof data.durationSeconds === 'number' ? data.durationSeconds : data.totals?.durationSeconds ?? null,
+      typeof data.durationSeconds === "number"
+        ? data.durationSeconds
+        : data.totals?.durationSeconds ?? null,
     diagram: data.diagram
-      ? { id: data.diagram.id, title: data.diagram.title, path: toAbs(data.diagram.path ?? null) }
+      ? {
+          id: data.diagram.id,
+          title: data.diagram.title,
+          path: toAbs(data.diagram.path ?? null),
+        }
       : null,
     totals: {
       totalQuestions: Number(
@@ -371,10 +419,14 @@ export async function supGetSessionDetail(
           results.filter((r) => r.selectedIndex !== null).length
       ),
       correct: Number(
-        data.totals?.correct ?? data.correct ?? results.filter((r) => r.isCorrect === true).length
+        data.totals?.correct ??
+          data.correct ??
+          results.filter((r) => r.isCorrect === true).length
       ),
       wrong: Number(
-        data.totals?.wrong ?? data.wrong ?? results.filter((r) => r.isCorrect === false).length
+        data.totals?.wrong ??
+          data.wrong ??
+          results.filter((r) => r.isCorrect === false).length
       ),
       skipped: Number(
         data.totals?.skipped ??
@@ -382,26 +434,35 @@ export async function supGetSessionDetail(
           results.filter((r) => r.selectedIndex === null).length
       ),
       usedHints: Number(
-        data.totals?.usedHints ?? data.usedHints ?? results.filter((r) => r.usedHint).length
+        data.totals?.usedHints ??
+          data.usedHints ??
+          results.filter((r) => r.usedHint).length
       ),
       revealed: Number(
-        data.totals?.revealed ?? data.revealed ?? results.filter((r) => r.revealedAnswer).length
+        data.totals?.revealed ??
+          data.revealed ??
+          results.filter((r) => r.revealedAnswer).length
       ),
       score:
-        typeof data.totals?.score === 'number'
+        typeof data.totals?.score === "number"
           ? data.totals.score
-          : typeof data.score === 'number'
+          : typeof data.score === "number"
           ? data.score
           : null,
     },
     summary: {
       durationSeconds:
-        typeof data.durationSeconds === 'number'
+        typeof data.durationSeconds === "number"
           ? data.durationSeconds
           : data.totals?.durationSeconds ?? null,
       accuracyPct:
-        typeof data.accuracyPct === 'number' ? data.accuracyPct : data.totals?.accuracyPct ?? null,
-      score: typeof data.score === 'number' ? data.score : data.totals?.score ?? null,
+        typeof data.accuracyPct === "number"
+          ? data.accuracyPct
+          : data.totals?.accuracyPct ?? null,
+      score:
+        typeof data.score === "number"
+          ? data.score
+          : data.totals?.score ?? null,
     },
     results,
     events: Array.isArray(data.events) ? data.events : undefined,
@@ -419,11 +480,15 @@ export async function supGetSessionDetail(
  * @remarks Normaliza path de diagrama a URL absoluta
  */
 export async function supListUserClaims(studentId: string) {
-  const data = await getJSON(`${API_URL}/api/supervisor/students/${studentId}/claims`);
-  const rows = Array.isArray(data) ? data : (data.items || []);
+  const data = await getJSON(
+    `${API_URL}/api/supervisor/students/${studentId}/claims`
+  );
+  const rows = Array.isArray(data) ? data : data.items || [];
   return rows.map((c: any) => ({
     ...c,
-    diagram: c.diagram ? { ...c.diagram, path: toAbs(c.diagram.path) || undefined } : c.diagram,
+    diagram: c.diagram
+      ? { ...c.diagram, path: toAbs(c.diagram.path) || undefined }
+      : c.diagram,
   }));
 }
 
@@ -452,21 +517,24 @@ export async function supPutWeeklyGoal(payload: {
   const url = `${API_URL}/api/supervisor/weekly-goal`;
 
   let res = await fetchAuth(url, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
 
-  if (!res.ok && (res.status === 404 || res.status === 405 || res.status === 501)) {
+  if (
+    !res.ok &&
+    (res.status === 404 || res.status === 405 || res.status === 501)
+  ) {
     res = await fetchAuth(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
   }
 
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || 'No se pudo guardar el objetivo');
+  if (!res.ok) throw new Error(data?.error || "No se pudo guardar el objetivo");
   return data;
 }
 
@@ -482,17 +550,17 @@ export async function supGetWeeklyProgress(params?: {
   userId?: string;
 }) {
   const qs = new URLSearchParams();
-  if (params?.weekStart) qs.set('weekStart', params.weekStart);
-  if (params?.weekEnd) qs.set('weekEnd', params.weekEnd);
-  if (params?.userId) qs.set('userId', params.userId);
+  if (params?.weekStart) qs.set("weekStart", params.weekStart);
+  if (params?.weekEnd) qs.set("weekEnd", params.weekEnd);
+  if (params?.userId) qs.set("userId", params.userId);
 
   const res = await fetchAuth(
     `${API_URL}/api/supervisor/weekly-goal/progress${
-      qs.toString() ? `?${qs.toString()}` : ''
+      qs.toString() ? `?${qs.toString()}` : ""
     }`
   );
   const data = await res.json().catch(() => []);
-  if (!res.ok) throw new Error((data as any)?.error || 'No disponible');
+  if (!res.ok) throw new Error((data as any)?.error || "No disponible");
   return Array.isArray(data) ? data : [];
 }
 
@@ -502,6 +570,8 @@ export async function supGetWeeklyProgress(params?: {
  * @returns Array de badges ordenados por fecha de obtención
  */
 export async function supGetStudentBadges(studentId: string) {
-  const data = await getJSON(`${API_URL}/api/supervisor/students/${studentId}/badges`);
+  const data = await getJSON(
+    `${API_URL}/api/supervisor/students/${studentId}/badges`
+  );
   return Array.isArray(data) ? data : [];
 }

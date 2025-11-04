@@ -1,7 +1,7 @@
 /**
  * @module utils/asyncHandler
  */
-import { RequestHandler } from 'express';
+import { RequestHandler } from "express";
 
 /**
  * Envuelve un `RequestHandler` asíncrono propagando correctamente los errores.
@@ -16,7 +16,7 @@ export function asyncHandler<
   ResBody = any,
   ReqBody = any,
   ReqQuery = any,
-  Locals extends Record<string, unknown> = Record<string, unknown>,
+  Locals extends Record<string, unknown> = Record<string, unknown>
 >(handler: RequestHandler<Params, ResBody, ReqBody, ReqQuery, Locals>) {
   return ((req, res, next) => {
     Promise.resolve(handler(req, res, next)).catch(next);

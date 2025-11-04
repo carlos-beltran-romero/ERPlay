@@ -3,7 +3,8 @@
  * @module shared/utils/datetime
  */
 
-const defaultLocale = typeof navigator !== 'undefined' ? navigator.language : 'es-ES';
+const defaultLocale =
+  typeof navigator !== "undefined" ? navigator.language : "es-ES";
 
 /**
  * Formatea fecha ISO a formato local
@@ -11,10 +12,13 @@ const defaultLocale = typeof navigator !== 'undefined' ? navigator.language : 'e
  * @param options - Opciones de Intl.DateTimeFormat
  * @returns Fecha formateada o '—' si es inválida
  */
-export function formatDate(iso?: string | null, options?: Intl.DateTimeFormatOptions): string {
-  if (!iso) return '—';
+export function formatDate(
+  iso?: string | null,
+  options?: Intl.DateTimeFormatOptions
+): string {
+  if (!iso) return "—";
   const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '—';
+  if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleDateString(defaultLocale, options);
 }
 
@@ -28,9 +32,9 @@ export function formatDateTime(
   iso?: string | null,
   options?: Intl.DateTimeFormatOptions
 ): string {
-  if (!iso) return '—';
+  if (!iso) return "—";
   const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '—';
+  if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleString(defaultLocale, options);
 }
 
@@ -41,7 +45,7 @@ export function formatDateTime(
  * @remarks Omite horas si son 0, omite minutos si son 0
  */
 export function formatDuration(seconds?: number | null): string {
-  if (seconds == null) return '—';
+  if (seconds == null) return "—";
   const total = Math.max(0, Math.floor(seconds));
   const hours = Math.floor(total / 3600);
   const minutes = Math.floor((total % 3600) / 60);
@@ -59,7 +63,7 @@ export function formatDuration(seconds?: number | null): string {
  * @remarks Usado para tiempos cortos por pregunta
  */
 export function formatDecimalSeconds(seconds?: number | null): string {
-  if (seconds == null) return '—';
+  if (seconds == null) return "—";
   const value = Math.max(0, seconds);
   return `${value.toFixed(1)} s`;
 }
@@ -70,6 +74,6 @@ export function formatDecimalSeconds(seconds?: number | null): string {
  * @returns Formato 'X%'
  */
 export function formatPercent(value?: number | null): string {
-  if (value == null || Number.isNaN(value)) return '—';
+  if (value == null || Number.isNaN(value)) return "—";
   return `${Math.round(value)}%`;
 }

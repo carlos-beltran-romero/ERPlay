@@ -4,15 +4,15 @@
  * @module controllers/users
  */
 
-import { Request, Response } from 'express';
-import bcrypt from 'bcrypt';
-import { z } from 'zod';
+import { Request, Response } from "express";
+import bcrypt from "bcrypt";
+import { z } from "zod";
 
-import { createHttpError } from '../core/errors/HttpError';
-import { AppDataSource } from '../data-source';
-import { User, UserRole } from '../models/User';
-import { UsersService, type BatchStudentDTO } from '../services/user';
-import { asyncHandler } from '../utils/asyncHandler';
+import { createHttpError } from "../core/errors/HttpError";
+import { AppDataSource } from "../data-source";
+import { User, UserRole } from "../models/User";
+import { UsersService, type BatchStudentDTO } from "../services/user";
+import { asyncHandler } from "../utils/asyncHandler";
 
 const usersService = new UsersService();
 
@@ -20,9 +20,9 @@ const usersService = new UsersService();
  * Esquemas de validación para usuarios
  */
 const UpdateMeSchema = z.object({
-  name: z.string().min(1, 'El nombre es obligatorio'),
-  lastName: z.string().optional().default(''),
-  email: z.string().email('Email inválido'),
+  name: z.string().min(1, "El nombre es obligatorio"),
+  lastName: z.string().optional().default(""),
+  email: z.string().email("Email inválido"),
 });
 
 const ChangePassSchema = z.object({
@@ -45,7 +45,7 @@ const usersController = {
     const userRepo = AppDataSource.getRepository(User);
     const user = await userRepo.findOne({ where: { id: userId } });
     if (!user) {
-      throw createHttpError(404, 'Credenciales incorrectas');
+      throw createHttpError(404, "Credenciales incorrectas");
     }
 
     const { passwordHash, ...safeUser } = user as any;
@@ -63,8 +63,8 @@ const usersController = {
     const repo = AppDataSource.getRepository(User);
     const students = await repo.find({
       where: { role: UserRole.STUDENT },
-      select: ['id', 'name', 'lastName', 'email', 'role', 'createdAt'],
-      order: { createdAt: 'DESC' },
+      select: ["id", "name", "lastName", "email", "role", "createdAt"],
+      order: { createdAt: "DESC" },
     });
     res.json(students);
   }),
@@ -95,7 +95,7 @@ const usersController = {
     const requester = req.user!;
 
     if (requester.role === UserRole.STUDENT && requester.id !== userId) {
-      throw createHttpError(403, 'No autorizado');
+      throw createHttpError(403, "No autorizado");
     }
 
     const user = await usersService.getById(userId);
@@ -113,12 +113,12 @@ const usersController = {
     const { userId } = req.params;
     const requester = req.user!;
     const requestedPassword =
-      typeof req.body.password === 'string' && req.body.password.length > 0
+      typeof req.body.password === "string" && req.body.password.length > 0
         ? String(req.body.password)
         : undefined;
 
     if (requester.role === UserRole.STUDENT && requester.id !== userId) {
-      throw createHttpError(403, 'No autorizado');
+      throw createHttpError(403, "No autorizado");
     }
 
     const updated = await usersService.updateUser(userId, {
@@ -162,23 +162,25 @@ const usersController = {
   updateMyProfile: asyncHandler(async (req: Request, res: Response) => {
     const me = req.user!;
     if (!me?.id) {
-      throw createHttpError(401, 'No autenticado');
+      throw createHttpError(401, "No autenticado");
     }
 
     const parsed = UpdateMeSchema.passthrough().parse(req.body);
-    const name = String(parsed.name ?? '').trim();
-    const lastName = String(parsed.lastName ?? '').trim();
-    const emailLower = String(parsed.email ?? '').trim().toLowerCase();
+    const name = String(parsed.name ?? "").trim();
+    const lastName = String(parsed.lastName ?? "").trim();
+    const emailLower = String(parsed.email ?? "")
+      .trim()
+      .toLowerCase();
 
     const repo = AppDataSource.getRepository(User);
     const existing = await repo.findOne({ where: { email: emailLower } });
     if (existing && existing.id !== me.id) {
-      throw createHttpError(409, 'El email ya está en uso');
+      throw createHttpError(409, "El email ya está en uso");
     }
 
     const user = await repo.findOne({ where: { id: me.id } });
     if (!user) {
-      throw createHttpError(404, 'Usuario no encontrado');
+      throw createHttpError(404, "Usuario no encontrado");
     }
 
     user.name = name;
@@ -205,25 +207,25 @@ const usersController = {
   changeMyPassword: asyncHandler(async (req: Request, res: Response) => {
     const me = req.user!;
     if (!me?.id) {
-      throw createHttpError(401, 'No autenticado');
+      throw createHttpError(401, "No autenticado");
     }
 
     const { currentPassword, newPassword } = ChangePassSchema.parse(req.body);
     const repo = AppDataSource.getRepository(User);
     const user = await repo.findOne({ where: { id: me.id } });
     if (!user) {
-      throw createHttpError(404, 'Usuario no encontrado');
+      throw createHttpError(404, "Usuario no encontrado");
     }
 
     const ok = await bcrypt.compare(currentPassword, user.passwordHash);
     if (!ok) {
-      throw createHttpError(400, 'La contraseña actual no es correcta');
+      throw createHttpError(400, "La contraseña actual no es correcta");
     }
 
     user.passwordHash = await bcrypt.hash(newPassword, 10);
     await repo.save(user);
 
-    res.json({ message: 'Contraseña actualizada' });
+    res.json({ message: "Contraseña actualizada" });
   }),
 };
 

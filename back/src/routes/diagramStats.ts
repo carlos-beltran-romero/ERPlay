@@ -4,10 +4,10 @@
  * @module routes/diagramStats
  */
 
-import { Router, Request, Response, NextFunction } from 'express';
-import { authenticate } from '../middlewares/authenticate';
-import authorize from '../middlewares/authorize';
-import { getDiagramStats } from '../controllers/diagramStats';
+import { Router, Request, Response, NextFunction } from "express";
+import { authenticate } from "../middlewares/authenticate";
+import authorize from "../middlewares/authorize";
+import { getDiagramStats } from "../controllers/diagramStats";
 
 const router = Router();
 
@@ -19,14 +19,14 @@ const router = Router();
  * @access Privado (supervisor)
  */
 router.get(
-  '/:id/stats',
+  "/:id/stats",
   authenticate,
-  authorize('supervisor'),
+  authorize("supervisor"),
   async (req, res, next) => {
-    try { 
-      await getDiagramStats(req, res); 
-    } catch (err) { 
-      next(err); 
+    try {
+      await getDiagramStats(req, res);
+    } catch (err) {
+      next(err);
     }
   }
 );

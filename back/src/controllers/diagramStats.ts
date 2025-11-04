@@ -4,10 +4,10 @@
  * @module controllers/diagramStats
  */
 
-import { Request, Response } from 'express';
-import { z } from 'zod';
-import { Diagram } from '../models/Diagram';
-import { getDiagramStatsService } from '../services/diagramStats';
+import { Request, Response } from "express";
+import { z } from "zod";
+import { Diagram } from "../models/Diagram";
+import { getDiagramStatsService } from "../services/diagramStats";
 
 /**
  * Esquema de validación para parámetros de consulta
@@ -15,11 +15,11 @@ import { getDiagramStatsService } from '../services/diagramStats';
 const QueryZ = z.object({
   from: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/u, 'Formato esperado YYYY-MM-DD')
+    .regex(/^\d{4}-\d{2}-\d{2}$/u, "Formato esperado YYYY-MM-DD")
     .optional(),
   to: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/u, 'Formato esperado YYYY-MM-DD')
+    .regex(/^\d{4}-\d{2}-\d{2}$/u, "Formato esperado YYYY-MM-DD")
     .optional(),
 });
 
@@ -33,12 +33,16 @@ export const getDiagramStats = async (req: Request, res: Response) => {
     const { id } = req.params;
     const diagram = await Diagram.findOne({ where: { id } });
     if (!diagram) {
-      return res.status(404).json({ error: 'Diagrama no encontrado' });
+      return res.status(404).json({ error: "Diagrama no encontrado" });
     }
 
     const parsed = QueryZ.safeParse(req.query);
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.issues[0]?.message || 'Parámetros inválidos' });
+      return res
+        .status(400)
+        .json({
+          error: parsed.error.issues[0]?.message || "Parámetros inválidos",
+        });
     }
 
     let { from, to } = parsed.data;
@@ -47,10 +51,12 @@ export const getDiagramStats = async (req: Request, res: Response) => {
     }
 
     const stats = await getDiagramStatsService(id, { from, to });
-    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader("Cache-Control", "no-store");
     return res.json(stats);
   } catch (err: any) {
-    console.error('[diagramStats] error:', err);
-    return res.status(500).json({ error: 'No se pudieron obtener las estadísticas' });
+    console.error("[diagramStats] error:", err);
+    return res
+      .status(500)
+      .json({ error: "No se pudieron obtener las estadísticas" });
   }
 };

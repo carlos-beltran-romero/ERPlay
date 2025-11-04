@@ -2,16 +2,16 @@
  * @module app
  * Factoría principal de la aplicación Express.
  */
-import cors from 'cors';
-import express from 'express';
-import helmet from 'helmet';
+import cors from "cors";
+import express from "express";
+import helmet from "helmet";
 
-import { env } from './config/env';
-import errorHandler from './middlewares/errorHandler';
-import logger from './middlewares/logger';
-import notFound from './middlewares/notFound';
-import registerRoutes from './routes';
-import uploadErrorHandler from './middlewares/uploadErrorHandler';
+import { env } from "./config/env";
+import errorHandler from "./middlewares/errorHandler";
+import logger from "./middlewares/logger";
+import notFound from "./middlewares/notFound";
+import registerRoutes from "./routes";
+import uploadErrorHandler from "./middlewares/uploadErrorHandler";
 
 /**
  * Construye una instancia de Express con todos los middlewares comunes.
@@ -22,15 +22,15 @@ export function createApp() {
 
   app.use(
     helmet({
-      crossOriginResourcePolicy: { policy: 'cross-origin' },
-    }),
+      crossOriginResourcePolicy: { policy: "cross-origin" },
+    })
   );
 
   app.use(
     cors({
       origin: env.FRONTEND_URL,
       credentials: true,
-    }),
+    })
   );
 
   app.use(logger);

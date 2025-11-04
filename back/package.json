@@ -1,21 +1,43 @@
 {
   "name": "errplay_server",
   "version": "1.0.0",
-  "description": "REST API's Express y Typescript",
-  "main": "index.js",
+  "private": true,
+  "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon -x ts-node src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
+
     "typeorm": "typeorm-ts-node-commonjs",
     "migration:generate": "npm run typeorm -- migration:generate src/migrations/initialSchema -d src/data-source.ts",
     "migration:run": "npm run typeorm -- migration:run -d src/data-source.ts",
+    
     "migration:revert": "npm run typeorm -- migration:revert -d src/data-source.ts",
+    "migration:run:js": "node node_modules/typeorm/cli.js migration:run -d dist/data-source.js",
+
+    "migration:run:prod": "node --require reflect-metadata ./node_modules/typeorm/cli.js migration:run -d dist/data-source.js",
+    "migration:revert:prod": "node --require reflect-metadata ./node_modules/typeorm/cli.js migration:revert -d dist/data-source.js",
+
     "seed": "ts-node --transpile-only src/seeds/seed.ts",
     "test": "node ./node_modules/jest/bin/jest.js"
   },
-  "author": "Carlos Beltrán Romero",
-  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "express-validator": "^7.2.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "multer": "^2.0.1",
+    "mysql2": "^3.14.1",
+    "nodemailer": "^7.0.5",
+    "reflect-metadata": "^0.2.2",
+    "typeorm": "^0.3.24",
+    "zod": "^4.0.5",
+    "sequelize": "^6.37.7"
+  },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
     "@types/cors": "^2.8.19",
@@ -31,23 +53,6 @@
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.5",
     "ts-node": "^10.9.2",
-    "typeorm": "^0.3.24",
     "typescript": "^5.8.3"
-  },
-  "dependencies": {
-    "bcrypt": "^6.0.0",
-    "cors": "^2.8.5",
-    "dotenv": "^16.5.0",
-    "express": "^5.1.0",
-    "express-validator": "^7.2.1",
-    "helmet": "^8.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "morgan": "^1.10.0",
-    "multer": "^2.0.1",
-    "mysql2": "^3.14.1",
-    "nodemailer": "^7.0.5",
-    "reflect-metadata": "^0.2.2",
-    "sequelize": "^6.37.7",
-    "zod": "^4.0.5"
   }
 }

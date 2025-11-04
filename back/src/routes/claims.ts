@@ -4,16 +4,16 @@
  * @module routes/claims
  */
 
-import { Router } from 'express';
-import { authenticate } from '../middlewares/authenticate';
-import authorize from '../middlewares/authorize';
+import { Router } from "express";
+import { authenticate } from "../middlewares/authenticate";
+import authorize from "../middlewares/authorize";
 import {
   createClaim,
   listMyClaims,
   listPendingClaims,
   getPendingClaimCount,
   verifyClaim,
-} from '../controllers/claims';
+} from "../controllers/claims";
 
 const router = Router();
 
@@ -22,24 +22,14 @@ const router = Router();
  * Crea una nueva reclamación sobre una pregunta
  * @access Privado (alumno)
  */
-router.post(
-  '/',
-  authenticate,
-  authorize('alumno'),
-  createClaim
-);
+router.post("/", authenticate, authorize("alumno"), createClaim);
 
 /**
  * GET /api/claims/mine
  * Lista las reclamaciones del estudiante autenticado
  * @access Privado (alumno)
  */
-router.get(
-  '/mine',
-  authenticate,
-  authorize('alumno'),
-  listMyClaims
-);
+router.get("/mine", authenticate, authorize("alumno"), listMyClaims);
 
 /**
  * GET /api/claims/pending
@@ -47,9 +37,9 @@ router.get(
  * @access Privado (supervisor)
  */
 router.get(
-  '/pending',
+  "/pending",
   authenticate,
-  authorize('supervisor'),
+  authorize("supervisor"),
   listPendingClaims
 );
 
@@ -59,9 +49,9 @@ router.get(
  * @access Privado (supervisor)
  */
 router.get(
-  '/pending/count',
+  "/pending/count",
   authenticate,
-  authorize('supervisor'),
+  authorize("supervisor"),
   getPendingClaimCount
 );
 
@@ -70,11 +60,6 @@ router.get(
  * Resuelve una reclamación (aprobar o rechazar)
  * @access Privado (supervisor)
  */
-router.post(
-  '/:id/verify',
-  authenticate,
-  authorize('supervisor'),
-  verifyClaim
-);
+router.post("/:id/verify", authenticate, authorize("supervisor"), verifyClaim);
 
 export default router;

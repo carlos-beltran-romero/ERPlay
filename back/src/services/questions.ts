@@ -4,15 +4,19 @@
  * @module services/questions
  */
 
-import { defaultMailer } from '../config/mailer';
-import { env } from '../config/env';
-import { createHttpError } from '../core/errors/HttpError';
-import { AppDataSource } from '../data-source';
-import { Diagram } from '../models/Diagram';
-import { Option } from '../models/Option';
-import { Question, ReviewStatus } from '../models/Question';
-import { User, UserRole } from '../models/User';
-import { escapeHtml, letterFromIndex, renderCardEmail } from './shared/emailTemplates';
+import { defaultMailer } from "../config/mailer";
+import { env } from "../config/env";
+import { createHttpError } from "../core/errors/HttpError";
+import { AppDataSource } from "../data-source";
+import { Diagram } from "../models/Diagram";
+import { Option } from "../models/Option";
+import { Question, ReviewStatus } from "../models/Question";
+import { User, UserRole } from "../models/User";
+import {
+  escapeHtml,
+  letterFromIndex,
+  renderCardEmail,
+} from "./shared/emailTemplates";
 
 const transporter = defaultMailer;
 
@@ -39,7 +43,7 @@ export class QuestionsService {
   /**
    * Crea una nueva pregunta propuesta por estudiante o supervisor
    * Las preguntas de supervisores se aprueban automáticamente
-   * 
+   *
    * @param params - Datos de la pregunta y creador
    * @returns ID y estado inicial de la pregunta
    * @throws {HttpError} 400 si faltan datos o son inválidos
@@ -47,24 +51,37 @@ export class QuestionsService {
    * - Supervisores: status = APPROVED (sin revisión)
    * - Estudiantes: status = PENDING → notifica a supervisores por email
    */
-  async createQuestion(params: CreateQuestionParams): Promise<{ id: string; status: ReviewStatus }> {
-    const diagram = await this.diagramRepo.findOneByOrFail({ id: params.diagramId });
-    const creator = await this.userRepo.findOneByOrFail({ id: params.creatorId });
+  async createQuestion(
+    params: CreateQuestionParams
+  ): Promise<{ id: string; status: ReviewStatus }> {
+    const diagram = await this.diagramRepo.findOneByOrFail({
+      id: params.diagramId,
+    });
+    const creator = await this.userRepo.findOneByOrFail({
+      id: params.creatorId,
+    });
 
-    if (!params.prompt?.trim()) throw createHttpError(400, 'El enunciado es obligatorio');
-    if (!params.hint?.trim()) throw createHttpError(400, 'La pista es obligatoria');
+    if (!params.prompt?.trim())
+      throw createHttpError(400, "El enunciado es obligatorio");
+    if (!params.hint?.trim())
+      throw createHttpError(400, "La pista es obligatoria");
     if (!Array.isArray(params.options) || params.options.length < 2) {
-      throw createHttpError(400, 'Mínimo 2 opciones');
+      throw createHttpError(400, "Mínimo 2 opciones");
     }
     if (params.options.some((option) => !option || !option.trim())) {
-      throw createHttpError(400, 'Las opciones no pueden estar vacías');
+      throw createHttpError(400, "Las opciones no pueden estar vacías");
     }
-    if (params.correctIndex < 0 || params.correctIndex >= params.options.length) {
-      throw createHttpError(400, 'Índice correcto inválido');
+    if (
+      params.correctIndex < 0 ||
+      params.correctIndex >= params.options.length
+    ) {
+      throw createHttpError(400, "Índice correcto inválido");
     }
 
     const initialStatus =
-      creator.role === UserRole.SUPERVISOR ? ReviewStatus.APPROVED : ReviewStatus.PENDING;
+      creator.role === UserRole.SUPERVISOR
+        ? ReviewStatus.APPROVED
+        : ReviewStatus.PENDING;
 
     const q = await AppDataSource.transaction(async (manager) => {
       const question = manager.create(Question, {
@@ -123,7 +140,7 @@ export class QuestionsService {
     const rows = await this.questionRepo.find({
       where: { status: ReviewStatus.PENDING },
       relations: { creator: true, diagram: true, options: true },
-      order: { createdAt: 'DESC' },
+      order: { createdAt: "DESC" },
     });
 
     return rows.map((q) => {
@@ -135,12 +152,16 @@ export class QuestionsService {
       return {
         id: q.id,
         prompt: q.prompt,
-        hint: q.hint || '',
+        hint: q.hint || "",
         correctIndex: q.correctOptionIndex ?? 0,
         options,
         createdAt: q.createdAt,
         creator: q.creator
-          ? { id: q.creator.id, email: q.creator.email, name: q.creator.name ?? undefined }
+          ? {
+              id: q.creator.id,
+              email: q.creator.email,
+              name: q.creator.name ?? undefined,
+            }
           : undefined,
         diagram: q.diagram
           ? { id: q.diagram.id, title: q.diagram.title, path: q.diagram.path }
@@ -152,7 +173,7 @@ export class QuestionsService {
   /**
    * Revisa una pregunta pendiente (aprobar o rechazar)
    * Notifica al autor del resultado por email
-   * 
+   *
    * @param params - ID de pregunta, revisor, decisión y comentario opcional
    * @throws {HttpError} 404 si la pregunta no existe
    * @remarks
@@ -164,18 +185,20 @@ export class QuestionsService {
   async verifyQuestion(params: {
     questionId: string;
     reviewerId: string;
-    decision: 'approve' | 'reject';
+    decision: "approve" | "reject";
     comment?: string;
   }): Promise<void> {
     const q = await this.questionRepo.findOne({
       where: { id: params.questionId },
       relations: { creator: true, diagram: true, options: true },
     });
-    if (!q) throw createHttpError(404, 'Pregunta no encontrada');
+    if (!q) throw createHttpError(404, "Pregunta no encontrada");
 
-    const reviewer = await this.userRepo.findOneByOrFail({ id: params.reviewerId });
+    const reviewer = await this.userRepo.findOneByOrFail({
+      id: params.reviewerId,
+    });
 
-    if (params.decision === 'approve') {
+    if (params.decision === "approve") {
       q.status = ReviewStatus.APPROVED;
       q.reviewComment = null;
     } else {
@@ -201,16 +224,14 @@ export class QuestionsService {
   /**
    * Lista preguntas creadas por un usuario específico
    * Incluye todas las preguntas (aprobadas, rechazadas, pendientes)
-   * 
+   *
    * @param creatorId - ID del usuario creador
    * @returns Array de preguntas ordenadas por fecha descendente
    * @remarks
    * - Incluye comentario de revisión si fue rechazada
    * - Muestra opciones ordenadas y índice correcto
    */
-  async listMine(
-    creatorId: string
-  ): Promise<
+  async listMine(creatorId: string): Promise<
     Array<{
       id: string;
       prompt: string;
@@ -226,7 +247,7 @@ export class QuestionsService {
     const rows = await this.questionRepo.find({
       where: { creator: { id: creatorId } },
       relations: { diagram: true, options: true },
-      order: { createdAt: 'DESC' },
+      order: { createdAt: "DESC" },
     });
 
     return rows.map((r) => {
@@ -243,7 +264,11 @@ export class QuestionsService {
         createdAt: r.createdAt,
         reviewedAt: r.reviewedAt ?? null,
         diagram: r.diagram
-          ? { id: r.diagram.id, title: r.diagram.title, path: r.diagram.path ?? null }
+          ? {
+              id: r.diagram.id,
+              title: r.diagram.title,
+              path: r.diagram.path ?? null,
+            }
           : undefined,
         options: opts,
         correctIndex: r.correctOptionIndex ?? 0,
@@ -256,7 +281,7 @@ export class QuestionsService {
   /**
    * Notifica a supervisores sobre nueva pregunta pendiente
    * Email con diseño tipo "card" mostrando opciones y respuesta correcta
-   * 
+   *
    * @param questionId - ID de la pregunta recién creada
    * @remarks
    * - Destinatarios: env.SUPERVISOR_NOTIFY_EMAIL o todos los supervisores
@@ -269,7 +294,9 @@ export class QuestionsService {
     if (fixed) {
       recipients = [fixed];
     } else {
-      const sups = await this.userRepo.find({ where: { role: UserRole.SUPERVISOR } });
+      const sups = await this.userRepo.find({
+        where: { role: UserRole.SUPERVISOR },
+      });
       recipients = sups.map((s) => s.email).filter(Boolean);
     }
     if (!recipients.length) return;
@@ -280,32 +307,41 @@ export class QuestionsService {
     });
     if (!q) return;
 
-    const diagramTitle = q.diagram?.title ?? 'Diagrama';
-    const creatorName = (q.creator?.name ?? '').trim();
-    const creatorLast = ((q.creator as any)?.lastName ?? '').trim();
-    const creatorEmail = q.creator?.email ?? '';
-    const fullName = [creatorName, creatorLast].filter(Boolean).join(' ') || 'Alumno';
+    const diagramTitle = q.diagram?.title ?? "Diagrama";
+    const creatorName = (q.creator?.name ?? "").trim();
+    const creatorLast = ((q.creator as any)?.lastName ?? "").trim();
+    const creatorEmail = q.creator?.email ?? "";
+    const fullName =
+      [creatorName, creatorLast].filter(Boolean).join(" ") || "Alumno";
 
-    const frontURL = env.FRONTEND_URL ?? env.APP_URL ?? '';
-    const reviewURL = frontURL ? `${frontURL.replace(/\/+$/, '')}/supervisor/questions/review` : '';
+    const frontURL = env.FRONTEND_URL ?? env.APP_URL ?? "";
+    const reviewURL = frontURL
+      ? `${frontURL.replace(/\/+$/, "")}/supervisor/questions/review`
+      : "";
 
-    const sortedOpts = (q.options ?? []).slice().sort((a, b) => a.orderIndex - b.orderIndex);
+    const sortedOpts = (q.options ?? [])
+      .slice()
+      .sort((a, b) => a.orderIndex - b.orderIndex);
     const optsHtml = sortedOpts.length
       ? sortedOpts
           .map((o, idx) => {
             const correct = idx === (q.correctOptionIndex ?? -1);
             return `
             <div style="
-              border:1px solid ${correct ? '#A7F3D0' : '#e5e7eb'};
-              background:${correct ? '#ECFDF5' : '#ffffff'};
+              border:1px solid ${correct ? "#A7F3D0" : "#e5e7eb"};
+              background:${correct ? "#ECFDF5" : "#ffffff"};
               border-radius:10px;padding:8px 10px;margin:6px 0;font-size:14px;">
               <strong style="margin-right:6px">${letterFromIndex(idx)}.</strong>
               <span>${escapeHtml(o.text)}</span>
-              ${correct ? `<span style="color:#065F46;margin-left:8px;font-weight:600">✓ Correcta</span>` : ''}
+              ${
+                correct
+                  ? `<span style="color:#065F46;margin-left:8px;font-weight:600">✓ Correcta</span>`
+                  : ""
+              }
             </div>
           `;
           })
-          .join('')
+          .join("")
       : `<div style="font-size:14px;color:#6b7280;">(sin opciones)</div>`;
 
     const btnHtml = reviewURL
@@ -333,18 +369,26 @@ export class QuestionsService {
         <table role="presentation" style="width:100%;border-collapse:collapse">
           <tr>
             <td style="padding:6px 0;width:120px;color:#6b7280;">Diagrama</td>
-            <td style="padding:6px 0;"><strong>${escapeHtml(diagramTitle)}</strong></td>
+            <td style="padding:6px 0;"><strong>${escapeHtml(
+              diagramTitle
+            )}</strong></td>
           </tr>
           <tr>
             <td style="padding:6px 0;width:120px;color:#6b7280;">Autor</td>
             <td style="padding:6px 0;">
               ${escapeHtml(fullName)}
-              ${creatorEmail ? `&nbsp;&middot;&nbsp;<a href="mailto:${creatorEmail}" style="color:#4f46e5;text-decoration:none">${creatorEmail}</a>` : ''}
+              ${
+                creatorEmail
+                  ? `&nbsp;&middot;&nbsp;<a href="mailto:${creatorEmail}" style="color:#4f46e5;text-decoration:none">${creatorEmail}</a>`
+                  : ""
+              }
             </td>
           </tr>
           <tr>
             <td style="padding:6px 0;width:120px;color:#6b7280;">Enviada</td>
-            <td style="padding:6px 0;">${escapeHtml(new Date(q.createdAt).toLocaleString())}</td>
+            <td style="padding:6px 0;">${escapeHtml(
+              new Date(q.createdAt).toLocaleString()
+            )}</td>
           </tr>
         </table>
 
@@ -361,15 +405,15 @@ export class QuestionsService {
     `;
 
     const html = renderCardEmail({
-      title: 'Nueva pregunta pendiente de revisión',
+      title: "Nueva pregunta pendiente de revisión",
       bodyHtml: body,
-      accent: '#FEF3C7', 
+      accent: "#FEF3C7",
     });
 
     await transporter.sendMail({
       from: '"ERPlay Notificaciones" <no-reply@erplay.com>',
-      to: recipients.join(','),
-      subject: 'Nueva pregunta pendiente de revisión',
+      to: recipients.join(","),
+      subject: "Nueva pregunta pendiente de revisión",
       html,
     });
   }
@@ -377,7 +421,7 @@ export class QuestionsService {
   /**
    * Notifica al estudiante el resultado de la revisión
    * Email diferenciado por color según aprobación/rechazo
-   * 
+   *
    * @param args - Email destino, pregunta, estado y comentario opcional
    * @remarks
    * - Aprobada: Badge verde + mensaje de felicitación
@@ -392,8 +436,11 @@ export class QuestionsService {
   }) {
     const approved = args.status === ReviewStatus.APPROVED;
 
-    const frontURL = (env.FRONTEND_URL ?? env.APP_URL ?? '').replace(/\/+$/, '');
-    const myQuestionsURL = frontURL ? `${frontURL}/student/questions` : '';
+    const frontURL = (env.FRONTEND_URL ?? env.APP_URL ?? "").replace(
+      /\/+$/,
+      ""
+    );
+    const myQuestionsURL = frontURL ? `${frontURL}/student/questions` : "";
 
     const statusBadge = approved
       ? `<span style="
@@ -412,7 +459,7 @@ export class QuestionsService {
                   background:#4f46e5;color:#fff;text-decoration:none;font-weight:600">
           Ver mis preguntas
         </a>`
-      : '';
+      : "";
 
     const rejectBlock =
       !approved && args.comment?.trim()
@@ -428,7 +475,7 @@ export class QuestionsService {
         ? `<div style="margin-top:14px;color:#6b7280;font-size:13px;">
                Tu pregunta ha sido rechazada. Revisa el enunciado y las opciones antes de volver a enviarla.
              </div>`
-        : '';
+        : "";
 
     const body = `
       <div style="font-size:14px;line-height:1.6">
@@ -441,28 +488,30 @@ export class QuestionsService {
 
         ${rejectBlock}
 
-        ${ctaHtml ? `<div style="margin-top:18px;">${ctaHtml}</div>` : ''}
+        ${ctaHtml ? `<div style="margin-top:18px;">${ctaHtml}</div>` : ""}
 
         ${
           approved
             ? `<p style="margin-top:14px;color:#16a34a;font-size:14px;">
                ¡Enhorabuena! Tu pregunta ya puede formar parte del banco de preguntas.
              </p>`
-            : ''
+            : ""
         }
       </div>
     `;
 
     const html = renderCardEmail({
-      title: 'Resultado de la revisión de tu pregunta',
+      title: "Resultado de la revisión de tu pregunta",
       bodyHtml: body,
-      accent: approved ? '#D1FAE5' : '#FEE2E2',  
+      accent: approved ? "#D1FAE5" : "#FEE2E2",
     });
 
     await transporter.sendMail({
       from: '"ERPlay Revisión" <no-reply@erplay.com>',
       to: args.to,
-      subject: approved ? 'Tu pregunta ha sido aprobada' : 'Tu pregunta ha sido revisada',
+      subject: approved
+        ? "Tu pregunta ha sido aprobada"
+        : "Tu pregunta ha sido revisada",
       html,
     });
   }

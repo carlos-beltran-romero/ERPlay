@@ -4,7 +4,7 @@
  * @module routes/testSession
  */
 
-import { Router } from 'express';
+import { Router } from "express";
 import {
   startTestSession,
   patchTestResult,
@@ -12,7 +12,7 @@ import {
   finishTestSession,
   listMySessions,
   getSessionDetail,
-} from '../controllers/testSession';
+} from "../controllers/testSession";
 
 const router = Router();
 
@@ -21,41 +21,41 @@ const router = Router();
  * Inicia una nueva sesión de test
  * @access Privado (alumno)
  */
-router.post('/start', startTestSession);
+router.post("/start", startTestSession);
 
 /**
  * PATCH /api/test-sessions/:sessionId/results/:resultId
  * Actualiza resultado de una pregunta específica (respuesta, hint usado, etc.)
  * @access Privado (alumno)
  */
-router.patch('/:sessionId/results/:resultId', patchTestResult);
+router.patch("/:sessionId/results/:resultId", patchTestResult);
 
 /**
  * POST /api/test-sessions/:sessionId/events
  * Registra un evento durante la sesión de test
  * @access Privado (alumno)
  */
-router.post('/:sessionId/events', logTestEvent);
+router.post("/:sessionId/events", logTestEvent);
 
 /**
  * POST /api/test-sessions/:sessionId/finish
  * Finaliza una sesión de test y calcula resultados
  * @access Privado (alumno)
  */
-router.post('/:sessionId/finish', finishTestSession);
+router.post("/:sessionId/finish", finishTestSession);
 
 /**
  * GET /api/test-sessions/mine
  * Lista sesiones de test del usuario autenticado
  * @access Privado (alumno)
  */
-router.get('/mine', listMySessions);
+router.get("/mine", listMySessions);
 
 /**
  * GET /api/test-sessions/:sessionId
  * Obtiene detalle completo de una sesión de test
  * @access Privado (alumno)
  */
-router.get('/:sessionId', getSessionDetail);
+router.get("/:sessionId", getSessionDetail);
 
 export default router;

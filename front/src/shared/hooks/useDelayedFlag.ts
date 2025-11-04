@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
 /**
  * Retrasa la activación de una bandera para evitar parpadeos de carga.

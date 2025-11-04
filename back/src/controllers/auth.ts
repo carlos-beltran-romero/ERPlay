@@ -4,11 +4,11 @@
  * @module controllers/auth
  */
 
-import { NextFunction, Request, Response } from 'express';
-import { z } from 'zod';
-import { createHttpError } from '../core/errors/HttpError';
-import { asyncHandler } from '../utils/asyncHandler';
-import { AuthService } from '../services/auth';
+import { NextFunction, Request, Response } from "express";
+import { z } from "zod";
+import { createHttpError } from "../core/errors/HttpError";
+import { asyncHandler } from "../utils/asyncHandler";
+import { AuthService } from "../services/auth";
 
 let authService = new AuthService();
 
@@ -45,7 +45,10 @@ const ResetSchema = z.object({
  */
 export const login = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = LoginSchema.parse(req.body);
-  const { accessToken, refreshToken } = await authService.login(email, password);
+  const { accessToken, refreshToken } = await authService.login(
+    email,
+    password
+  );
   res.status(200).json({ accessToken, refreshToken });
 });
 
@@ -67,22 +70,29 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
  * @param res Objeto Response de Express
  * @returns Nuevos tokens JWT de acceso y refresco para la sesión
  */
-export const refreshToken = asyncHandler(async (req: Request, res: Response) => {
-  const { refreshToken: token } = RefreshSchema.parse(req.body);
-  const { accessToken, refreshToken } = await authService.refreshToken(token);
-  res.status(200).json({ accessToken, refreshToken });
-});
+export const refreshToken = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { refreshToken: token } = RefreshSchema.parse(req.body);
+    const { accessToken, refreshToken } = await authService.refreshToken(token);
+    res.status(200).json({ accessToken, refreshToken });
+  }
+);
 
 /**
  * Gestiona las peticiones de recuperación de contraseña
  * @param req Objeto Request de Express que contiene email del usuario
  * @param res Objeto Response de Express
  */
-export const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
-  const { email } = ForgotSchema.parse(req.body);
-  await authService.forgotPassword(email);
-  res.json({ message: 'Si ese correo existe, recibirás un enlace para restablecer tu contraseña.' });
-});
+export const forgotPassword = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { email } = ForgotSchema.parse(req.body);
+    await authService.forgotPassword(email);
+    res.json({
+      message:
+        "Si ese correo existe, recibirás un enlace para restablecer tu contraseña.",
+    });
+  }
+);
 
 /**
  * Gestiona las peticiones de restablecimiento de contraseña
@@ -90,16 +100,20 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response) =
  * @param res Objeto Response de Express
  * @param next Función next de Express para manejo de errores
  */
-export const resetPassword = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  const { token, newPassword } = ResetSchema.parse(req.body);
-  try {
-    await authService.resetPassword(token, newPassword);
-    res.status(200).json({ message: 'Contraseña restablecida correctamente.' });
-  } catch (error) {
-    if (error instanceof Error) {
-      next(createHttpError(400, error.message));
-      return;
+export const resetPassword = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { token, newPassword } = ResetSchema.parse(req.body);
+    try {
+      await authService.resetPassword(token, newPassword);
+      res
+        .status(200)
+        .json({ message: "Contraseña restablecida correctamente." });
+    } catch (error) {
+      if (error instanceof Error) {
+        next(createHttpError(400, error.message));
+        return;
+      }
+      next(error);
     }
-    next(error);
   }
-});
+);

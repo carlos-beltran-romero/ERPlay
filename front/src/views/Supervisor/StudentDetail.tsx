@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PageWithHeader from "../../components/layout/PageWithHeader";
@@ -14,8 +13,8 @@ import {
   supGetCreatedQuestions,
   supListUserSessions,
   supListUserClaims,
-  supGetWeeklyProgress, 
-  supGetStudentBadges, 
+  supGetWeeklyProgress,
+  supGetStudentBadges,
   type SupStudent,
   type SupOverview,
   type SupTrendPoint,
@@ -24,8 +23,8 @@ import {
   type SupQuestionItem,
   type SupSessionSummary,
   type SupClaimItem,
-  type WeeklyProgressRow, 
-  type SupBadgeItem, 
+  type WeeklyProgressRow,
+  type SupBadgeItem,
 } from "../../services/supervisor";
 import { getSessionDetail, type SessionDetail } from "../../services/tests";
 import {
@@ -49,8 +48,8 @@ import {
   Loader2,
   CheckCircle2,
   MessageSquare,
-  Target, 
-  Award, 
+  Target,
+  Award,
 } from "lucide-react";
 import {
   formatDateTime,
@@ -161,8 +160,8 @@ const KPI: React.FC<{
 );
 
 /* ---------- Mini-charts ---------- */
-const COLOR_A = "#10b981"; 
-const COLOR_B = "#3b82f6"; 
+const COLOR_A = "#10b981";
+const COLOR_B = "#3b82f6";
 
 const DualLineChart: React.FC<{
   data: { a?: number | null; b?: number | null }[];
@@ -473,12 +472,10 @@ const StudentDetail: React.FC = () => {
   const [claims, setClaims] = useState<SupClaimItem[]>([]);
   const showLoading = useDelayedFlag(loading);
 
-  
   const [progRows, setProgRows] = useState<WeeklyProgressRow[]>([]);
   const [bgs, setBgs] = useState<SupBadgeItem[]>([]);
   const [showBadges, setShowBadges] = useState(false);
 
-  
   const [mode, setMode] = useState<"ALL" | "learning" | "exam" | "errors">(
     "ALL"
   );
@@ -486,24 +483,20 @@ const StudentDetail: React.FC = () => {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
-  
   const [qClaims, setQClaims] = useState("");
   const [stClaims, setStClaims] = useState<
     "ALL" | "PENDING" | "APPROVED" | "REJECTED"
   >("ALL");
 
-  
   const PAGE_SIZE = 15;
   const [visibleQ, setVisibleQ] = useState(PAGE_SIZE);
   const [visibleC, setVisibleC] = useState(PAGE_SIZE);
 
-  
   const [previewImg, setPreviewImg] = useState<{
     src: string;
     title: string;
   } | null>(null);
 
-  
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detail, setDetail] = useState<SessionDetail | null>(null);
@@ -512,29 +505,19 @@ const StudentDetail: React.FC = () => {
     (async () => {
       try {
         setLoading(true);
-        const [
-          stu,
-          ovw,
-          tr,
-          er,
-          cs,
-          qs,
-          ts,
-          cl,
-          rows, 
-          badges, 
-        ] = await Promise.all([
-          supGetStudent(studentId),
-          supGetOverview(studentId),
-          supGetTrends(studentId, { bucket: "day" }),
-          supGetErrors(studentId, 5),
-          supGetClaimsStats(studentId),
-          supGetCreatedQuestions(studentId, { limit: 200 }),
-          supListUserSessions(studentId, {}),
-          supListUserClaims(studentId),
-          supGetWeeklyProgress({ userId: studentId }),
-          supGetStudentBadges(studentId),
-        ]);
+        const [stu, ovw, tr, er, cs, qs, ts, cl, rows, badges] =
+          await Promise.all([
+            supGetStudent(studentId),
+            supGetOverview(studentId),
+            supGetTrends(studentId, { bucket: "day" }),
+            supGetErrors(studentId, 5),
+            supGetClaimsStats(studentId),
+            supGetCreatedQuestions(studentId, { limit: 200 }),
+            supListUserSessions(studentId, {}),
+            supListUserClaims(studentId),
+            supGetWeeklyProgress({ userId: studentId }),
+            supGetStudentBadges(studentId),
+          ]);
         setStudent(stu);
         setOv(ovw);
         setTrends(tr);
@@ -633,7 +616,7 @@ const StudentDetail: React.FC = () => {
     if (s2 != null) return s2;
     const total = detail.totals?.totalQuestions ?? 0;
     const correct = detail.totals?.correct ?? 0;
-    return total > 0 ? Math.round((correct / total) * 100) / 10 : null; 
+    return total > 0 ? Math.round((correct / total) * 100) / 10 : null;
   }, [detail]);
 
   /* ------- Abrir detalle test ------- */
@@ -646,7 +629,6 @@ const StudentDetail: React.FC = () => {
     setDetailOpen(true);
     setDetailLoading(true);
     try {
-      
       let d: any = null;
       try {
         const supMod: any = await import("../../services/supervisor");
@@ -676,7 +658,6 @@ const StudentDetail: React.FC = () => {
     setDetail(null);
   };
 
-  
   const progRow: WeeklyProgressRow | null = useMemo(() => {
     if (!progRows?.length) return null;
     const found = progRows.find((r) => r.userId === studentId);
@@ -687,7 +668,7 @@ const StudentDetail: React.FC = () => {
     return (
       <PageWithHeader>
         <div className="mx-auto w-full max-w-6xl p-6">Cargando…</div>
-     </PageWithHeader>
+      </PageWithHeader>
     );
   }
 
@@ -1133,7 +1114,8 @@ const StudentDetail: React.FC = () => {
                               {it.diagram?.title || "—"}
                             </div>
                             <div className="text-xs text-gray-500">
-                              {acc} · {formatDuration(it.summary?.durationSeconds)}
+                              {acc} ·{" "}
+                              {formatDuration(it.summary?.durationSeconds)}
                             </div>
                           </div>
                           <div className="col-span-2 text-sm">
@@ -1175,7 +1157,8 @@ const StudentDetail: React.FC = () => {
                             · {formatDateTime(it.startedAt)}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {acc} · {formatDuration(it.summary?.durationSeconds)}
+                            {acc} ·{" "}
+                            {formatDuration(it.summary?.durationSeconds)}
                           </div>
                           <div className="pt-2">
                             <button
@@ -1502,7 +1485,9 @@ const StudentDetail: React.FC = () => {
                       const chosenTxt =
                         typeof chosenIndex === "number" &&
                         options?.[chosenIndex]
-                          ? `${letterFromIndex(chosenIndex)}. ${options[chosenIndex]}`
+                          ? `${letterFromIndex(chosenIndex)}. ${
+                              options[chosenIndex]
+                            }`
                           : typeof chosenIndex === "number"
                           ? letterFromIndex(chosenIndex)
                           : "—";
@@ -1510,7 +1495,9 @@ const StudentDetail: React.FC = () => {
                       const correctTxt =
                         typeof correctIndex === "number" &&
                         options?.[correctIndex]
-                          ? `${letterFromIndex(correctIndex)}. ${options[correctIndex]}`
+                          ? `${letterFromIndex(correctIndex)}. ${
+                              options[correctIndex]
+                            }`
                           : typeof correctIndex === "number"
                           ? letterFromIndex(correctIndex)
                           : "—";
@@ -2043,7 +2030,7 @@ const StudentDetail: React.FC = () => {
           </div>
         )}
       </div>
-   </PageWithHeader>
+    </PageWithHeader>
   );
 };
 

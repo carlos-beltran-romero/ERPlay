@@ -24,7 +24,6 @@ import {
 } from "../../services/supervisor";
 import { toast } from "react-toastify";
 
-
 const ActionCard = ({ title, subtitle, onClick, Icon, badgeCount }: any) => (
   <button
     onClick={onClick}
@@ -68,16 +67,13 @@ const SupervisorDashboard: React.FC = () => {
 
   const [pendingCount, setPendingCount] = useState<number>(0);
 
-  
   const [goal, setGoal] = useState<WeeklyGoalDTO | null>(null);
   const [targetInput, setTargetInput] = useState<number | "">("");
   const [notify, setNotify] = useState(true);
 
-  
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  
   const [openProgress, setOpenProgress] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(false);
   const [progressRows, setProgressRows] = useState<WeeklyProgressRow[]>([]);
@@ -91,7 +87,6 @@ const SupervisorDashboard: React.FC = () => {
     })();
   }, []);
 
-  
   useEffect(() => {
     (async () => {
       const n = await getPendingStudentQuestionsCount();
@@ -99,7 +94,6 @@ const SupervisorDashboard: React.FC = () => {
     })();
   }, []);
 
-  
   useEffect(() => {
     (async () => {
       try {
@@ -128,9 +122,8 @@ const SupervisorDashboard: React.FC = () => {
       });
       setGoal(updated);
       toast.success("Objetivo semanal guardado");
-      setEditing(false); 
+      setEditing(false);
 
-      
       if (openProgress) {
         setLoadingProgress(true);
         setProgressRows(await supGetWeeklyProgress().catch(() => []));
@@ -179,8 +172,6 @@ const SupervisorDashboard: React.FC = () => {
             </div>
           </div>
         </div>
-
-        
 
         {/* Acciones rápidas */}
         <div className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
@@ -460,7 +451,7 @@ const SupervisorDashboard: React.FC = () => {
           )}
         </div>
       </div>
-   </PageWithHeader>
+    </PageWithHeader>
   );
 };
 

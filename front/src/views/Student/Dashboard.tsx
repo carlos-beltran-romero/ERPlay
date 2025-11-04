@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 
-
 const MIN_HALF_TOGGLE = 120;
 
 interface ExpandableTextProps {
@@ -28,7 +27,6 @@ interface ExpandableTextProps {
   minToHalf?: number;
   className?: string;
 }
-
 
 const ExpandableText: React.FC<ExpandableTextProps> = ({
   text = "",
@@ -65,7 +63,6 @@ interface ActionCardProps {
   Icon: React.ComponentType<{ size?: number }>;
   accent?: "indigo" | "emerald" | "amber" | "rose";
 }
-
 
 const ActionCard: React.FC<ActionCardProps> = ({
   title,
@@ -106,7 +103,6 @@ interface ChipProps {
   children: React.ReactNode;
 }
 
-
 const Chip: React.FC<ChipProps> = ({ className, children }) => (
   <span
     className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs ${
@@ -117,8 +113,6 @@ const Chip: React.FC<ChipProps> = ({ className, children }) => (
   </span>
 );
 
-
-
 function tQuestionStatus(s: "pending" | "approved" | "rejected") {
   return s === "approved"
     ? "Aprobada"
@@ -127,7 +121,6 @@ function tQuestionStatus(s: "pending" | "approved" | "rejected") {
     : "Pendiente";
 }
 
-
 function tClaimStatus(s: "PENDING" | "APPROVED" | "REJECTED") {
   return s === "APPROVED"
     ? "Aprobada"
@@ -135,7 +128,6 @@ function tClaimStatus(s: "PENDING" | "APPROVED" | "REJECTED") {
     ? "Cancelada"
     : "Pendiente";
 }
-
 
 const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -152,9 +144,7 @@ const StudentDashboard: React.FC = () => {
       try {
         const u = await getProfile();
         setMe(u);
-      } catch {
-
-      }
+      } catch {}
     })();
   }, []);
 
@@ -414,7 +404,7 @@ const StudentDashboard: React.FC = () => {
           )}
         </div>
       </div>
-   </PageWithHeader>
+    </PageWithHeader>
   );
 };
 

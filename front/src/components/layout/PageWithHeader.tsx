@@ -1,5 +1,5 @@
-import type { FC, PropsWithChildren } from 'react';
-import Header from './Header';
+import type { FC, PropsWithChildren } from "react";
+import Header from "./Header";
 
 /**
  * Layout común con cabecera fija y contenido desplazable.

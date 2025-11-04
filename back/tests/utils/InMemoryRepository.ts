@@ -1,5 +1,5 @@
-import crypto from 'node:crypto';
-import { DeepPartial } from 'typeorm';
+import crypto from "node:crypto";
+import { DeepPartial } from "typeorm";
 
 export class InMemoryRepository<T extends { id?: string }> {
   private items: T[] = [];
@@ -21,7 +21,9 @@ export class InMemoryRepository<T extends { id?: string }> {
 
   async save(entity: DeepPartial<T> | Array<DeepPartial<T>>): Promise<T | T[]> {
     if (Array.isArray(entity)) {
-      const saved = await Promise.all(entity.map((item) => this.save(item) as Promise<T>));
+      const saved = await Promise.all(
+        entity.map((item) => this.save(item) as Promise<T>)
+      );
       return saved;
     }
 
@@ -30,16 +32,18 @@ export class InMemoryRepository<T extends { id?: string }> {
 
     if (!target.id) {
       target.id = crypto.randomUUID();
-      if ('createdAt' in target) {
+      if ("createdAt" in target) {
         (target as any).createdAt = now;
       }
     }
 
-    if ('updatedAt' in target) {
+    if ("updatedAt" in target) {
       (target as any).updatedAt = now;
     }
 
-    const index = target.id ? this.items.findIndex((item) => item.id === target.id) : -1;
+    const index = target.id
+      ? this.items.findIndex((item) => item.id === target.id)
+      : -1;
 
     if (index >= 0) {
       this.items[index] = Object.assign(this.items[index], target);
@@ -76,7 +80,7 @@ export class InMemoryRepository<T extends { id?: string }> {
   private matches(entity: any, where: any): boolean {
     return Object.entries(where ?? {}).every(([key, value]) => {
       const entityValue = entity[key];
-      if (value && typeof value === 'object' && !Array.isArray(value)) {
+      if (value && typeof value === "object" && !Array.isArray(value)) {
         if (entityValue == null) return false;
         return this.matches(entityValue, value);
       }

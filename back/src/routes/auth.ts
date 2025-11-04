@@ -4,11 +4,11 @@
  * @module routes/auth
  */
 
-import { Router, Request, Response, NextFunction } from 'express';
-import { body } from 'express-validator';
-import validateDto from '../middlewares/validateDto';
-import * as authController from '../controllers/auth';
-import { authenticate } from '../middlewares/authenticate';
+import { Router, Request, Response, NextFunction } from "express";
+import { body } from "express-validator";
+import validateDto from "../middlewares/validateDto";
+import * as authController from "../controllers/auth";
+import { authenticate } from "../middlewares/authenticate";
 
 const router = Router();
 
@@ -18,13 +18,13 @@ const router = Router();
  * @access Público
  */
 router.post(
-  '/login',
+  "/login",
   validateDto([
-    body('email').isEmail().withMessage('Email inválido'),
-    body('password')
+    body("email").isEmail().withMessage("Email inválido"),
+    body("password")
       .isString()
       .isLength({ min: 6 })
-      .withMessage('La contraseña debe tener al menos 6 caracteres'),
+      .withMessage("La contraseña debe tener al menos 6 caracteres"),
   ]),
   (req: Request, res: Response, next: NextFunction) =>
     authController.login(req, res, next)
@@ -36,7 +36,7 @@ router.post(
  * @access Privado (requiere autenticación)
  */
 router.post(
-  '/logout',
+  "/logout",
   authenticate,
   (req: Request, res: Response, next: NextFunction) =>
     authController.logout(req, res, next)
@@ -48,11 +48,9 @@ router.post(
  * @access Público
  */
 router.post(
-  '/refresh',
+  "/refresh",
   validateDto([
-    body('refreshToken')
-      .isString()
-      .withMessage('Refresh token requerido'),
+    body("refreshToken").isString().withMessage("Refresh token requerido"),
   ]),
   (req: Request, res: Response, next: NextFunction) =>
     authController.refreshToken(req, res, next)
@@ -64,10 +62,8 @@ router.post(
  * @access Público
  */
 router.post(
-  '/forgot-password',
-  validateDto([
-    body('email').isEmail().withMessage('Email inválido'),
-  ]),
+  "/forgot-password",
+  validateDto([body("email").isEmail().withMessage("Email inválido")]),
   (req: Request, res: Response, next: NextFunction) =>
     authController.forgotPassword(req, res, next)
 );
@@ -78,13 +74,13 @@ router.post(
  * @access Público
  */
 router.post(
-  '/reset-password',
+  "/reset-password",
   validateDto([
-    body('token').isString().withMessage('Token requerido'),
-    body('newPassword')
+    body("token").isString().withMessage("Token requerido"),
+    body("newPassword")
       .isString()
       .isLength({ min: 6 })
-      .withMessage('La nueva contraseña debe tener al menos 6 caracteres'),
+      .withMessage("La nueva contraseña debe tener al menos 6 caracteres"),
   ]),
   (req: Request, res: Response, next: NextFunction) =>
     authController.resetPassword(req, res, next)

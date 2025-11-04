@@ -10,6 +10,6 @@
  * @remarks Usado para etiquetas de opciones en preguntas (opción A, B, C...)
  */
 export function letterFromIndex(index?: number | null): string {
-  if (index == null || Number.isNaN(index) || index < 0) return '—';
+  if (index == null || Number.isNaN(index) || index < 0) return "—";
   return String.fromCharCode(65 + index);
 }

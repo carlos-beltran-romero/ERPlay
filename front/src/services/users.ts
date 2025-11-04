@@ -4,14 +4,14 @@
  * @module services/users
  */
 
-import { apiJson } from './http';
+import { apiJson } from "./http";
 
 /** Perfil de usuario autenticado */
 export interface UserProfile {
   id: string;
   name: string;
   email: string;
-  role: 'alumno' | 'supervisor';
+  role: "alumno" | "supervisor";
 }
 
 /** Estudiante para alta masiva desde CSV */
@@ -36,7 +36,7 @@ export interface StudentSummary {
   name: string;
   lastName: string;
   email: string;
-  role: 'alumno';
+  role: "alumno";
   createdAt?: string;
 }
 
@@ -45,16 +45,16 @@ export interface StudentSummary {
  * @returns Datos básicos (id, nombre, email, rol)
  */
 export async function getProfile(): Promise<UserProfile> {
-  const data = await apiJson<any>('/api/users/me', {
+  const data = await apiJson<any>("/api/users/me", {
     auth: true,
-    fallbackError: 'No se pudo obtener el perfil',
+    fallbackError: "No se pudo obtener el perfil",
   });
 
   return {
     id: String(data.id),
-    name: String(data.name ?? ''),
-    email: String(data.email ?? ''),
-    role: data.role === 'supervisor' ? 'supervisor' : 'alumno',
+    name: String(data.name ?? ""),
+    email: String(data.email ?? ""),
+    role: data.role === "supervisor" ? "supervisor" : "alumno",
   };
 }
 
@@ -70,23 +70,23 @@ export async function updateMyProfile(input: {
   email: string;
 }): Promise<UserProfile> {
   const payload = {
-    name: String(input.name ?? '').trim(),
-    lastName: String(input.lastName ?? '').trim(),
-    email: String(input.email ?? '').trim(),
+    name: String(input.name ?? "").trim(),
+    lastName: String(input.lastName ?? "").trim(),
+    email: String(input.email ?? "").trim(),
   };
 
-  const data = await apiJson<any>('/api/users/me', {
-    method: 'PUT',
+  const data = await apiJson<any>("/api/users/me", {
+    method: "PUT",
     auth: true,
     json: payload,
-    fallbackError: 'No se pudo actualizar el perfil',
+    fallbackError: "No se pudo actualizar el perfil",
   });
 
   return {
     id: String(data.id),
-    name: String(data.name ?? ''),
-    email: String(data.email ?? ''),
-    role: data.role === 'supervisor' ? 'supervisor' : 'alumno',
+    name: String(data.name ?? ""),
+    email: String(data.email ?? ""),
+    role: data.role === "supervisor" ? "supervisor" : "alumno",
   };
 }
 
@@ -100,14 +100,14 @@ export async function changeMyPassword(params: {
   currentPassword: string;
   newPassword: string;
 }): Promise<void> {
-  await apiJson<void>('/api/users/me/password', {
-    method: 'POST',
+  await apiJson<void>("/api/users/me/password", {
+    method: "POST",
     auth: true,
     json: {
       currentPassword: params.currentPassword,
       newPassword: params.newPassword,
     },
-    fallbackError: 'No se pudo cambiar la contraseña',
+    fallbackError: "No se pudo cambiar la contraseña",
   });
 }
 
@@ -128,11 +128,11 @@ export async function batchCreateStudents(students: BatchStudent[]): Promise<{
   }>;
   skipped: { exists: string[]; payloadDuplicates: string[] };
 }> {
-  return apiJson('/api/users/batch', {
-    method: 'POST',
+  return apiJson("/api/users/batch", {
+    method: "POST",
     auth: true,
     json: { users: students },
-    fallbackError: 'No se pudo completar el alta masiva',
+    fallbackError: "No se pudo completar el alta masiva",
   });
 }
 
@@ -142,9 +142,9 @@ export async function batchCreateStudents(students: BatchStudent[]): Promise<{
  * @returns Array de estudiantes ordenados alfabéticamente
  */
 export async function fetchStudents(): Promise<StudentSummary[]> {
-  return apiJson<StudentSummary[]>('/api/users', {
+  return apiJson<StudentSummary[]>("/api/users", {
     auth: true,
-    fallbackError: 'No se pudieron cargar los alumnos',
+    fallbackError: "No se pudieron cargar los alumnos",
   });
 }
 
@@ -160,10 +160,10 @@ export async function updateStudent(
   dto: UpdateStudentDTO
 ): Promise<StudentSummary> {
   return apiJson<StudentSummary>(`/api/users/${userId}`, {
-    method: 'PUT',
+    method: "PUT",
     auth: true,
     json: dto,
-    fallbackError: 'No se pudo actualizar el alumno',
+    fallbackError: "No se pudo actualizar el alumno",
   });
 }
 
@@ -175,8 +175,8 @@ export async function updateStudent(
  */
 export async function deleteStudent(userId: string): Promise<void> {
   await apiJson<void>(`/api/users/${userId}`, {
-    method: 'DELETE',
+    method: "DELETE",
     auth: true,
-    fallbackError: 'No se pudo eliminar el alumno',
+    fallbackError: "No se pudo eliminar el alumno",
   });
 }

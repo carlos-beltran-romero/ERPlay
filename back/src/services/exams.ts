@@ -4,9 +4,9 @@
  * @module services/exams
  */
 
-import { AppDataSource } from '../data-source';
-import { Diagram } from '../models/Diagram';
-import { Question, ReviewStatus } from '../models/Question';
+import { AppDataSource } from "../data-source";
+import { Diagram } from "../models/Diagram";
+import { Question, ReviewStatus } from "../models/Question";
 
 /**
  * Servicio de exámenes
@@ -33,13 +33,15 @@ export class ExamsService {
   }> {
     // Obtener IDs de diagramas con preguntas aprobadas
     const rows = await this.diagramRepo
-      .createQueryBuilder('d')
-      .innerJoin('d.questions', 'q', 'q.status = :st', { st: ReviewStatus.APPROVED })
-      .select('d.id', 'id')
-      .groupBy('d.id')
+      .createQueryBuilder("d")
+      .innerJoin("d.questions", "q", "q.status = :st", {
+        st: ReviewStatus.APPROVED,
+      })
+      .select("d.id", "id")
+      .groupBy("d.id")
       .getRawMany<{ id: string }>();
 
-    if (!rows.length) throw new Error('No hay tests disponibles');
+    if (!rows.length) throw new Error("No hay tests disponibles");
 
     // Seleccionar diagrama aleatorio
     const random = rows[Math.floor(Math.random() * rows.length)].id;
@@ -48,12 +50,13 @@ export class ExamsService {
       where: { id: random },
       relations: { questions: { options: true } },
     });
-    if (!diagram) throw new Error('Test no encontrado');
+    if (!diagram) throw new Error("Test no encontrado");
 
     const approved = (diagram.questions || []).filter(
       (q) => q.status === ReviewStatus.APPROVED
     );
-    if (!approved.length) throw new Error('El test no tiene preguntas aprobadas');
+    if (!approved.length)
+      throw new Error("El test no tiene preguntas aprobadas");
 
     // Barajar y limitar preguntas
     const shuffled = approved
@@ -80,7 +83,11 @@ export class ExamsService {
     });
 
     return {
-      diagram: { id: diagram.id, title: diagram.title, path: diagram.path ?? null },
+      diagram: {
+        id: diagram.id,
+        title: diagram.title,
+        path: diagram.path ?? null,
+      },
       questions,
     };
   }

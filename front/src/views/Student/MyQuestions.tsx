@@ -17,7 +17,6 @@ import {
   ArrowLeft,
 } from "lucide-react";
 
-
 type MyQuestion = {
   id: string;
   prompt: string;
@@ -29,7 +28,6 @@ type MyQuestion = {
   options?: string[];
   correctIndex?: number;
 };
-
 
 type MyClaim = {
   id: string;
@@ -44,13 +42,11 @@ type MyClaim = {
   options?: string[];
 };
 
-
 const PAGE_SIZE = 15;
 
 const MIN_HALF_TOGGLE = 120;
 
 const MIN_HALF_TOGGLE_OPT = 80;
-
 
 const STATUS_LABEL = {
   PENDING: "Pendiente",
@@ -58,10 +54,8 @@ const STATUS_LABEL = {
   REJECTED: "Rechazada",
 } as const;
 
-
 const letter = (i?: number) =>
   typeof i === "number" && i >= 0 ? String.fromCharCode(65 + i) : "—";
-
 
 const fmtDate = (iso?: string) =>
   iso ? new Date(iso).toLocaleDateString() : "";
@@ -71,7 +65,6 @@ interface ExpandableTextProps {
   minToHalf?: number;
   className?: string;
 }
-
 
 const ExpandableText: React.FC<ExpandableTextProps> = ({
   text,
@@ -105,7 +98,6 @@ interface StatusBadgeProps {
   status: MyQuestion["status"] | MyClaim["status"];
 }
 
-
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   const common =
     "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium";
@@ -135,7 +127,6 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
     </span>
   );
 };
-
 
 const MyQuestionsView: React.FC = () => {
   const navigate = useNavigate();
@@ -803,7 +794,7 @@ const MyQuestionsView: React.FC = () => {
           </div>
         )}
       </div>
-   </PageWithHeader>
+    </PageWithHeader>
   );
 };
 

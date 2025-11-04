@@ -4,16 +4,16 @@
  * @module middlewares/upload
  */
 
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
-import { v4 as uuid } from 'uuid';
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { v4 as uuid } from "uuid";
 
 /**
  * Directorio donde se almacenarán las imágenes de diagramas subidas
  * Se crea automáticamente si no existe
  */
-const UPLOAD_DIR = path.resolve('uploads/diagrams');
+const UPLOAD_DIR = path.resolve("uploads/diagrams");
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
@@ -52,10 +52,14 @@ const storage = multer.diskStorage({
  * @param cb Callback para aceptar o rechazar el archivo
  * @throws {Error} Si el formato del archivo no es JPG o PNG
  */
-function fileFilter(_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) {
-  const ok = ['image/jpeg', 'image/png'].includes(file.mimetype);
+function fileFilter(
+  _req: any,
+  file: Express.Multer.File,
+  cb: multer.FileFilterCallback
+) {
+  const ok = ["image/jpeg", "image/png"].includes(file.mimetype);
   if (!ok) {
-    return cb(new Error('Formato no permitido (solo JPG o PNG)'));
+    return cb(new Error("Formato no permitido (solo JPG o PNG)"));
   }
   cb(null, true);
 }
@@ -67,28 +71,28 @@ function fileFilter(_req: any, file: Express.Multer.File, cb: multer.FileFilterC
  * - Formatos permitidos: JPEG y PNG únicamente
  * - Tamaño máximo: 5 MB por archivo
  * - Campo esperado: 'image' (single file)
- * 
+ *
  * @remarks
  * Los archivos se renombran automáticamente con UUID para evitar colisiones.
  * El middleware rechaza cualquier archivo que no sea imagen JPEG o PNG.
  * Si el archivo excede 5MB, multer lanza un error automáticamente.
- * 
+ *
  * @example
  * // Uso en rutas de Express
  * router.post('/diagrams', uploadDiagramImage, createDiagram);
- * 
+ *
  * @example
  * // Acceso al archivo en el controlador
  * const uploadedFile = req.file;
  * const filePath = uploadedFile?.path;
  * const fileName = uploadedFile?.filename;
- * 
+ *
  * @example
  * // Request desde el cliente (multipart/form-data)
  * const formData = new FormData();
  * formData.append('image', fileBlob, 'diagram.png');
  * formData.append('title', 'Mi Diagrama ER');
- * 
+ *
  * @see {@link https://github.com/expressjs/multer|Multer Documentation}
  * @public
  */
@@ -96,4 +100,4 @@ export const uploadDiagramImage = multer({
   storage,
   fileFilter,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
-}).single('image');
+}).single("image");

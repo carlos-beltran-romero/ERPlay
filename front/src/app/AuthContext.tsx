@@ -6,9 +6,13 @@ import {
   useMemo,
   useState,
   type PropsWithChildren,
-} from 'react';
-import { getProfile, type UserProfile } from '../services/users';
-import { setCachedProfile, getCachedProfile, clearProfileCache } from '../services/authCache';
+} from "react";
+import { getProfile, type UserProfile } from "../services/users";
+import {
+  setCachedProfile,
+  getCachedProfile,
+  clearProfileCache,
+} from "../services/authCache";
 
 interface AuthContextValue {
   readonly profile: UserProfile | null;
@@ -32,7 +36,9 @@ async function fetchProfile(): Promise<UserProfile | null> {
 
 export function AuthProvider({ children }: PropsWithChildren<unknown>) {
   const initialProfile = getCachedProfile();
-  const [profile, setProfileState] = useState<UserProfile | null>(() => initialProfile);
+  const [profile, setProfileState] = useState<UserProfile | null>(
+    () => initialProfile
+  );
   const [loading, setLoading] = useState(!initialProfile);
 
   const setProfile = useCallback((value: UserProfile | null) => {
@@ -55,7 +61,7 @@ export function AuthProvider({ children }: PropsWithChildren<unknown>) {
       return;
     }
 
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem("accessToken");
     if (!token) {
       setLoading(false);
       setProfileState(null);
@@ -78,6 +84,6 @@ export function AuthProvider({ children }: PropsWithChildren<unknown>) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth debe usarse dentro de AuthProvider');
+  if (!ctx) throw new Error("useAuth debe usarse dentro de AuthProvider");
   return ctx;
 }

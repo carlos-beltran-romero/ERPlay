@@ -4,14 +4,14 @@
  * @module services/testSession
  */
 
-import { AppDataSource } from '../data-source';
-import { Diagram } from '../models/Diagram';
-import { Question, ReviewStatus } from '../models/Question';
-import { TestSession, TestMode } from '../models/TestSession';
-import { TestResult } from '../models/TestResult';
-import { TestEvent } from '../models/TestEvent';
-import { User } from '../models/User';
-import { Brackets } from 'typeorm';
+import { AppDataSource } from "../data-source";
+import { Diagram } from "../models/Diagram";
+import { Question, ReviewStatus } from "../models/Question";
+import { TestSession, TestMode } from "../models/TestSession";
+import { TestResult } from "../models/TestResult";
+import { TestEvent } from "../models/TestEvent";
+import { User } from "../models/User";
+import { Brackets } from "typeorm";
 
 /** Parámetros para iniciar sesión */
 type StartSessionArgs = { userId: string; mode: TestMode; limit?: number };
@@ -69,7 +69,7 @@ export class TestSessionsService {
   /**
    * Inicia una nueva sesión de test
    * Selecciona diagrama aleatorio y preguntas aprobadas
-   * 
+   *
    * @param params - Usuario, modo (learning/exam) y límite de preguntas
    * @returns Datos de sesión y preguntas snapshot
    * @throws {Error} Si no hay tests disponibles o preguntas aprobadas
@@ -84,24 +84,31 @@ export class TestSessionsService {
     const user = await this.userRepo.findOneByOrFail({ id: userId });
 
     const rows = await this.diagramRepo
-      .createQueryBuilder('d')
-      .innerJoin('d.questions', 'q', 'q.status = :st', { st: ReviewStatus.APPROVED })
-      .select('d.id', 'id')
-      .groupBy('d.id')
+      .createQueryBuilder("d")
+      .innerJoin("d.questions", "q", "q.status = :st", {
+        st: ReviewStatus.APPROVED,
+      })
+      .select("d.id", "id")
+      .groupBy("d.id")
       .getRawMany<{ id: string }>();
-    if (!rows.length) throw new Error('No hay tests disponibles');
+    if (!rows.length) throw new Error("No hay tests disponibles");
 
     const diagramId = rows[Math.floor(Math.random() * rows.length)].id;
     const diagram = await this.diagramRepo.findOne({
       where: { id: diagramId },
       relations: { questions: { options: true } },
     });
-    if (!diagram) throw new Error('Test no encontrado');
+    if (!diagram) throw new Error("Test no encontrado");
 
-    const approved = (diagram.questions || []).filter((q) => q.status === ReviewStatus.APPROVED);
-    if (!approved.length) throw new Error('El test no tiene preguntas aprobadas');
+    const approved = (diagram.questions || []).filter(
+      (q) => q.status === ReviewStatus.APPROVED
+    );
+    if (!approved.length)
+      throw new Error("El test no tiene preguntas aprobadas");
 
-    const chosen = approved.sort(() => Math.random() - 0.5).slice(0, Math.min(limit, approved.length));
+    const chosen = approved
+      .sort(() => Math.random() - 0.5)
+      .slice(0, Math.min(limit, approved.length));
 
     const sess = await AppDataSource.transaction(async (m) => {
       const s = m.create(TestSession, {
@@ -140,19 +147,23 @@ export class TestSessionsService {
 
     const results = await this.resultRepo.find({
       where: { session: { id: sess.id } },
-      order: { orderIndex: 'ASC' },
+      order: { orderIndex: "ASC" },
       relations: { question: true },
     });
 
     return {
       sessionId: sess.id,
-      diagram: { id: diagram.id, title: diagram.title, path: diagram.path ?? null },
+      diagram: {
+        id: diagram.id,
+        title: diagram.title,
+        path: diagram.path ?? null,
+      },
       questions: results.map((r) => ({
         resultId: r.id,
         questionId: r.question?.id,
         prompt: r.promptSnapshot,
         options: r.optionsSnapshot,
-        ...(mode === 'learning' ? { correctIndex: r.correctIndexAtTest } : {}),
+        ...(mode === "learning" ? { correctIndex: r.correctIndexAtTest } : {}),
         hint: r.question?.hint || undefined,
       })),
     };
@@ -161,7 +172,7 @@ export class TestSessionsService {
   /**
    * Actualiza el resultado de una pregunta durante la sesión
    * Gestiona respuestas, intentos, pistas y tiempo invertido
-   * 
+   *
    * @param params - IDs de sesión/resultado y actualizaciones parciales
    * @returns Confirmación de operación
    * @throws {Error} Si el resultado no existe o no pertenece al usuario
@@ -176,9 +187,9 @@ export class TestSessionsService {
       where: { id: resultId, session: { id: sessionId, user: { id: userId } } },
       relations: { session: true },
     });
-    if (!result) throw new Error('Resultado no encontrado');
+    if (!result) throw new Error("Resultado no encontrado");
 
-    if (typeof body.selectedIndex !== 'undefined') {
+    if (typeof body.selectedIndex !== "undefined") {
       result.selectedIndex = body.selectedIndex;
       if (body.selectedIndex !== null) {
         result.isCorrect = body.selectedIndex === result.correctIndexAtTest;
@@ -187,13 +198,14 @@ export class TestSessionsService {
       }
       result.attemptsCount += 1;
     }
-    if (typeof body.attemptsDelta === 'number') {
+    if (typeof body.attemptsDelta === "number") {
       result.attemptsCount += body.attemptsDelta;
     }
-    if (typeof body.usedHint === 'boolean') result.usedHint = result.usedHint || body.usedHint;
-    if (typeof body.revealedAnswer === 'boolean')
+    if (typeof body.usedHint === "boolean")
+      result.usedHint = result.usedHint || body.usedHint;
+    if (typeof body.revealedAnswer === "boolean")
       result.revealedAnswer = result.revealedAnswer || body.revealedAnswer;
-    if (typeof body.timeSpentSecondsDelta === 'number')
+    if (typeof body.timeSpentSecondsDelta === "number")
       result.timeSpentSeconds += Math.max(0, body.timeSpentSecondsDelta);
 
     await this.resultRepo.save(result);
@@ -203,7 +215,7 @@ export class TestSessionsService {
   /**
    * Registra evento de telemetría durante la sesión
    * Útil para análisis de comportamiento y debugging
-   * 
+   *
    * @param params - Usuario, sesión, tipo de evento y payload opcional
    * @returns Confirmación de operación
    * @throws {Error} Si la sesión no existe
@@ -213,11 +225,15 @@ export class TestSessionsService {
    * - resultId: Opcional, asocia evento a pregunta específica
    */
   async logEvent({ userId, sessionId, type, resultId, payload }: LogEventArgs) {
-    const session = await this.sessionRepo.findOne({ where: { id: sessionId, user: { id: userId } } });
-    if (!session) throw new Error('Sesión no encontrada');
+    const session = await this.sessionRepo.findOne({
+      where: { id: sessionId, user: { id: userId } },
+    });
+    if (!session) throw new Error("Sesión no encontrada");
 
     const result = resultId
-      ? await this.resultRepo.findOne({ where: { id: resultId, session: { id: sessionId } } })
+      ? await this.resultRepo.findOne({
+          where: { id: resultId, session: { id: sessionId } },
+        })
       : null;
 
     const ev = this.eventRepo.create({
@@ -233,7 +249,7 @@ export class TestSessionsService {
   /**
    * Finaliza una sesión de test
    * Calcula duración, nota y contadores con precisión SQL (servidor)
-   * 
+   *
    * @param params - Usuario y sesión a finalizar
    * @returns Resumen final con métricas calculadas
    * @throws {Error} Si la sesión no existe
@@ -249,13 +265,16 @@ export class TestSessionsService {
       where: { id: sessionId, user: { id: userId } },
       relations: { diagram: true },
     });
-    if (!session) throw new Error('Sesión no encontrada');
+    if (!session) throw new Error("Sesión no encontrada");
 
     if (session.completedAt) {
       const duration =
-        typeof session.durationSeconds === 'number'
+        typeof session.durationSeconds === "number"
           ? session.durationSeconds
-          : Math.max(0, Math.floor((+session.completedAt - +session.createdAt) / 1000));
+          : Math.max(
+              0,
+              Math.floor((+session.completedAt - +session.createdAt) / 1000)
+            );
       return {
         sessionId: session.id,
         mode: session.mode,
@@ -270,12 +289,14 @@ export class TestSessionsService {
       };
     }
 
-    const results = await this.resultRepo.find({ where: { session: { id: sessionId } } });
+    const results = await this.resultRepo.find({
+      where: { session: { id: sessionId } },
+    });
     const correct = results.filter((r) => r.isCorrect === true).length;
     const incorrect = results.filter((r) => r.isCorrect === false).length;
 
     const score =
-      session.mode === 'exam' && session.totalQuestions
+      session.mode === "exam" && session.totalQuestions
         ? Math.round((correct / session.totalQuestions) * 1000) / 100
         : null;
 
@@ -289,10 +310,11 @@ export class TestSessionsService {
       .createQueryBuilder()
       .update(TestSession)
       .set({
-        completedAt: () => 'NOW()',
-        durationSeconds: () => 'GREATEST(0, TIMESTAMPDIFF(SECOND, createdAt, NOW()))',
+        completedAt: () => "NOW()",
+        durationSeconds: () =>
+          "GREATEST(0, TIMESTAMPDIFF(SECOND, createdAt, NOW()))",
       })
-      .where('id = :id', { id: session.id })
+      .where("id = :id", { id: session.id })
       .execute();
 
     const updated = await this.sessionRepo.findOneOrFail({
@@ -317,7 +339,7 @@ export class TestSessionsService {
   /**
    * Lista sesiones del usuario con filtros opcionales
    * Usado en vista "Mis tests" del estudiante
-   * 
+   *
    * @param params - Usuario y filtros de modo, fecha y búsqueda
    * @returns Array de sesiones ordenadas cronológicamente (desc)
    * @remarks
@@ -329,19 +351,23 @@ export class TestSessionsService {
    */
   async listMine({ userId, mode, dateFrom, dateTo, q }: ListMineArgs) {
     const qb = this.sessionRepo
-      .createQueryBuilder('s')
-      .leftJoinAndSelect('s.diagram', 'd')
-      .where('s.userId = :uid', { uid: userId })
-      .orderBy('s.createdAt', 'DESC');
+      .createQueryBuilder("s")
+      .leftJoinAndSelect("s.diagram", "d")
+      .where("s.userId = :uid", { uid: userId })
+      .orderBy("s.createdAt", "DESC");
 
-    if (mode) qb.andWhere('s.mode = :m', { m: mode });
-    if (dateFrom) qb.andWhere('s.createdAt >= :df', { df: new Date(dateFrom + 'T00:00:00') });
-    if (dateTo) qb.andWhere('s.createdAt <= :dt', { dt: new Date(dateTo + 'T23:59:59') });
+    if (mode) qb.andWhere("s.mode = :m", { m: mode });
+    if (dateFrom)
+      qb.andWhere("s.createdAt >= :df", {
+        df: new Date(dateFrom + "T00:00:00"),
+      });
+    if (dateTo)
+      qb.andWhere("s.createdAt <= :dt", { dt: new Date(dateTo + "T23:59:59") });
     if (q && q.trim()) {
       const t = `%${q.trim().toLowerCase()}%`;
       qb.andWhere(
         new Brackets((b) => {
-          b.where('LOWER(d.title) LIKE :t', { t });
+          b.where("LOWER(d.title) LIKE :t", { t });
         })
       );
     }
@@ -349,9 +375,8 @@ export class TestSessionsService {
     const rows = await qb.getMany();
 
     return rows.map((s) => {
-
       const duration =
-        typeof s.durationSeconds === 'number'
+        typeof s.durationSeconds === "number"
           ? s.durationSeconds
           : s.completedAt
           ? Math.max(0, Math.floor((+s.completedAt - +s.createdAt) / 1000))
@@ -363,7 +388,11 @@ export class TestSessionsService {
         startedAt: s.createdAt,
         finishedAt: s.completedAt ?? null,
         diagram: s.diagram
-          ? { id: s.diagram.id, title: s.diagram.title, path: s.diagram.path ?? null }
+          ? {
+              id: s.diagram.id,
+              title: s.diagram.title,
+              path: s.diagram.path ?? null,
+            }
           : null,
         questionCount: s.totalQuestions ?? 0,
         totalQuestions: s.totalQuestions ?? 0,
@@ -371,7 +400,9 @@ export class TestSessionsService {
         wrongCount: s.incorrectCount ?? 0,
         skippedCount: Math.max(
           0,
-          (s.totalQuestions ?? 0) - (s.correctCount ?? 0) - (s.incorrectCount ?? 0)
+          (s.totalQuestions ?? 0) -
+            (s.correctCount ?? 0) -
+            (s.incorrectCount ?? 0)
         ),
         score: s.score ?? null,
         summary: {
@@ -394,7 +425,7 @@ export class TestSessionsService {
   /**
    * Obtiene detalle completo de una sesión finalizada
    * Incluye todas las preguntas, respuestas y estado de reclamaciones
-   * 
+   *
    * @param params - Usuario y sesión a consultar
    * @returns Datos completos de sesión y resultados individuales
    * @throws {Error} Si la sesión no existe
@@ -409,16 +440,16 @@ export class TestSessionsService {
       where: { id: sessionId, user: { id: userId } },
       relations: { diagram: true },
     });
-    if (!s) throw new Error('Sesión no encontrada');
+    if (!s) throw new Error("Sesión no encontrada");
 
     const results = await this.resultRepo.find({
       where: { session: { id: s.id } },
-      order: { orderIndex: 'ASC' },
+      order: { orderIndex: "ASC" },
       relations: { claims: true },
     });
 
     const duration =
-      typeof s.durationSeconds === 'number'
+      typeof s.durationSeconds === "number"
         ? s.durationSeconds
         : s.completedAt
         ? Math.max(0, Math.floor((+s.completedAt - +s.createdAt) / 1000))
@@ -431,7 +462,11 @@ export class TestSessionsService {
       finishedAt: s.completedAt ?? null,
       durationSeconds: duration ?? null,
       diagram: s.diagram
-        ? { id: s.diagram.id, title: s.diagram.title, path: s.diagram.path ?? null }
+        ? {
+            id: s.diagram.id,
+            title: s.diagram.title,
+            path: s.diagram.path ?? null,
+          }
         : null,
       summary: {
         durationSeconds: duration ?? null,

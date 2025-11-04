@@ -4,49 +4,49 @@
  * @module middlewares/uploadErrorHandler
  */
 
-import { ErrorRequestHandler } from 'express';
-import multer from 'multer';
+import { ErrorRequestHandler } from "express";
+import multer from "multer";
 
-import { createHttpError } from '../core/errors/HttpError';
+import { createHttpError } from "../core/errors/HttpError";
 
 /**
  * Middleware de manejo de errores específico para operaciones de subida de archivos
  * Intercepta y transforma errores de Multer en respuestas HTTP consistentes con el resto de la API
- * 
+ *
  * @param error Error capturado durante la operación de subida
  * @param _req Objeto Request de Express (no utilizado)
  * @param _res Objeto Response de Express (no utilizado)
  * @param next Función NextFunction para pasar el error al siguiente manejador
- * 
+ *
  * @remarks
  * Este middleware debe colocarse inmediatamente después de los endpoints que usan uploadDiagramImage.
  * Transforma dos tipos de errores:
  * - MulterError: Errores específicos de Multer (tamaño excedido, tipo inválido, etc.)
  * - Error genérico: Cualquier otro error durante la validación o procesamiento
- * 
+ *
  * Errores comunes de Multer:
  * - LIMIT_FILE_SIZE: El archivo excede el límite de 5MB
  * - LIMIT_UNEXPECTED_FILE: Campo de archivo no esperado
  * - LIMIT_FILE_COUNT: Demasiados archivos enviados
- * 
+ *
  * @example
  * // Configuración típica en rutas
- * router.post('/diagrams', 
- *   uploadDiagramImage, 
- *   uploadErrorHandler, 
+ * router.post('/diagrams',
+ *   uploadDiagramImage,
+ *   uploadErrorHandler,
  *   createDiagramController
  * );
- * 
+ *
  * @example
  * // Respuesta cuando el archivo es demasiado grande
  * // Status: 400
  * // Body: { "error": "File too large" }
- * 
+ *
  * @example
  * // Respuesta cuando el formato no es válido
  * // Status: 400
  * // Body: { "error": "Formato no permitido (solo JPG o PNG)" }
- * 
+ *
  * @see {@link https://github.com/expressjs/multer#error-handling|Multer Error Handling}
  * @public
  */

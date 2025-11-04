@@ -4,10 +4,10 @@
  * @module services/http
  */
 
-import { env } from '../config/env';
+import { env } from "../config/env";
 
-const ACCESS_TOKEN_KEY = 'accessToken';
-const REFRESH_TOKEN_KEY = 'refreshToken';
+const ACCESS_TOKEN_KEY = "accessToken";
+const REFRESH_TOKEN_KEY = "refreshToken";
 
 export const API_URL = env.API_URL;
 
@@ -21,7 +21,7 @@ export class ApiError extends Error {
 
   constructor(message: string, status: number, body: unknown) {
     super(message);
-    this.name = 'ApiError';
+    this.name = "ApiError";
     this.status = status;
     this.body = body;
   }
@@ -70,7 +70,7 @@ export function clearTokens() {
  */
 function resolveUrl(path: string): string {
   if (/^https?:\/\//i.test(path)) return path;
-  if (!path.startsWith('/')) return `${API_URL}/${path}`;
+  if (!path.startsWith("/")) return `${API_URL}/${path}`;
   return `${API_URL}${path}`;
 }
 
@@ -83,7 +83,7 @@ function resolveUrl(path: string): string {
 function withAuth(init: RequestInit, explicitToken?: string): RequestInit {
   const headers = new Headers(init.headers ?? {});
   const token = explicitToken ?? getAccessToken();
-  if (token) headers.set('Authorization', `Bearer ${token}`);
+  if (token) headers.set("Authorization", `Bearer ${token}`);
   return { ...init, headers };
 }
 
@@ -105,7 +105,7 @@ async function safeParseJson(res: Response): Promise<unknown> {
 /**
  * Renueva access token usando refresh token
  * Automáticamente limpia tokens si el refresh falla
- * 
+ *
  * @returns Nuevo access token o null si el refresh expiró
  * @remarks
  * - Llamado automáticamente por apiRequest ante 401/403
@@ -115,21 +115,23 @@ async function refreshAccessToken(): Promise<string | null> {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return null;
 
-  const res = await fetch(resolveUrl('/api/auth/refresh'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
+  const res = await fetch(resolveUrl("/api/auth/refresh"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify({ refreshToken }),
   });
 
   const body = await safeParseJson(res);
-  if (!res.ok || typeof (body as any)?.accessToken !== 'string') {
+  if (!res.ok || typeof (body as any)?.accessToken !== "string") {
     clearTokens();
     return null;
   }
 
   const access = String((body as any).accessToken);
-  const refresh = (body as any).refreshToken ? String((body as any).refreshToken) : undefined;
+  const refresh = (body as any).refreshToken
+    ? String((body as any).refreshToken)
+    : undefined;
   setTokens(access, refresh);
   return access;
 }
@@ -137,7 +139,7 @@ async function refreshAccessToken(): Promise<string | null> {
 /**
  * Gestiona refresh de token con singleton pattern
  * Evita race conditions con múltiples llamadas concurrentes
- * 
+ *
  * @returns Promise del access token renovado
  */
 async function ensureFreshToken(): Promise<string | null> {
@@ -152,7 +154,7 @@ async function ensureFreshToken(): Promise<string | null> {
 /**
  * Cliente HTTP con auto-refresh de tokens
  * Reintenta automáticamente si detecta 401/403 y tiene refresh token
- * 
+ *
  * @param path - Path de la API
  * @param init - Opciones extendidas (auth, json, fallbackError)
  * @returns Response crudo (usar apiJson para parseado automático)
@@ -161,7 +163,10 @@ async function ensureFreshToken(): Promise<string | null> {
  * - json: Serializa body y añade Content-Type: application/json
  * - Ante 401/403: Intenta refresh + reintento con nuevo token
  */
-export async function apiRequest(path: string, init: ApiRequestInit = {}): Promise<Response> {
+export async function apiRequest(
+  path: string,
+  init: ApiRequestInit = {}
+): Promise<Response> {
   const { auth = false, json, fallbackError, ...rest } = init;
   const url = resolveUrl(path);
   const base: RequestInit = { ...rest };
@@ -169,14 +174,17 @@ export async function apiRequest(path: string, init: ApiRequestInit = {}): Promi
   if (json !== undefined) {
     base.body = JSON.stringify(json);
     const headers = new Headers(base.headers ?? {});
-    if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+    if (!headers.has("Content-Type"))
+      headers.set("Content-Type", "application/json");
     base.headers = headers;
   } else if (rest.body) {
     base.body = rest.body;
   }
 
   const attempt = async (tokenOverride?: string) => {
-    const prepared = auth ? withAuth(base, tokenOverride) : { ...base, headers: new Headers(base.headers ?? {}) };
+    const prepared = auth
+      ? withAuth(base, tokenOverride)
+      : { ...base, headers: new Headers(base.headers ?? {}) };
     return fetch(url, prepared);
   };
 
@@ -200,7 +208,7 @@ export async function apiRequest(path: string, init: ApiRequestInit = {}): Promi
 /**
  * Cliente HTTP con parsing automático de JSON
  * Lanza ApiError si el servidor devuelve error
- * 
+ *
  * @param path - Path de la API
  * @param init - Opciones extendidas
  * @returns Body parseado como tipo T
@@ -209,13 +217,18 @@ export async function apiRequest(path: string, init: ApiRequestInit = {}): Promi
  * - Extrae campo 'error' del body como mensaje preferencial
  * - fallbackError: Usado si el servidor no envía 'error'
  */
-export async function apiJson<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
+export async function apiJson<T>(
+  path: string,
+  init: ApiRequestInit = {}
+): Promise<T> {
   const res = await apiRequest(path, init);
   const body = await safeParseJson(res);
 
   if (!res.ok) {
-    const fallback = (res as any).fallbackError ?? init.fallbackError ?? `Error ${res.status}`;
-    const message = typeof (body as any)?.error === 'string' ? (body as any).error : fallback;
+    const fallback =
+      (res as any).fallbackError ?? init.fallbackError ?? `Error ${res.status}`;
+    const message =
+      typeof (body as any)?.error === "string" ? (body as any).error : fallback;
     throw new ApiError(message, res.status, body);
   }
 
@@ -226,6 +239,9 @@ export async function apiJson<T>(path: string, init: ApiRequestInit = {}): Promi
  * Alias de apiRequest con auth=true por defecto
  * @deprecated Usar apiRequest({ auth: true }) directamente
  */
-export async function fetchAuth(path: string, init?: RequestInit): Promise<Response> {
+export async function fetchAuth(
+  path: string,
+  init?: RequestInit
+): Promise<Response> {
   return apiRequest(path, { ...(init ?? {}), auth: true });
 }

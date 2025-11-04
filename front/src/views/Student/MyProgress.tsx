@@ -5,8 +5,6 @@ import badgeCompleted from "../../assets/completed.png";
 import { useNavigate } from "react-router-dom";
 import { useDelayedFlag } from "../../shared/hooks/useDelayedFlag";
 
-
-
 import {
   getOverview,
   getTrends,
@@ -38,17 +36,11 @@ import {
   ArrowLeft,
 } from "lucide-react";
 
-
-
-
 const fmtPct = (n?: number | null) =>
   typeof n === "number" ? `${Math.round(n)}%` : "—";
 
-
 const fmtSec1 = (sec?: number | null) =>
   sec == null ? "—" : `${Math.max(0, sec).toFixed(1)} s`;
-
-
 
 interface CardProps {
   children: React.ReactNode;
@@ -70,7 +62,6 @@ interface CardBodyProps {
   className?: string;
 }
 
-
 const CardBody: React.FC<CardBodyProps> = ({ children, className }) => (
   <div className={`p-5 ${className || ""}`}>{children}</div>
 );
@@ -80,7 +71,6 @@ interface KPIProps {
   label: string;
   value: React.ReactNode;
 }
-
 
 const KPI: React.FC<KPIProps> = ({ icon, label, value }) => (
   <Card>
@@ -96,15 +86,12 @@ const KPI: React.FC<KPIProps> = ({ icon, label, value }) => (
   </Card>
 );
 
-
-
 const COLOR_A = "#10b981";
 const COLOR_B = "#3b82f6";
 
 interface DualLineChartProps {
   data: { a?: number | null; b?: number | null }[];
 }
-
 
 const DualLineChart: React.FC<DualLineChartProps> = ({ data }) => {
   const W = 640,
@@ -203,7 +190,6 @@ const DualLineChart: React.FC<DualLineChartProps> = ({ data }) => {
 interface ScrollableGroupedBarsProps {
   data: { label: string; ok: number; ko: number }[];
 }
-
 
 const ScrollableGroupedBars: React.FC<ScrollableGroupedBarsProps> = ({
   data,
@@ -347,7 +333,6 @@ interface DonutProps {
   value: number;
 }
 
-
 const Donut: React.FC<DonutProps> = ({ value }) => {
   const size = 56,
     stroke = 8,
@@ -390,7 +375,6 @@ const Donut: React.FC<DonutProps> = ({ value }) => {
   );
 };
 
-
 const MyProgress: React.FC = () => {
   const navigate = useNavigate();
 
@@ -404,7 +388,6 @@ const MyProgress: React.FC = () => {
   const [claims, setClaims] = useState<ClaimsStats | null>(null);
   const [myQuestions, setMyQuestions] = useState<MyQuestionItem[]>([]);
 
-  
   const [prog, setProg] = useState<WeeklyProgressRow | null>(null);
   const [badges, setBadges] = useState<BadgeItem[]>([]);
   const [showBadges, setShowBadges] = useState(false);
@@ -438,7 +421,6 @@ const MyProgress: React.FC = () => {
     })();
   }, []);
 
-  
   const lineData = useMemo(
     () =>
       trends.map((t) => ({
@@ -457,7 +439,6 @@ const MyProgress: React.FC = () => {
     [trends]
   );
 
-  
   const qCounts = useMemo(() => {
     const c = { approved: 0, rejected: 0, pending: 0 };
     for (const q of myQuestions) {
@@ -473,14 +454,14 @@ const MyProgress: React.FC = () => {
     return (
       <PageWithHeader>
         <div className="mx-auto w-full max-w-6xl p-6">Cargando…</div>
-     </PageWithHeader>
+      </PageWithHeader>
     );
   }
   if (error) {
     return (
       <PageWithHeader>
         <div className="mx-auto w-full max-w-6xl p-6 text-red-600">{error}</div>
-     </PageWithHeader>
+      </PageWithHeader>
     );
   }
 
@@ -850,7 +831,7 @@ const MyProgress: React.FC = () => {
           </div>
         )}
       </div>
-   </PageWithHeader>
+    </PageWithHeader>
   );
 };
 

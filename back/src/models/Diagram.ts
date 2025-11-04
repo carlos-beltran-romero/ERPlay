@@ -5,32 +5,38 @@
  */
 
 import {
-  Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn,
-  ManyToOne, OneToMany, BaseEntity,
-} from 'typeorm';
-import { User } from './User';
-import { Question } from './Question';
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  OneToMany,
+  BaseEntity,
+} from "typeorm";
+import { User } from "./User";
+import { Question } from "./Question";
 
 /**
  * Entidad Diagram - Diagrama Entidad-Relación del sistema
  * Representa una imagen de diagrama ER subida por un supervisor o administrador
  * que sirve como base para la generación y asociación de preguntas de test.
- * 
+ *
  * @remarks
  * - Cada diagrama puede tener múltiples preguntas asociadas
  * - Se almacenan como archivos de imagen en el sistema de archivos
  * - El título debe ser único para facilitar búsqueda y referencia
  * - Las preguntas se eliminan en cascada si se elimina el diagrama
- * 
+ *
  * @entity diagrams
  */
-@Entity({ name: 'diagrams' })
+@Entity({ name: "diagrams" })
 export class Diagram extends BaseEntity {
   /**
    * Identificador único del diagrama
    * Generado automáticamente como UUID
    */
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   id!: string;
 
   /**
@@ -38,7 +44,7 @@ export class Diagram extends BaseEntity {
    * Debe ser único en el sistema para evitar duplicados
    * Utilizado en la interfaz de usuario para identificar el diagrama
    */
-  @Column({ type: 'varchar', length: 255, unique: true })
+  @Column({ type: "varchar", length: 255, unique: true })
   title!: string;
 
   /**
@@ -46,7 +52,7 @@ export class Diagram extends BaseEntity {
    * Preserva el nombre con el que se subió el archivo
    * @example "diagrama_biblioteca.png"
    */
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: "varchar", length: 255 })
   filename!: string;
 
   /**
@@ -54,7 +60,7 @@ export class Diagram extends BaseEntity {
    * Utilizada para servir la imagen a través de la API
    * @example "/uploads/diagrams/abc123-def456.png"
    */
-  @Column({ type: 'varchar', length: 500 })
+  @Column({ type: "varchar", length: 500 })
   path!: string;
 
   /**
@@ -69,13 +75,13 @@ export class Diagram extends BaseEntity {
    * Fecha y hora de creación del diagrama
    * Generada automáticamente al insertar el registro
    */
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: "created_at" })
   createdAt!: Date;
 
   /**
    * Fecha y hora de última actualización
    * Actualizada automáticamente en cada modificación del registro
    */
-  @UpdateDateColumn({ name: 'updated_at' })
+  @UpdateDateColumn({ name: "updated_at" })
   updatedAt!: Date;
 }

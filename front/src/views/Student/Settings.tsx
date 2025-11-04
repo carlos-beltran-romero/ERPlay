@@ -1,17 +1,24 @@
-
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import PageWithHeader from '../../components/layout/PageWithHeader';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import PageWithHeader from "../../components/layout/PageWithHeader";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import {
   getProfile,
   type UserProfile,
   updateMyProfile,
   changeMyPassword,
-} from '../../services/users';
-import { User, Mail, Save, Lock, ShieldCheck, Undo2, ArrowLeft } from 'lucide-react';
-import { useAuth } from '../../app/AuthContext';
-import { useDelayedFlag } from '../../shared/hooks/useDelayedFlag';
+} from "../../services/users";
+import {
+  User,
+  Mail,
+  Save,
+  Lock,
+  ShieldCheck,
+  Undo2,
+  ArrowLeft,
+} from "lucide-react";
+import { useAuth } from "../../app/AuthContext";
+import { useDelayedFlag } from "../../shared/hooks/useDelayedFlag";
 
 const MIN_PW = 6;
 
@@ -21,21 +28,19 @@ const Settings: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const [me, setMe] = useState<UserProfile | null>(null);
-  const [name, setName] = useState('');
-  const [lastName, setLastName] = useState(''); 
-  const [email, setEmail] = useState('');
+  const [name, setName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
 
-  
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [newPassword2, setNewPassword2] = useState('');
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newPassword2, setNewPassword2] = useState("");
 
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPwd, setSavingPwd] = useState(false);
 
-  
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
-  const initialSnapRef = useRef<string>('');
+  const initialSnapRef = useRef<string>("");
 
   useEffect(() => {
     (async () => {
@@ -43,22 +48,21 @@ const Settings: React.FC = () => {
         const u = await getProfile();
         setMe(u);
         setProfile(u);
-        setName(u.name || '');
-        
-        setLastName((u as any).lastName ?? (u as any).surname ?? '');
-        setEmail(u.email || '');
+        setName(u.name || "");
 
-        
+        setLastName((u as any).lastName ?? (u as any).surname ?? "");
+        setEmail(u.email || "");
+
         initialSnapRef.current = JSON.stringify({
-          name: u.name || '',
-          lastName: (u as any).lastName ?? (u as any).surname ?? '',
-          email: u.email || '',
-          currentPassword: '',
-          newPassword: '',
-          newPassword2: '',
+          name: u.name || "",
+          lastName: (u as any).lastName ?? (u as any).surname ?? "",
+          email: u.email || "",
+          currentPassword: "",
+          newPassword: "",
+          newPassword2: "",
         });
       } catch (e: any) {
-        toast.error(e.message || 'No se pudo cargar tu perfil');
+        toast.error(e.message || "No se pudo cargar tu perfil");
       } finally {
         setLoading(false);
       }
@@ -67,22 +71,24 @@ const Settings: React.FC = () => {
 
   const dirtyProfile = useMemo(() => {
     if (!me) return false;
-    const baseLast = (me as any).lastName ?? (me as any).surname ?? '';
-    return (name ?? '') !== (me.name ?? '') ||
-           (lastName ?? '') !== (baseLast ?? '') ||
-           (email ?? '') !== (me.email ?? '');
+    const baseLast = (me as any).lastName ?? (me as any).surname ?? "";
+    return (
+      (name ?? "") !== (me.name ?? "") ||
+      (lastName ?? "") !== (baseLast ?? "") ||
+      (email ?? "") !== (me.email ?? "")
+    );
   }, [me, name, lastName, email]);
 
   const resetProfile = () => {
     if (!me) return;
-    setName(me.name || '');
-    setLastName((me as any).lastName ?? (me as any).surname ?? '');
-    setEmail(me.email || '');
+    setName(me.name || "");
+    setLastName((me as any).lastName ?? (me as any).surname ?? "");
+    setEmail(me.email || "");
   };
 
   const onSaveProfile = async () => {
     if (!name.trim() || !lastName.trim() || !email.trim()) {
-      toast.error('Nombre, apellidos y email son obligatorios.');
+      toast.error("Nombre, apellidos y email son obligatorios.");
       return;
     }
     setSavingProfile(true);
@@ -95,22 +101,21 @@ const Settings: React.FC = () => {
 
       setMe(updated);
       setProfile(updated);
-      setName(updated.name || '');
-      setLastName(lastName.trim()); 
-      setEmail(updated.email || '');
-      toast.success('Perfil actualizado');
+      setName(updated.name || "");
+      setLastName(lastName.trim());
+      setEmail(updated.email || "");
+      toast.success("Perfil actualizado");
 
-      
       initialSnapRef.current = JSON.stringify({
-        name: updated.name || '',
+        name: updated.name || "",
         lastName: lastName.trim(),
-        email: updated.email || '',
-        currentPassword: '',
-        newPassword: '',
-        newPassword2: '',
+        email: updated.email || "",
+        currentPassword: "",
+        newPassword: "",
+        newPassword2: "",
       });
     } catch (e: any) {
-      toast.error(e.message || 'No se pudo actualizar el perfil');
+      toast.error(e.message || "No se pudo actualizar el perfil");
     } finally {
       setSavingProfile(false);
     }
@@ -118,42 +123,42 @@ const Settings: React.FC = () => {
 
   const onSavePassword = async () => {
     if (!currentPassword || !newPassword || !newPassword2) {
-      toast.error('Rellena todas las contraseñas.');
+      toast.error("Rellena todas las contraseñas.");
       return;
     }
     if (newPassword.length < MIN_PW) {
-      toast.error(`La nueva contraseña debe tener al menos ${MIN_PW} caracteres.`);
+      toast.error(
+        `La nueva contraseña debe tener al menos ${MIN_PW} caracteres.`
+      );
       return;
     }
     if (newPassword !== newPassword2) {
-      toast.error('Las contraseñas nuevas no coinciden.');
+      toast.error("Las contraseñas nuevas no coinciden.");
       return;
     }
     setSavingPwd(true);
     try {
       await changeMyPassword({ currentPassword, newPassword });
-      toast.success('Contraseña actualizada');
-      setCurrentPassword('');
-      setNewPassword('');
-      setNewPassword2('');
+      toast.success("Contraseña actualizada");
+      setCurrentPassword("");
+      setNewPassword("");
+      setNewPassword2("");
 
-      
       initialSnapRef.current = JSON.stringify({
         name,
         lastName,
         email,
-        currentPassword: '',
-        newPassword: '',
-        newPassword2: '',
+        currentPassword: "",
+        newPassword: "",
+        newPassword2: "",
       });
     } catch (e: any) {
-      toast.error(e.message || 'No se pudo cambiar la contraseña');
+      toast.error(e.message || "No se pudo cambiar la contraseña");
     } finally {
       setSavingPwd(false);
     }
   };
 
-  
   const currentSnap = useMemo(
     () =>
       JSON.stringify({
@@ -173,7 +178,7 @@ const Settings: React.FC = () => {
       setConfirmLeaveOpen(true);
       return;
     }
-    navigate('/student/dashboard');
+    navigate("/student/dashboard");
   };
 
   const showLoading = useDelayedFlag(loading);
@@ -375,7 +380,7 @@ const Settings: React.FC = () => {
                   Seguir editando
                 </button>
                 <button
-                  onClick={() => navigate('/student/dashboard')}
+                  onClick={() => navigate("/student/dashboard")}
                   className="rounded-xl px-5 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-500"
                 >
                   Salir sin guardar
@@ -385,7 +390,7 @@ const Settings: React.FC = () => {
           </div>
         )}
       </div>
-   </PageWithHeader>
+    </PageWithHeader>
   );
 };
 

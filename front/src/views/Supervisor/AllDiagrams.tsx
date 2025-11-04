@@ -1,14 +1,28 @@
-
-import React, { useEffect, useMemo, useState } from 'react';
-import PageWithHeader from '../../components/layout/PageWithHeader';
-import { listDiagrams, deleteDiagram, type DiagramSummary } from '../../services/diagrams';
-import { toast } from 'react-toastify';
-import { Plus, Pencil, Trash2, Search, X, BarChart3, ArrowLeft } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useDelayedFlag } from '../../shared/hooks/useDelayedFlag';
+import React, { useEffect, useMemo, useState } from "react";
+import PageWithHeader from "../../components/layout/PageWithHeader";
+import {
+  listDiagrams,
+  deleteDiagram,
+  type DiagramSummary,
+} from "../../services/diagrams";
+import { toast } from "react-toastify";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Search,
+  X,
+  BarChart3,
+  ArrowLeft,
+} from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { useDelayedFlag } from "../../shared/hooks/useDelayedFlag";
 
 const normalize = (s: string) =>
-  s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+  s
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
 
 const PAGE_SIZE = 20;
 
@@ -16,14 +30,15 @@ const SupervisorTests: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<DiagramSummary[]>([]);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  
-  const [previewImg, setPreviewImg] = useState<{ src: string; title: string } | null>(null);
+  const [previewImg, setPreviewImg] = useState<{
+    src: string;
+    title: string;
+  } | null>(null);
 
-  
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const loadMore = () => setVisibleCount((v) => v + PAGE_SIZE);
   const showLoading = useDelayedFlag(loading);
@@ -34,7 +49,7 @@ const SupervisorTests: React.FC = () => {
         const data = await listDiagrams();
         setItems(data);
       } catch (e: any) {
-        toast.error(e.message || 'Error cargando tests');
+        toast.error(e.message || "Error cargando tests");
       } finally {
         setLoading(false);
       }
@@ -44,10 +59,9 @@ const SupervisorTests: React.FC = () => {
   const filtered = useMemo(() => {
     const q = normalize(query.trim());
     if (!q) return items;
-    return items.filter(i => normalize(i.title).includes(q));
+    return items.filter((i) => normalize(i.title).includes(q));
   }, [items, query]);
 
-  
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
   }, [query, items]);
@@ -57,11 +71,11 @@ const SupervisorTests: React.FC = () => {
     setDeleting(true);
     try {
       await deleteDiagram(confirmId);
-      setItems(prev => prev.filter(i => i.id !== confirmId));
-      toast.success('Test eliminado');
+      setItems((prev) => prev.filter((i) => i.id !== confirmId));
+      toast.success("Test eliminado");
       setConfirmId(null);
     } catch (e: any) {
-      toast.error(e.message || 'No se pudo eliminar');
+      toast.error(e.message || "No se pudo eliminar");
     } finally {
       setDeleting(false);
     }
@@ -73,7 +87,7 @@ const SupervisorTests: React.FC = () => {
         {/* Volver */}
         <div className="mb-4">
           <button
-            onClick={() => navigate('/supervisor/dashboard')}
+            onClick={() => navigate("/supervisor/dashboard")}
             className="inline-flex items-center rounded-full border border-gray-300 bg-white p-2 hover:bg-gray-50"
             aria-label="Volver"
             title="Volver"
@@ -100,7 +114,7 @@ const SupervisorTests: React.FC = () => {
               />
             </div>
             <button
-              onClick={() => navigate('/supervisor/diagrams/new')}
+              onClick={() => navigate("/supervisor/diagrams/new")}
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50"
             >
               <Plus size={18} />
@@ -121,7 +135,9 @@ const SupervisorTests: React.FC = () => {
           {showLoading ? (
             <div className="p-6 text-gray-500">Cargando…</div>
           ) : filtered.length === 0 ? (
-            <div className="p-6 text-gray-500">No hay tests que coincidan con el filtro.</div>
+            <div className="p-6 text-gray-500">
+              No hay tests que coincidan con el filtro.
+            </div>
           ) : (
             <>
               <div className="divide-y">
@@ -135,13 +151,19 @@ const SupervisorTests: React.FC = () => {
                           alt={t.title}
                           title="Haz clic para ampliar"
                           className="h-12 w-12 object-cover rounded border cursor-zoom-in"
-                          onClick={() => setPreviewImg({ src: t.path, title: t.title })}
+                          onClick={() =>
+                            setPreviewImg({ src: t.path, title: t.title })
+                          }
                         />
                       </div>
                       <div className="col-span-6 min-w-0">
-                        <div className="truncate" title={t.title}>{t.title}</div>
+                        <div className="truncate" title={t.title}>
+                          {t.title}
+                        </div>
                       </div>
-                      <div className="col-span-3">{t.questionsCount ?? '—'}</div>
+                      <div className="col-span-3">
+                        {t.questionsCount ?? "—"}
+                      </div>
                       <div className="col-span-2 flex justify-end gap-2">
                         <Link
                           to={`/supervisor/diagrams/${t.id}/stats`}
@@ -173,7 +195,9 @@ const SupervisorTests: React.FC = () => {
                         <button
                           type="button"
                           className="shrink-0"
-                          onClick={() => setPreviewImg({ src: t.path, title: t.title })}
+                          onClick={() =>
+                            setPreviewImg({ src: t.path, title: t.title })
+                          }
                           title="Ampliar imagen"
                         >
                           <img
@@ -183,9 +207,14 @@ const SupervisorTests: React.FC = () => {
                           />
                         </button>
                         <div className="min-w-0 flex-1">
-                          <div className="font-medium break-words">{t.title}</div>
+                          <div className="font-medium break-words">
+                            {t.title}
+                          </div>
                           <div className="mt-0.5 text-xs text-gray-500">
-                            Preguntas: <span className="font-medium text-gray-700">{t.questionsCount ?? '—'}</span>
+                            Preguntas:{" "}
+                            <span className="font-medium text-gray-700">
+                              {t.questionsCount ?? "—"}
+                            </span>
                           </div>
 
                           <div className="mt-2 flex justify-end gap-1.5">
@@ -224,7 +253,8 @@ const SupervisorTests: React.FC = () => {
               {/* Footer paginado */}
               <div className="flex items-center justify-between px-4 py-3">
                 <span className="text-xs text-gray-500">
-                  Mostrando {Math.min(visibleCount, filtered.length)} de {filtered.length}
+                  Mostrando {Math.min(visibleCount, filtered.length)} de{" "}
+                  {filtered.length}
                 </span>
                 {visibleCount < filtered.length && (
                   <button
@@ -253,7 +283,10 @@ const SupervisorTests: React.FC = () => {
                 </button>
               </div>
               <div className="px-6 py-5">
-                <p>¿Seguro que quieres eliminar este test? Esta acción no se puede deshacer.</p>
+                <p>
+                  ¿Seguro que quieres eliminar este test? Esta acción no se
+                  puede deshacer.
+                </p>
               </div>
               <div className="flex items-center justify-end gap-2 border-t px-6 py-4">
                 <button
@@ -266,10 +299,12 @@ const SupervisorTests: React.FC = () => {
                   onClick={onDelete}
                   disabled={deleting}
                   className={`rounded-xl px-5 py-2 text-sm font-medium text-white ${
-                    deleting ? 'bg-rose-300 cursor-not-allowed' : 'bg-rose-600 hover:bg-rose-500'
+                    deleting
+                      ? "bg-rose-300 cursor-not-allowed"
+                      : "bg-rose-600 hover:bg-rose-500"
                   }`}
                 >
-                  {deleting ? 'Eliminando…' : 'Eliminar'}
+                  {deleting ? "Eliminando…" : "Eliminar"}
                 </button>
               </div>
             </div>
@@ -293,7 +328,9 @@ const SupervisorTests: React.FC = () => {
               >
                 <X size={18} />
               </button>
-              <div className="mb-2 text-sm font-medium text-gray-700">{previewImg.title}</div>
+              <div className="mb-2 text-sm font-medium text-gray-700">
+                {previewImg.title}
+              </div>
               <div className="flex items-center justify-center">
                 <img
                   src={previewImg.src}
@@ -305,7 +342,7 @@ const SupervisorTests: React.FC = () => {
           </div>
         )}
       </div>
-   </PageWithHeader>
+    </PageWithHeader>
   );
 };
 

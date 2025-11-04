@@ -4,16 +4,20 @@
  * @module controllers/supervisor
  */
 
-import { Request, Response } from 'express';
-import { z } from 'zod';
-import { env } from '../config/env';
-import { UsersService } from '../services/user';
-import * as progressSvc from '../services/progress';
-import { QuestionsService } from '../services/questions';
-import { TestSessionsService } from '../services/testSession';
-import { ClaimsService } from '../services/claims';
-import { UserRole } from '../models/User';
-import { getCurrentWeeklyGoal, setWeeklyGoal, listWeeklyProgress } from '../services/weeklyGoal';
+import { Request, Response } from "express";
+import { z } from "zod";
+import { env } from "../config/env";
+import { UsersService } from "../services/user";
+import * as progressSvc from "../services/progress";
+import { QuestionsService } from "../services/questions";
+import { TestSessionsService } from "../services/testSession";
+import { ClaimsService } from "../services/claims";
+import { UserRole } from "../models/User";
+import {
+  getCurrentWeeklyGoal,
+  setWeeklyGoal,
+  listWeeklyProgress,
+} from "../services/weeklyGoal";
 
 /**
  * Tipo extendido de Request con autenticación
@@ -33,8 +37,14 @@ const claimsSvc = new ClaimsService();
  */
 const PutSchema = z.object({
   targetTests: z.coerce.number().int().positive(),
-  weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  weekEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  weekStart: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  weekEnd: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   notify: z.boolean().optional(),
 });
 
@@ -43,11 +53,11 @@ const IdParam = z.object({ studentId: z.string().uuid() });
 const TrendsQ = z.object({
   from: z.string().date().optional(),
   to: z.string().date().optional(),
-  bucket: z.enum(['day', 'week']).optional(),
+  bucket: z.enum(["day", "week"]).optional(),
 });
 
 const TestsQ = z.object({
-  mode: z.enum(['learning', 'exam', 'errors']).optional(),
+  mode: z.enum(["learning", "exam", "errors"]).optional(),
   dateFrom: z.string().date().optional(),
   dateTo: z.string().date().optional(),
   q: z.string().optional(),
@@ -61,27 +71,29 @@ const LimitQ = z.object({
  * Funciones auxiliares para URLs y normalización
  */
 const serviceBaseUrl = (req: Request) => {
-  const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol;
-  const host = req.get('host');
+  const proto = (req.headers["x-forwarded-proto"] as string) || req.protocol;
+  const host = req.get("host");
   const base = env.PUBLIC_API_BASE_URL ?? `${proto}://${host}`;
-  return base.replace(/\/+$/, '');
+  return base.replace(/\/+$/, "");
 };
 
 const withBase = (req: Request, maybePath?: string | null) => {
   if (!maybePath) return maybePath ?? null;
   if (/^https?:\/\//i.test(maybePath)) return maybePath;
-  return `${serviceBaseUrl(req)}${maybePath.startsWith('/') ? '' : '/'}${maybePath}`;
+  return `${serviceBaseUrl(req)}${
+    maybePath.startsWith("/") ? "" : "/"
+  }${maybePath}`;
 };
 
 /**
  * Normaliza el estado de una reclamación o pregunta
  */
 function normalizeStatus(s?: string | null) {
-  const k = String(s ?? '').toLowerCase();
-  if (k.includes('approve')) return 'approved';
-  if (k.includes('reject')) return 'rejected';
-  if (k.includes('pend')) return 'pending';
-  return 'pending';
+  const k = String(s ?? "").toLowerCase();
+  if (k.includes("approve")) return "approved";
+  if (k.includes("reject")) return "rejected";
+  if (k.includes("pend")) return "pending";
+  return "pending";
 }
 
 /**
@@ -95,7 +107,7 @@ export async function getStudent(req: Request, res: Response) {
     const user = await usersSvc.getById(studentId);
     res.json(user);
   } catch (e: any) {
-    res.status(404).json({ error: e?.message || 'Alumno no encontrado' });
+    res.status(404).json({ error: e?.message || "Alumno no encontrado" });
   }
 }
 
@@ -110,7 +122,7 @@ export async function getOverview(req: Request, res: Response) {
     const data = await progressSvc.getOverview(studentId);
     res.json(data);
   } catch (e: any) {
-    res.status(400).json({ error: e?.message || 'No disponible' });
+    res.status(400).json({ error: e?.message || "No disponible" });
   }
 }
 
@@ -123,10 +135,15 @@ export async function getTrends(req: Request, res: Response) {
   try {
     const { studentId } = IdParam.parse(req.params);
     const { from, to, bucket } = TrendsQ.parse(req.query);
-    const items = await progressSvc.getTrends({ userId: studentId, from, to, bucket: bucket ?? 'day' });
+    const items = await progressSvc.getTrends({
+      userId: studentId,
+      from,
+      to,
+      bucket: bucket ?? "day",
+    });
     res.json(items);
   } catch (e: any) {
-    res.status(400).json({ error: e?.message || 'No disponible' });
+    res.status(400).json({ error: e?.message || "No disponible" });
   }
 }
 
@@ -139,10 +156,14 @@ export async function getErrors(req: Request, res: Response) {
   try {
     const { studentId } = IdParam.parse(req.params);
     const { limit } = LimitQ.parse(req.query);
-    const items = await progressSvc.getErrors({ userId: studentId, limit, minAttempts: 3 });
+    const items = await progressSvc.getErrors({
+      userId: studentId,
+      limit,
+      minAttempts: 3,
+    });
     res.json(items);
   } catch (e: any) {
-    res.status(400).json({ error: e?.message || 'No disponible' });
+    res.status(400).json({ error: e?.message || "No disponible" });
   }
 }
 
@@ -157,7 +178,7 @@ export async function getClaimsStats(req: Request, res: Response) {
     const data = await progressSvc.getClaimsStats(studentId);
     res.json(data);
   } catch (e: any) {
-    res.status(400).json({ error: e?.message || 'No disponible' });
+    res.status(400).json({ error: e?.message || "No disponible" });
   }
 }
 
@@ -174,15 +195,23 @@ export async function listUserClaims(req: Request, res: Response) {
     const out = rows.map((c: any) => {
       const statusToken = normalizeStatus(c.status);
 
-      const options = Array.isArray(c.options) ? c.options : Array.isArray(c.optionsSnapshot) ? c.optionsSnapshot : [];
+      const options = Array.isArray(c.options)
+        ? c.options
+        : Array.isArray(c.optionsSnapshot)
+        ? c.optionsSnapshot
+        : [];
       const chosenIndex =
-        typeof c.chosenIndex === 'number' ? c.chosenIndex :
-        typeof c.selectedIndex === 'number' ? c.selectedIndex :
-        null;
+        typeof c.chosenIndex === "number"
+          ? c.chosenIndex
+          : typeof c.selectedIndex === "number"
+          ? c.selectedIndex
+          : null;
       const correctIndexAtSubmission =
-        typeof c.correctIndexAtSubmission === 'number' ? c.correctIndexAtSubmission :
-        typeof c.correctIndex === 'number' ? c.correctIndex :
-        null;
+        typeof c.correctIndexAtSubmission === "number"
+          ? c.correctIndexAtSubmission
+          : typeof c.correctIndex === "number"
+          ? c.correctIndex
+          : null;
 
       return {
         id: c.id,
@@ -214,7 +243,9 @@ export async function listUserClaims(req: Request, res: Response) {
 
     res.json(out);
   } catch (e: any) {
-    res.status(400).json({ error: e?.message || 'No se pudieron listar las reclamaciones' });
+    res
+      .status(400)
+      .json({ error: e?.message || "No se pudieron listar las reclamaciones" });
   }
 }
 
@@ -246,14 +277,14 @@ export async function listCreatedQuestions(req: Request, res: Response) {
         : undefined,
       options: Array.isArray(q.options) ? q.options : [],
       correctIndex:
-        typeof q.correctIndex === 'number'
+        typeof q.correctIndex === "number"
           ? q.correctIndex
           : (q as any).correctOptionIndex ?? 0,
     }));
 
     res.json(out);
   } catch (e: any) {
-    res.status(400).json({ error: e?.message || 'No disponible' });
+    res.status(400).json({ error: e?.message || "No disponible" });
   }
 }
 
@@ -266,16 +297,26 @@ export async function listUserSessions(req: Request, res: Response) {
   try {
     const { studentId } = IdParam.parse(req.params);
     const { mode, dateFrom, dateTo, q } = TestsQ.parse(req.query);
-    const rows = await sessionsSvc.listMine({ userId: studentId, mode, dateFrom, dateTo, q });
+    const rows = await sessionsSvc.listMine({
+      userId: studentId,
+      mode,
+      dateFrom,
+      dateTo,
+      q,
+    });
 
     res.json(
       rows.map((s: any) => ({
         ...s,
-        diagram: s.diagram ? { ...s.diagram, path: withBase(req, s.diagram.path) } : null,
+        diagram: s.diagram
+          ? { ...s.diagram, path: withBase(req, s.diagram.path) }
+          : null,
       }))
     );
   } catch (e: any) {
-    res.status(400).json({ error: e?.message || 'No se pudieron listar los tests' });
+    res
+      .status(400)
+      .json({ error: e?.message || "No se pudieron listar los tests" });
   }
 }
 
@@ -296,7 +337,7 @@ export async function getUserSessionDetail(req: Request, res: Response) {
 
     res.json({ ...data, diagram });
   } catch (e: any) {
-    res.status(404).json({ error: e?.message || 'Test no encontrado' });
+    res.status(404).json({ error: e?.message || "Test no encontrado" });
   }
 }
 
@@ -310,7 +351,7 @@ export async function getWeeklyGoal(_req: AuthedReq, res: Response) {
     const g = await getCurrentWeeklyGoal();
     res.json(g ?? { weekStart: null, weekEnd: null, targetTests: 0 });
   } catch (e: any) {
-    res.status(400).json({ error: e?.message || 'No disponible' });
+    res.status(400).json({ error: e?.message || "No disponible" });
   }
 }
 
@@ -323,7 +364,7 @@ export async function getWeeklyGoal(_req: AuthedReq, res: Response) {
 export async function putWeeklyGoal(req: AuthedReq, res: Response) {
   try {
     if (!req.user?.id || req.user.role !== UserRole.SUPERVISOR) {
-      res.status(403).json({ error: 'No autorizado' });
+      res.status(403).json({ error: "No autorizado" });
       return;
     }
     const input = PutSchema.parse(req.body);
@@ -336,7 +377,9 @@ export async function putWeeklyGoal(req: AuthedReq, res: Response) {
     });
     res.json(g);
   } catch (e: any) {
-    res.status(400).json({ error: e?.message || 'No se pudo guardar el objetivo' });
+    res
+      .status(400)
+      .json({ error: e?.message || "No se pudo guardar el objetivo" });
   }
 }
 
@@ -347,21 +390,24 @@ export async function putWeeklyGoal(req: AuthedReq, res: Response) {
  */
 export async function getWeeklyGoalProgress(req: AuthedReq, res: Response) {
   try {
-    const weekStart = typeof req.query.weekStart === 'string' ? req.query.weekStart : undefined;
-    const weekEnd = typeof req.query.weekEnd === 'string' ? req.query.weekEnd : undefined;
-    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+    const weekStart =
+      typeof req.query.weekStart === "string" ? req.query.weekStart : undefined;
+    const weekEnd =
+      typeof req.query.weekEnd === "string" ? req.query.weekEnd : undefined;
+    const userId =
+      typeof req.query.userId === "string" ? req.query.userId : undefined;
 
     const rows = await listWeeklyProgress(weekStart, weekEnd);
 
     if (userId) {
-      const one = rows.find(r => r.userId === userId);
+      const one = rows.find((r) => r.userId === userId);
       res.json(one ? [one] : []);
       return;
     }
 
     res.json(rows);
   } catch (e: any) {
-    res.status(400).json({ error: e?.message || 'No disponible' });
+    res.status(400).json({ error: e?.message || "No disponible" });
   }
 }
 
@@ -376,6 +422,8 @@ export async function getStudentBadges(req: Request, res: Response) {
     const items = await progressSvc.getBadges(studentId);
     res.json(Array.isArray(items) ? items : []);
   } catch (e: any) {
-    res.status(400).json({ error: e?.message || 'No se pudieron listar las insignias' });
+    res
+      .status(400)
+      .json({ error: e?.message || "No se pudieron listar las insignias" });
   }
 }

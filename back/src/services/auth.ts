@@ -4,22 +4,22 @@
  * @module services/auth
  */
 
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
-import { defaultMailer } from '../config/mailer';
-import { env } from '../config/env';
-import { createHttpError, HttpError } from '../core/errors/HttpError';
-import { Repository } from 'typeorm';
+import { defaultMailer } from "../config/mailer";
+import { env } from "../config/env";
+import { createHttpError, HttpError } from "../core/errors/HttpError";
+import { Repository } from "typeorm";
 
-import { AppDataSource } from '../data-source';
-import { RefreshToken } from '../models/RefreshToken';
-import { User } from '../models/User';
+import { AppDataSource } from "../data-source";
+import { RefreshToken } from "../models/RefreshToken";
+import { User } from "../models/User";
 
 const PASSWORD_SALT_ROUNDS = 10;
-const ACCESS_TOKEN_TTL = '15m';
-const REFRESH_TOKEN_TTL = '7d';
-const RESET_TOKEN_TTL = '1h';
+const ACCESS_TOKEN_TTL = "15m";
+const REFRESH_TOKEN_TTL = "7d";
+const RESET_TOKEN_TTL = "1h";
 const REFRESH_TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
@@ -28,8 +28,12 @@ const REFRESH_TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
  */
 export class AuthService {
   constructor(
-    private readonly userRepository: Repository<User> = AppDataSource.getRepository(User),
-    private readonly refreshTokenRepository: Repository<RefreshToken> = AppDataSource.getRepository(RefreshToken),
+    private readonly userRepository: Repository<User> = AppDataSource.getRepository(
+      User
+    ),
+    private readonly refreshTokenRepository: Repository<RefreshToken> = AppDataSource.getRepository(
+      RefreshToken
+    )
   ) {}
 
   private getRefreshTokenExpirationDate() {
@@ -45,14 +49,18 @@ export class AuthService {
    */
   async login(email: string, password: string) {
     const user = await this.userRepository.findOneBy({ email });
-    if (!user) throw createHttpError(401, 'Credenciales incorrectas');
+    if (!user) throw createHttpError(401, "Credenciales incorrectas");
 
     const isValid = await bcrypt.compare(password, user.passwordHash);
-    if (!isValid) throw createHttpError(401, 'Credenciales incorrectas');
+    if (!isValid) throw createHttpError(401, "Credenciales incorrectas");
 
-    const accessToken = jwt.sign({ id: user.id, role: user.role }, env.JWT_SECRET, {
-      expiresIn: ACCESS_TOKEN_TTL,
-    });
+    const accessToken = jwt.sign(
+      { id: user.id, role: user.role },
+      env.JWT_SECRET,
+      {
+        expiresIn: ACCESS_TOKEN_TTL,
+      }
+    );
 
     const refreshToken = jwt.sign({ id: user.id }, env.JWT_REFRESH_SECRET, {
       expiresIn: REFRESH_TOKEN_TTL,
@@ -92,24 +100,30 @@ export class AuthService {
    */
   async refreshToken(token: string) {
     try {
-      const decoded = jwt.verify(token, env.JWT_REFRESH_SECRET) as { id: string };
+      const decoded = jwt.verify(token, env.JWT_REFRESH_SECRET) as {
+        id: string;
+      };
 
       const existing = await this.refreshTokenRepository.findOne({
         where: { token },
-        relations: ['user'],
+        relations: ["user"],
       });
 
-      if (!existing) throw createHttpError(401, 'Token no válido');
+      if (!existing) throw createHttpError(401, "Token no válido");
 
       const accessToken = jwt.sign(
         { id: existing.user.id, role: existing.user.role },
         env.JWT_SECRET,
-        { expiresIn: ACCESS_TOKEN_TTL },
+        { expiresIn: ACCESS_TOKEN_TTL }
       );
 
-      const newRefreshToken = jwt.sign({ id: decoded.id }, env.JWT_REFRESH_SECRET, {
-        expiresIn: REFRESH_TOKEN_TTL,
-      });
+      const newRefreshToken = jwt.sign(
+        { id: decoded.id },
+        env.JWT_REFRESH_SECRET,
+        {
+          expiresIn: REFRESH_TOKEN_TTL,
+        }
+      );
 
       existing.token = newRefreshToken;
       existing.expiresAt = this.getRefreshTokenExpirationDate();
@@ -118,7 +132,11 @@ export class AuthService {
 
       return { accessToken, refreshToken: newRefreshToken };
     } catch (error) {
-      throw createHttpError(401, 'Token inválido o expirado', error instanceof Error ? error.message : error);
+      throw createHttpError(
+        401,
+        "Token inválido o expirado",
+        error instanceof Error ? error.message : error
+      );
     }
   }
 
@@ -131,8 +149,10 @@ export class AuthService {
     const user = await this.userRepository.findOneBy({ email });
     if (!user) return;
 
-    const token = jwt.sign({ id: user.id }, env.JWT_RESET_SECRET, { expiresIn: RESET_TOKEN_TTL });
-    const frontBase = (env.FRONTEND_URL ?? '').replace(/\/+$/, '');
+    const token = jwt.sign({ id: user.id }, env.JWT_RESET_SECRET, {
+      expiresIn: RESET_TOKEN_TTL,
+    });
+    const frontBase = (env.FRONTEND_URL ?? "").replace(/\/+$/, "");
     const resetLink = frontBase
       ? `${frontBase}/reset-password?token=${token}`
       : `/reset-password?token=${token}`;
@@ -142,7 +162,7 @@ export class AuthService {
     await defaultMailer.sendMail({
       from: '"ERPlay Soporte" <no-reply@erplay.com>',
       to: user.email,
-      subject: 'Restablece tu contraseña en ERPlay',
+      subject: "Restablece tu contraseña en ERPlay",
       html: `
         <div style="font-family:Arial,sans-serif; color:#333; max-width:600px; margin:0 auto; padding:20px;">
           <h2 style="color:#2c3e50;">¡Hola ${displayName}!</h2>
@@ -175,13 +195,17 @@ export class AuthService {
     try {
       const payload = jwt.verify(token, env.JWT_RESET_SECRET) as { id: string };
       const user = await this.userRepository.findOneBy({ id: payload.id });
-      if (!user) throw createHttpError(404, 'Usuario no encontrado');
+      if (!user) throw createHttpError(404, "Usuario no encontrado");
 
       user.passwordHash = await bcrypt.hash(newPassword, PASSWORD_SALT_ROUNDS);
       await this.userRepository.save(user);
     } catch (error) {
       if (error instanceof HttpError) throw error;
-      throw createHttpError(401, 'Token inválido o expirado', error instanceof Error ? error.message : error);
+      throw createHttpError(
+        401,
+        "Token inválido o expirado",
+        error instanceof Error ? error.message : error
+      );
     }
   }
 }

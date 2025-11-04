@@ -1,7 +1,7 @@
 /**
  * @module server
  */
-import { createApp } from './app';
+import { createApp } from "./app";
 
 /**
  * Instancia singleton de la aplicación.

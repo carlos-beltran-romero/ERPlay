@@ -4,8 +4,8 @@
  * @module services/questions
  */
 
-import { apiJson } from './http';
-import { resolveAssetUrl } from '../shared/utils/url';
+import { apiJson } from "./http";
+import { resolveAssetUrl } from "../shared/utils/url";
 
 /** Pregunta pendiente de revisión */
 export interface PendingQuestion {
@@ -23,11 +23,11 @@ export interface PendingQuestion {
 type MyQuestion = {
   id: string;
   prompt: string;
-  status: 'PENDING'|'APPROVED'|'REJECTED';
-  reviewComment?: string|null;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  reviewComment?: string | null;
   diagram?: { id: string; title: string; path?: string };
   createdAt?: string;
-  reviewedAt?: string|null;
+  reviewedAt?: string | null;
   options?: string[];
   correctIndex?: number;
 };
@@ -39,20 +39,20 @@ type MyQuestion = {
  * @remarks Maneja formatos legacy (0=pending, 1=approved, 2=rejected)
  * @internal
  */
-function normalizeReviewStatus(v: any): 'PENDING' | 'APPROVED' | 'REJECTED' {
-  if (typeof v === 'string') {
+function normalizeReviewStatus(v: any): "PENDING" | "APPROVED" | "REJECTED" {
+  if (typeof v === "string") {
     const s = v.toUpperCase();
-    if (s.includes('PEND')) return 'PENDING';
-    if (s.includes('APPROV')) return 'APPROVED';
-    if (s.includes('REJECT')) return 'REJECTED';
+    if (s.includes("PEND")) return "PENDING";
+    if (s.includes("APPROV")) return "APPROVED";
+    if (s.includes("REJECT")) return "REJECTED";
   }
-  if (typeof v === 'number') {
-    if (v === 0) return 'PENDING';
-    if (v === 1) return 'APPROVED';
-    if (v === 2) return 'REJECTED';
+  if (typeof v === "number") {
+    if (v === 0) return "PENDING";
+    if (v === 1) return "APPROVED";
+    if (v === 2) return "REJECTED";
   }
-  if (typeof v === 'boolean') return v ? 'APPROVED' : 'PENDING';
-  return 'PENDING';
+  if (typeof v === "boolean") return v ? "APPROVED" : "PENDING";
+  return "PENDING";
 }
 
 /**
@@ -61,9 +61,9 @@ function normalizeReviewStatus(v: any): 'PENDING' | 'APPROVED' | 'REJECTED' {
  * @remarks Usado para mostrar badge en panel de supervisor
  */
 export async function getPendingCount(): Promise<number> {
-  const data = await apiJson<any>('/api/questions/pending/count', {
+  const data = await apiJson<any>("/api/questions/pending/count", {
     auth: true,
-    fallbackError: 'No disponible',
+    fallbackError: "No disponible",
   });
   return Number(data?.count ?? 0);
 }
@@ -71,27 +71,31 @@ export async function getPendingCount(): Promise<number> {
 /**
  * Lista preguntas pendientes de revisión
  * Solo accesible para supervisores
- * 
+ *
  * @returns Array de preguntas con datos del creador y diagrama asociado
  * @remarks Normaliza múltiples formatos de backend (opciones como string[] o array de objetos)
  */
 export async function listPendingQuestions(): Promise<PendingQuestion[]> {
-  const raw = await apiJson<any[]>('/api/questions/pending', {
+  const raw = await apiJson<any[]>("/api/questions/pending", {
     auth: true,
-    fallbackError: 'No se pudieron cargar las preguntas',
+    fallbackError: "No se pudieron cargar las preguntas",
   });
 
   return (Array.isArray(raw) ? raw : []).map((q: any) => {
     let options: string[] = [];
     if (Array.isArray(q.options)) {
-      if (q.options.length && typeof q.options[0] === 'string') {
+      if (q.options.length && typeof q.options[0] === "string") {
         options = q.options as string[];
       } else {
         const arr = (q.options as any[])
-          .map(o => (o?.text ? { text: String(o.text), orderIndex: Number(o.orderIndex ?? 0) } : null))
+          .map((o) =>
+            o?.text
+              ? { text: String(o.text), orderIndex: Number(o.orderIndex ?? 0) }
+              : null
+          )
           .filter(Boolean) as { text: string; orderIndex: number }[];
         arr.sort((a, b) => a.orderIndex - b.orderIndex);
-        options = arr.map(o => o.text);
+        options = arr.map((o) => o.text);
       }
     } else if (Array.isArray(q.optionTexts)) {
       options = (q.optionTexts as any[]).map(String);
@@ -107,29 +111,29 @@ export async function listPendingQuestions(): Promise<PendingQuestion[]> {
     const dq = q.diagram || q.Diagram || null;
     const diagram = dq
       ? {
-          id: String(dq.id ?? ''),
-          title: String(dq.title ?? dq.name ?? ''),
-          path: resolveAssetUrl(dq.path ?? dq.imagePath ?? '') ?? '',
+          id: String(dq.id ?? ""),
+          title: String(dq.title ?? dq.name ?? ""),
+          path: resolveAssetUrl(dq.path ?? dq.imagePath ?? "") ?? "",
         }
-      : (q.diagramTitle || q.diagramPath || q.diagramId)
+      : q.diagramTitle || q.diagramPath || q.diagramId
       ? {
-          id: String(q.diagramId ?? ''),
-          title: String(q.diagramTitle ?? ''),
-          path: resolveAssetUrl(q.diagramPath ?? '') ?? '',
+          id: String(q.diagramId ?? ""),
+          title: String(q.diagramTitle ?? ""),
+          path: resolveAssetUrl(q.diagramPath ?? "") ?? "",
         }
       : undefined;
 
     return {
       id: String(q.id),
-      prompt: String(q.prompt ?? q.enunciado ?? ''),
-      hint: String(q.hint ?? q.pista ?? ''),
+      prompt: String(q.prompt ?? q.enunciado ?? ""),
+      hint: String(q.hint ?? q.pista ?? ""),
       options,
       correctIndex,
       createdAt: q.createdAt,
       creator: q.creator
         ? {
             id: String(q.creator.id),
-            email: String(q.creator.email ?? ''),
+            email: String(q.creator.email ?? ""),
             name: q.creator.name ? String(q.creator.name) : undefined,
           }
         : undefined,
@@ -141,7 +145,7 @@ export async function listPendingQuestions(): Promise<PendingQuestion[]> {
 /**
  * Resuelve una pregunta pendiente
  * El supervisor aprueba o rechaza la propuesta
- * 
+ *
  * @param id - ID de la pregunta
  * @param decision - Decisión del revisor
  * @param comment - Comentario opcional explicando la decisión
@@ -150,14 +154,14 @@ export async function listPendingQuestions(): Promise<PendingQuestion[]> {
  */
 export async function verifyQuestion(
   id: string,
-  decision: 'approve' | 'reject',
+  decision: "approve" | "reject",
   comment?: string
 ): Promise<void> {
   await apiJson<void>(`/api/questions/${id}/verify`, {
-    method: 'POST',
+    method: "POST",
     auth: true,
     json: { decision, comment },
-    fallbackError: 'No se pudo verificar',
+    fallbackError: "No se pudo verificar",
   });
 }
 
@@ -167,26 +171,33 @@ export async function verifyQuestion(
  * @remarks Incluye todas las preguntas (pendientes, aprobadas, rechazadas)
  */
 export async function listMyQuestions(): Promise<MyQuestion[]> {
-  const data = await apiJson<any[]>('/api/questions/mine', {
+  const data = await apiJson<any[]>("/api/questions/mine", {
     auth: true,
-    fallbackError: 'No se pudieron cargar tus preguntas',
+    fallbackError: "No se pudieron cargar tus preguntas",
   });
 
   return (Array.isArray(data) ? data : []).map((q: any) => {
     const status = normalizeReviewStatus(
-      q.status ?? q.reviewStatus ?? q.state ?? (typeof q.verified === 'boolean' ? q.verified : undefined)
-    ) as MyQuestion['status'];
+      q.status ??
+        q.reviewStatus ??
+        q.state ??
+        (typeof q.verified === "boolean" ? q.verified : undefined)
+    ) as MyQuestion["status"];
 
     let options: string[] = [];
     if (Array.isArray(q.options)) {
-      if (q.options.length && typeof q.options[0] === 'string') {
+      if (q.options.length && typeof q.options[0] === "string") {
         options = q.options as string[];
       } else {
         const arr = (q.options as any[])
-          .map(o => (o?.text ? { text: String(o.text), orderIndex: Number(o.orderIndex ?? 0) } : null))
+          .map((o) =>
+            o?.text
+              ? { text: String(o.text), orderIndex: Number(o.orderIndex ?? 0) }
+              : null
+          )
           .filter(Boolean) as { text: string; orderIndex: number }[];
         arr.sort((a, b) => a.orderIndex - b.orderIndex);
-        options = arr.map(o => o.text);
+        options = arr.map((o) => o.text);
       }
     } else if (Array.isArray(q.optionTexts)) {
       options = (q.optionTexts as any[]).map(String);
@@ -201,14 +212,14 @@ export async function listMyQuestions(): Promise<MyQuestion[]> {
 
     return {
       id: String(q.id),
-      prompt: String(q.prompt ?? ''),
+      prompt: String(q.prompt ?? ""),
       status,
       reviewComment: q.reviewComment ?? null,
       diagram: q.diagram
         ? {
-            id: String(q.diagram.id ?? ''),
-            title: String(q.diagram.title ?? ''),
-            path: resolveAssetUrl(q.diagram.path) ?? '',
+            id: String(q.diagram.id ?? ""),
+            title: String(q.diagram.title ?? ""),
+            path: resolveAssetUrl(q.diagram.path) ?? "",
           }
         : undefined,
       createdAt: q.createdAt,
@@ -222,7 +233,7 @@ export async function listMyQuestions(): Promise<MyQuestion[]> {
 /**
  * Crea una nueva pregunta
  * El estudiante propone pregunta asociada a un diagrama
- * 
+ *
  * @param payload - Datos de la pregunta (prompt, opciones, correctIndex)
  * @returns ID y estado inicial (siempre PENDING)
  * @throws {Error} Si el diagrama no existe o falta información requerida
@@ -234,11 +245,11 @@ export async function createQuestion(payload: {
   hint: string;
   options: string[];
   correctIndex: number;
-}): Promise<{ id: string; status: 'PENDING' | 'APPROVED' | 'REJECTED' }> {
+}): Promise<{ id: string; status: "PENDING" | "APPROVED" | "REJECTED" }> {
   return apiJson(`/api/questions`, {
-    method: 'POST',
+    method: "POST",
     auth: true,
     json: payload,
-    fallbackError: 'No se pudo crear la pregunta',
+    fallbackError: "No se pudo crear la pregunta",
   });
 }

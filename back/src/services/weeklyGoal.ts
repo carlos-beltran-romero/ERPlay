@@ -4,14 +4,14 @@
  * @module services/weeklyGoal
  */
 
-import { env } from '../config/env';
-import { createMailer } from '../config/mailer';
-import { createHttpError } from '../core/errors/HttpError';
-import { AppDataSource } from '../data-source';
-import { TestSession } from '../models/TestSession';
-import { User, UserRole } from '../models/User';
-import { WeeklyGoal } from '../models/WeeklyGoal';
-import { escapeHtml, renderCardEmail } from './shared/emailTemplates';
+import { env } from "../config/env";
+import { createMailer } from "../config/mailer";
+import { createHttpError } from "../core/errors/HttpError";
+import { AppDataSource } from "../data-source";
+import { TestSession } from "../models/TestSession";
+import { User, UserRole } from "../models/User";
+import { WeeklyGoal } from "../models/WeeklyGoal";
+import { escapeHtml, renderCardEmail } from "./shared/emailTemplates";
 
 /**
  * Calcula el lunes (00:00 UTC) de la semana ISO del día indicado
@@ -22,7 +22,9 @@ import { escapeHtml, renderCardEmail } from './shared/emailTemplates';
  * - getUTCDay() devuelve 0 (domingo) o 1..6, se normaliza a 1..7
  */
 function startOfISOWeek(d: Date) {
-  const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const x = new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+  );
   const day = x.getUTCDay() || 7;
   if (day > 1) x.setUTCDate(x.getUTCDate() - (day - 1));
   return x;
@@ -65,7 +67,11 @@ const transporter = createMailer({
  * - Ejecuta en segundo plano vía setImmediate
  * - Email incluye CTA a /student/progress si FRONTEND_URL está configurado
  */
-async function notifyAllStudentsNewGoal(args: { weekStart: string; weekEnd: string; targetTests: number }) {
+async function notifyAllStudentsNewGoal(args: {
+  weekStart: string;
+  weekEnd: string;
+  targetTests: number;
+}) {
   const students = await AppDataSource.getRepository(User).find({
     where: { role: UserRole.STUDENT },
   });
@@ -73,8 +79,8 @@ async function notifyAllStudentsNewGoal(args: { weekStart: string; weekEnd: stri
   const recipients = students.map((s) => s.email).filter(Boolean);
   if (!recipients.length) return;
 
-  const frontBase = (env.FRONTEND_URL ?? env.APP_URL ?? '').replace(/\/+$/, '');
-  const ctaUrl = frontBase ? `${frontBase}/student/progress` : '';
+  const frontBase = (env.FRONTEND_URL ?? env.APP_URL ?? "").replace(/\/+$/, "");
+  const ctaUrl = frontBase ? `${frontBase}/student/progress` : "";
 
   const body = `
     <div style="font-size:14px;line-height:1.7">
@@ -87,33 +93,41 @@ async function notifyAllStudentsNewGoal(args: { weekStart: string; weekEnd: stri
 
       <p style="margin:0 0 10px 0;">
         Se ha establecido un nuevo <strong>objetivo semanal</strong>:
-        <strong>completar ${escapeHtml(String(args.targetTests))} tests</strong>.
+        <strong>completar ${escapeHtml(
+          String(args.targetTests)
+        )} tests</strong>.
       </p>
       <p style="margin:0 0 10px 0;">
-        Período: <strong>${escapeHtml(args.weekStart)}</strong> — <strong>${escapeHtml(args.weekEnd)}</strong>.
+        Período: <strong>${escapeHtml(
+          args.weekStart
+        )}</strong> — <strong>${escapeHtml(args.weekEnd)}</strong>.
       </p>
       <p style="margin:0 0 16px 0;">¡Ánimo! Al cumplirlo recibirás el galardón de la semana.</p>
 
-      ${ctaUrl ? `
+      ${
+        ctaUrl
+          ? `
         <a href="${ctaUrl}"
            style="display:inline-block;padding:12px 18px;border-radius:10px;
                   background:#4f46e5;color:#fff;text-decoration:none;font-weight:600">
           Ver mi progreso
-        </a>` : ''}
+        </a>`
+          : ""
+      }
     </div>
   `;
 
   const html = renderCardEmail({
-    title: 'Nuevo objetivo semanal',
+    title: "Nuevo objetivo semanal",
     bodyHtml: body,
-    accent: '#DBEAFE',
+    accent: "#DBEAFE",
   });
 
   await transporter.sendMail({
     from: env.SMTP_FROM || '"ERPlay" <no-reply@erplay.com>',
-    to: env.SMTP_FROM || 'no-reply@erplay.com',
-    bcc: recipients.join(','),
-    subject: 'Nuevo objetivo semanal',
+    to: env.SMTP_FROM || "no-reply@erplay.com",
+    bcc: recipients.join(","),
+    subject: "Nuevo objetivo semanal",
     html,
   });
 }
@@ -121,7 +135,7 @@ async function notifyAllStudentsNewGoal(args: { weekStart: string; weekEnd: stri
 /**
  * Recupera el objetivo semanal activo
  * Busca objetivo cuyo rango incluye la fecha actual
- * 
+ *
  * @returns Objetivo vigente o null si no existe
  * @remarks
  * - Compara weekStart <= hoy <= weekEnd
@@ -132,10 +146,10 @@ export async function getCurrentWeeklyGoal() {
   const today = toISODate(new Date());
 
   const current = await repo
-    .createQueryBuilder('g')
-    .where('g.weekStart <= :today', { today })
-    .andWhere('g.weekEnd >= :today', { today })
-    .orderBy('g.weekStart', 'DESC')
+    .createQueryBuilder("g")
+    .where("g.weekStart <= :today", { today })
+    .andWhere("g.weekEnd >= :today", { today })
+    .orderBy("g.weekStart", "DESC")
     .getOne();
 
   return current || null;
@@ -144,7 +158,7 @@ export async function getCurrentWeeklyGoal() {
 /**
  * Crea o actualiza el objetivo semanal
  * Opcionalmente notifica a todos los estudiantes por email
- * 
+ *
  * @param params - Configuración del objetivo y opciones de notificación
  * @returns Objetivo creado/actualizado
  * @throws {HttpError} 400 si targetTests no es válido
@@ -164,7 +178,7 @@ export async function setWeeklyGoal(params: {
   const { adminId, targetTests } = params;
 
   if (!Number.isFinite(targetTests) || targetTests <= 0) {
-    throw createHttpError(400, 'El objetivo debe ser un número mayor que 0');
+    throw createHttpError(400, "El objetivo debe ser un número mayor que 0");
   }
 
   await AppDataSource.getRepository(User).findOneByOrFail({ id: adminId });
@@ -182,8 +196,8 @@ export async function setWeeklyGoal(params: {
   const repo = AppDataSource.getRepository(WeeklyGoal);
 
   let goal = await repo
-    .createQueryBuilder('g')
-    .where('g.weekStart = :s AND g.weekEnd = :e', { s, e })
+    .createQueryBuilder("g")
+    .where("g.weekStart = :s AND g.weekEnd = :e", { s, e })
     .getOne();
 
   if (goal) {
@@ -199,9 +213,15 @@ export async function setWeeklyGoal(params: {
   }
 
   if (params.notify !== false) {
-    const payload = { weekStart: goal.weekStart, weekEnd: goal.weekEnd, targetTests: goal.targetTests };
+    const payload = {
+      weekStart: goal.weekStart,
+      weekEnd: goal.weekEnd,
+      targetTests: goal.targetTests,
+    };
     setImmediate(() => {
-      notifyAllStudentsNewGoal(payload).catch((e) => console.error('Email error (weekly-goal):', e));
+      notifyAllStudentsNewGoal(payload).catch((e) =>
+        console.error("Email error (weekly-goal):", e)
+      );
     });
   }
 
@@ -211,7 +231,7 @@ export async function setWeeklyGoal(params: {
 /**
  * Obtiene el progreso semanal de todos los estudiantes
  * Calcula tests completados vs objetivo para un rango dado
- * 
+ *
  * @param weekStart - Fecha inicio (YYYY-MM-DD), opcional
  * @param weekEnd - Fecha fin (YYYY-MM-DD), opcional
  * @returns Array de progreso por estudiante ordenado alfabéticamente
@@ -235,27 +255,27 @@ export async function listWeeklyProgress(weekStart?: string, weekEnd?: string) {
 
   const students = await AppDataSource.getRepository(User).find({
     where: { role: UserRole.STUDENT },
-    order: { name: 'ASC', lastName: 'ASC' },
+    order: { name: "ASC", lastName: "ASC" },
   });
   if (!students.length) return [];
 
   const rows = await AppDataSource.getRepository(TestSession)
-    .createQueryBuilder('s')
-    .innerJoin('s.user', 'u')
-    .where('s.completedAt IS NOT NULL')
-    .andWhere('DATE(s.completedAt) >= :s', { s })
-    .andWhere('DATE(s.completedAt) <= :e', { e })
-    .select('u.id', 'userId')
-    .addSelect('COUNT(*)', 'done')
-    .groupBy('u.id')
+    .createQueryBuilder("s")
+    .innerJoin("s.user", "u")
+    .where("s.completedAt IS NOT NULL")
+    .andWhere("DATE(s.completedAt) >= :s", { s })
+    .andWhere("DATE(s.completedAt) <= :e", { e })
+    .select("u.id", "userId")
+    .addSelect("COUNT(*)", "done")
+    .groupBy("u.id")
     .getRawMany<{ userId: string; done: string }>();
 
   const doneByUser: Record<string, number> = {};
   for (const r of rows) doneByUser[r.userId] = Number(r.done || 0);
 
   const g = await repo
-    .createQueryBuilder('g')
-    .where('g.weekStart = :s AND g.weekEnd = :e', { s, e })
+    .createQueryBuilder("g")
+    .where("g.weekStart = :s AND g.weekEnd = :e", { s, e })
     .getOne();
   const target = g?.targetTests ?? 0;
 
@@ -264,7 +284,7 @@ export async function listWeeklyProgress(weekStart?: string, weekEnd?: string) {
     const pct = target ? Math.min(100, Math.round((100 * done) / target)) : 0;
     return {
       userId: u.id,
-      name: `${u.name ?? ''} ${u.lastName ?? ''}`.trim() || u.email,
+      name: `${u.name ?? ""} ${u.lastName ?? ""}`.trim() || u.email,
       email: u.email,
       done,
       target,

@@ -1,38 +1,38 @@
-import React, { useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import iconoWeb from '../assets/icono_web.png';
-import { resetPassword } from '../services/auth';
+import React, { useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import iconoWeb from "../assets/icono_web.png";
+import { resetPassword } from "../services/auth";
 
 const MIN_PW = 6;
 
 const ResetPassword: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const token = searchParams.get('token') || '';
+  const token = searchParams.get("token") || "";
   const navigate = useNavigate();
 
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
 
-  const tooShort = password.length < MIN_PW; 
-  const showLengthError = submitted && tooShort; 
+  const tooShort = password.length < MIN_PW;
+  const showLengthError = submitted && tooShort;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitted(true);
-    setStatus('idle');
+    setStatus("idle");
     setError(null);
 
-    if (tooShort) return; 
+    if (tooShort) return;
 
     try {
       await resetPassword(token, password);
-      setStatus('success');
-      setTimeout(() => navigate('/login', { replace: true }), 2000);
+      setStatus("success");
+      setTimeout(() => navigate("/login", { replace: true }), 2000);
     } catch (err: any) {
-      setError(err?.message || 'Error al restablecer contraseña');
-      setStatus('error');
+      setError(err?.message || "Error al restablecer contraseña");
+      setStatus("error");
     }
   };
 
@@ -55,34 +55,38 @@ const ResetPassword: React.FC = () => {
             </p>
 
             {/* Feedback */}
-            {status === 'success' && (
+            {status === "success" && (
               <div className="mt-5 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 text-center">
                 Contraseña restablecida. Redirigiendo al login…
               </div>
             )}
-            {status === 'error' && error && (
+            {status === "error" && error && (
               <div className="mt-5 rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700 text-center">
                 {error}
               </div>
             )}
 
             {/* Form */}
-            {status !== 'success' && (
+            {status !== "success" && (
               <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
                 <div>
-                  <label htmlFor="password" className="mb-1.5 block text-sm text-slate-600">
+                  <label
+                    htmlFor="password"
+                    className="mb-1.5 block text-sm text-slate-600"
+                  >
                     Nueva contraseña
                   </label>
                   <input
                     id="password"
                     type="password"
                     value={password}
-                    onChange={e => setPassword(e.target.value)}
+                    onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     className={`w-full rounded-xl bg-slate-50/70 px-3 py-3 text-[16px] text-slate-800 placeholder:text-slate-400 outline-none transition
-                      ${showLengthError
-                        ? 'border border-rose-300 focus:border-rose-400 focus:ring-2 focus:ring-rose-200'
-                        : 'border border-slate-300 focus:border-slate-400 focus:ring-2 focus:ring-slate-200'
+                      ${
+                        showLengthError
+                          ? "border border-rose-300 focus:border-rose-400 focus:ring-2 focus:ring-rose-200"
+                          : "border border-slate-300 focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
                       }`}
                     required
                   />
@@ -97,9 +101,10 @@ const ResetPassword: React.FC = () => {
                   type="submit"
                   disabled={!token}
                   className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3 text-[15px] font-medium text-white transition
-                    ${!token
-                      ? 'bg-slate-400 cursor-not-allowed'
-                      : 'bg-slate-800 hover:bg-slate-700'
+                    ${
+                      !token
+                        ? "bg-slate-400 cursor-not-allowed"
+                        : "bg-slate-800 hover:bg-slate-700"
                     }`}
                 >
                   Restablecer contraseña
@@ -109,7 +114,10 @@ const ResetPassword: React.FC = () => {
 
             {/* Back link */}
             <p className="mt-6 text-center text-sm text-slate-600">
-              <a href="/login" className="font-medium text-slate-500 hover:text-slate-700 hover:underline">
+              <a
+                href="/login"
+                className="font-medium text-slate-500 hover:text-slate-700 hover:underline"
+              >
                 Volver al Login
               </a>
             </p>

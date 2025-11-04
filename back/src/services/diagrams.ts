@@ -4,13 +4,13 @@
  * @module services/diagrams
  */
 
-import { AppDataSource } from '../data-source';
-import { Diagram } from '../models/Diagram';
-import { Question, ReviewStatus } from '../models/Question';
-import { Option } from '../models/Option';
-import { User, UserRole } from '../models/User';
-import fs from 'fs';
-import path from 'path';
+import { AppDataSource } from "../data-source";
+import { Diagram } from "../models/Diagram";
+import { Question, ReviewStatus } from "../models/Question";
+import { Option } from "../models/Option";
+import { User, UserRole } from "../models/User";
+import fs from "fs";
+import path from "path";
 
 /** Input de pregunta para creación/actualización */
 export type QuestionInput = {
@@ -33,7 +33,7 @@ export class DiagramsService {
   /**
    * Crea un nuevo diagrama con sus preguntas
    * Las preguntas de supervisores se aprueban automáticamente
-   * 
+   *
    * @param params - Datos del diagrama y preguntas
    * @returns ID y path del diagrama creado
    * @throws {Error} Si faltan datos obligatorios o son inválidos
@@ -44,17 +44,24 @@ export class DiagramsService {
     file: { filename: string; path: string };
     questions: QuestionInput[];
   }): Promise<{ id: string; path: string }> {
-    const creator = await this.userRepo.findOneByOrFail({ id: params.creatorId });
+    const creator = await this.userRepo.findOneByOrFail({
+      id: params.creatorId,
+    });
 
     // Validaciones
-    if (!params.title.trim()) throw new Error('Título requerido');
-    if (!params.questions || params.questions.length === 0) throw new Error('Debes incluir al menos 1 pregunta');
+    if (!params.title.trim()) throw new Error("Título requerido");
+    if (!params.questions || params.questions.length === 0)
+      throw new Error("Debes incluir al menos 1 pregunta");
     for (const q of params.questions) {
-      if (!q.prompt?.trim()) throw new Error('Cada pregunta debe tener enunciado');
-      if (!q.hint?.trim()) throw new Error('Cada pregunta debe tener pista');
-      if (!Array.isArray(q.options) || q.options.length < 2) throw new Error('Cada pregunta requiere ≥ 2 opciones');
-      if (q.options.some(o => !o || !o.trim())) throw new Error('Las opciones no pueden estar vacías');
-      if (q.correctIndex < 0 || q.correctIndex >= q.options.length) throw new Error('Índice de opción correcta inválido');
+      if (!q.prompt?.trim())
+        throw new Error("Cada pregunta debe tener enunciado");
+      if (!q.hint?.trim()) throw new Error("Cada pregunta debe tener pista");
+      if (!Array.isArray(q.options) || q.options.length < 2)
+        throw new Error("Cada pregunta requiere ≥ 2 opciones");
+      if (q.options.some((o) => !o || !o.trim()))
+        throw new Error("Las opciones no pueden estar vacías");
+      if (q.correctIndex < 0 || q.correctIndex >= q.options.length)
+        throw new Error("Índice de opción correcta inválido");
     }
 
     return AppDataSource.transaction(async (manager) => {
@@ -82,7 +89,11 @@ export class DiagramsService {
         await manager.save(question);
 
         const options = q.options.map((text, idx) =>
-          manager.create(Option, { text: text.trim(), orderIndex: idx, question })
+          manager.create(Option, {
+            text: text.trim(),
+            orderIndex: idx,
+            question,
+          })
         );
         await manager.save(options);
       }
@@ -97,14 +108,11 @@ export class DiagramsService {
    */
   async listDiagrams(): Promise<(Diagram & { questionsCount: number })[]> {
     const rows = await this.diagramRepo
-      .createQueryBuilder('d')
-      .loadRelationCountAndMap(
-        'd.questionsCount',
-        'd.questions',
-        'q',
-        qb => qb.andWhere('q.status = :st', { st: ReviewStatus.APPROVED })
+      .createQueryBuilder("d")
+      .loadRelationCountAndMap("d.questionsCount", "d.questions", "q", (qb) =>
+        qb.andWhere("q.status = :st", { st: ReviewStatus.APPROVED })
       )
-      .orderBy('d.createdAt', 'DESC')
+      .orderBy("d.createdAt", "DESC")
       .getMany();
 
     return rows as (Diagram & { questionsCount: number })[];
@@ -121,24 +129,29 @@ export class DiagramsService {
     title: string;
     path: string;
     createdAt: Date;
-    questions: { prompt: string; hint: string; correctIndex: number; options: string[] }[];
+    questions: {
+      prompt: string;
+      hint: string;
+      correctIndex: number;
+      options: string[];
+    }[];
   }> {
     const diagram = await this.diagramRepo.findOne({ where: { id } });
-    if (!diagram) throw new Error('Test no encontrado');
+    if (!diagram) throw new Error("Test no encontrado");
 
     const approvedQs = await this.questionRepo.find({
       where: { diagram: { id: diagram.id }, status: ReviewStatus.APPROVED },
       relations: { options: true },
-      order: { createdAt: 'ASC' },
+      order: { createdAt: "ASC" },
     });
 
-    const questions = approvedQs.map(q => ({
+    const questions = approvedQs.map((q) => ({
       prompt: q.prompt,
       hint: q.hint,
       correctIndex: q.correctOptionIndex,
       options: [...(q.options || [])]
         .sort((a, b) => a.orderIndex - b.orderIndex)
-        .map(o => o.text),
+        .map((o) => o.text),
     }));
 
     return {
@@ -153,7 +166,7 @@ export class DiagramsService {
   /**
    * Actualiza un diagrama preservando autoría de preguntas inalteradas
    * Borra imagen anterior si se proporciona nueva
-   * 
+   *
    * @param params - Datos actualizados del diagrama
    * @throws {Error} Si el diagrama no existe
    */
@@ -164,9 +177,14 @@ export class DiagramsService {
     newFile?: { filename: string; path: string };
     actorId: string;
   }): Promise<void> {
-    const norm = (s?: string) => (s || '').trim().replace(/\s+/g, ' ');
-    const makeSignature = (q: { prompt: string; hint: string; options: string[]; correctIndex: number }) => {
-      const opts = (q.options || []).map(o => norm(o)).join('||');
+    const norm = (s?: string) => (s || "").trim().replace(/\s+/g, " ");
+    const makeSignature = (q: {
+      prompt: string;
+      hint: string;
+      options: string[];
+      correctIndex: number;
+    }) => {
+      const opts = (q.options || []).map((o) => norm(o)).join("||");
       return `${norm(q.prompt)}|${norm(q.hint)}|${opts}|#${q.correctIndex}`;
     };
 
@@ -174,25 +192,28 @@ export class DiagramsService {
 
     await AppDataSource.transaction(async (manager) => {
       const diagram = await manager.findOneBy(Diagram, { id: params.id });
-      if (!diagram) throw new Error('Test no encontrado');
+      if (!diagram) throw new Error("Test no encontrado");
 
       const actor = await manager.findOneBy(User, { id: params.actorId });
-      if (!actor) throw new Error('Usuario no encontrado');
+      if (!actor) throw new Error("Usuario no encontrado");
       const supervisor = actor.role === UserRole.SUPERVISOR;
 
       // Mapa de firmas a creadores originales
       const existingQs = await manager.find(Question, {
         where: { diagram: { id: diagram.id } },
         relations: { options: true, creator: true },
-        order: { createdAt: 'ASC' },
+        order: { createdAt: "ASC" },
       });
 
       const existingSignatureCreator = new Map<string, User>();
       for (const q of existingQs) {
-        const optTexts = (q.options || []).slice().sort((a, b) => a.orderIndex - b.orderIndex).map(o => o.text);
+        const optTexts = (q.options || [])
+          .slice()
+          .sort((a, b) => a.orderIndex - b.orderIndex)
+          .map((o) => o.text);
         const sig = makeSignature({
           prompt: q.prompt,
-          hint: q.hint || '',
+          hint: q.hint || "",
           options: optTexts,
           correctIndex: q.correctOptionIndex ?? 0,
         });
@@ -234,7 +255,11 @@ export class DiagramsService {
         await manager.save(question);
 
         const options = q.options.map((text, idx) =>
-          manager.create(Option, { text: text.trim(), orderIndex: idx, question })
+          manager.create(Option, {
+            text: text.trim(),
+            orderIndex: idx,
+            question,
+          })
         );
         await manager.save(options);
       }
@@ -242,15 +267,17 @@ export class DiagramsService {
 
     // Limpiar imagen antigua
     if (oldPublicPath) {
-      const absolute = path.resolve(oldPublicPath.replace(/^\/+/, ''));
-      fs.unlink(absolute, () => { /* ignore */ });
+      const absolute = path.resolve(oldPublicPath.replace(/^\/+/, ""));
+      fs.unlink(absolute, () => {
+        /* ignore */
+      });
     }
   }
 
   /**
    * Elimina un diagrama y su imagen asociada
    * Las preguntas se eliminan en cascada
-   * 
+   *
    * @param id - ID del diagrama a eliminar
    * @throws {Error} Si el diagrama no existe
    */
@@ -259,15 +286,17 @@ export class DiagramsService {
 
     await AppDataSource.transaction(async (manager) => {
       const diagram = await manager.findOneBy(Diagram, { id });
-      if (!diagram) throw new Error('Test no encontrado');
+      if (!diagram) throw new Error("Test no encontrado");
 
       oldPublicPath = diagram.path;
       await manager.remove(Diagram, diagram);
     });
 
     if (oldPublicPath) {
-      const absolute = path.resolve(oldPublicPath.replace(/^\/+/, ''));
-      fs.unlink(absolute, () => { /* ignore */ });
+      const absolute = path.resolve(oldPublicPath.replace(/^\/+/, ""));
+      fs.unlink(absolute, () => {
+        /* ignore */
+      });
     }
   }
 }

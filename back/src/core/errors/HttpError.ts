@@ -11,13 +11,13 @@
  * específica del protocolo HTTP y datos adicionales para debugging
  */
 export class HttpError extends Error {
-  /** 
+  /**
    * Código HTTP asociado al error
    * Ejemplos: 400 (Bad Request), 401 (Unauthorized), 404 (Not Found), 500 (Internal Server Error)
    */
   public readonly statusCode: number;
 
-  /** 
+  /**
    * Datos adicionales opcionales para logging y debugging
    * Puede contener información contextual del error como validaciones fallidas,
    * stack traces adicionales o cualquier metadata relevante
@@ -32,7 +32,7 @@ export class HttpError extends Error {
    */
   constructor(statusCode: number, message: string, details?: unknown) {
     super(message);
-    this.name = 'HttpError';
+    this.name = "HttpError";
     this.statusCode = statusCode;
     this.details = details;
   }
@@ -49,6 +49,10 @@ export class HttpError extends Error {
  * throw createHttpError(400, 'Datos inválidos');
  * throw createHttpError(403, 'No autorizado');
  */
-export function createHttpError(statusCode: number, message: string, details?: unknown) {
+export function createHttpError(
+  statusCode: number,
+  message: string,
+  details?: unknown
+) {
   return new HttpError(statusCode, message, details);
 }

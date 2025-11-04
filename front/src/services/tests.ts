@@ -4,10 +4,10 @@
  * @module services/tests
  */
 
-import { apiJson, apiRequest, API_URL } from './http';
+import { apiJson, apiRequest, API_URL } from "./http";
 
 /** Modo de test disponible */
-export type TestMode = 'learning' | 'exam' | 'errors';
+export type TestMode = "learning" | "exam" | "errors";
 
 /** Sesión iniciada con preguntas cargadas */
 export type StartedSession = {
@@ -69,7 +69,7 @@ export type TestResultItem = {
   isCorrect?: boolean;
   claimed?: boolean;
   claimId?: string | null;
-  claimStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
+  claimStatus?: "PENDING" | "APPROVED" | "REJECTED" | null;
   claimCreatedAt?: string | null;
 };
 
@@ -97,12 +97,18 @@ export type TestSessionDetail = {
     score?: number | null;
   };
   results: TestResultItem[];
-  events?: Array<{ id: string; type: string; at: string; resultId?: string; payload?: any }>;
+  events?: Array<{
+    id: string;
+    type: string;
+    at: string;
+    resultId?: string;
+    payload?: any;
+  }>;
 };
 
 /** Filtros para listados de tests */
 export type ListFilters = {
-  mode?: TestMode | 'all';
+  mode?: TestMode | "all";
   dateFrom?: string;
   dateTo?: string;
   page?: number;
@@ -113,7 +119,7 @@ export type ListFilters = {
 /**
  * Inicia una nueva sesión de test
  * Carga diagrama y preguntas según modo seleccionado
- * 
+ *
  * @param params - Modo y límite de preguntas
  * @returns Sesión creada con preguntas snapshot
  * @remarks
@@ -121,19 +127,22 @@ export type ListFilters = {
  * - exam: Oculta correctIndex hasta finalizar
  * - errors: Carga preguntas previamente falladas
  */
-export async function startTestSession(params: { mode: TestMode; limit?: number }) {
+export async function startTestSession(params: {
+  mode: TestMode;
+  limit?: number;
+}) {
   return apiJson<StartedSession>(`${API_URL}/api/test-sessions/start`, {
-    method: 'POST',
+    method: "POST",
     auth: true,
     json: params,
-    fallbackError: 'No se pudo iniciar el test',
+    fallbackError: "No se pudo iniciar el test",
   });
 }
 
 /**
  * Actualiza respuesta de una pregunta
  * Guarda progreso incremental (selectedIndex, intentos, tiempo)
- * 
+ *
  * @param sessionId - ID de la sesión activa
  * @param resultId - ID del resultado a actualizar
  * @param body - Campos a modificar (patch parcial)
@@ -153,10 +162,10 @@ export async function patchResult(
   await apiJson<void>(
     `${API_URL}/api/test-sessions/${sessionId}/results/${resultId}`,
     {
-      method: 'PATCH',
+      method: "PATCH",
       auth: true,
       json: body,
-      fallbackError: 'No se pudo guardar',
+      fallbackError: "No se pudo guardar",
     }
   );
   return true;
@@ -165,7 +174,7 @@ export async function patchResult(
 /**
  * Registra evento de interacción durante el test
  * Usado para analytics y tracking de comportamiento
- * 
+ *
  * @param sessionId - ID de la sesión activa
  * @param body - Tipo de evento y payload opcional
  * @remarks Silencia errores para no interrumpir flujo del test
@@ -176,7 +185,7 @@ export async function logEvent(
 ) {
   try {
     await apiRequest(`${API_URL}/api/test-sessions/${sessionId}/events`, {
-      method: 'POST',
+      method: "POST",
       auth: true,
       json: body,
     });
@@ -188,41 +197,45 @@ export async function logEvent(
 /**
  * Finaliza sesión de test
  * Calcula nota final, guarda timestamp de completitud y genera insignias
- * 
+ *
  * @param sessionId - ID de la sesión a finalizar
  * @returns Resumen final con score y estadísticas
  * @remarks No se puede reabrir tras finalizar (finishedAt != null)
  */
 export async function finishSession(sessionId: string) {
   return apiJson(`${API_URL}/api/test-sessions/${sessionId}/finish`, {
-    method: 'POST',
+    method: "POST",
     auth: true,
-    fallbackError: 'No se pudo finalizar',
+    fallbackError: "No se pudo finalizar",
   });
 }
 
 /**
  * Lista tests del estudiante autenticado
  * Soporta filtros de modo, fecha y paginación
- * 
+ *
  * @param filters - Filtros de búsqueda y paginación
  * @returns Respuesta paginada con tests completados
  * @remarks Ordenados por startedAt descendente (más recientes primero)
  */
-export async function listMyTests(filters: ListFilters = {}): Promise<ListMyTestsResponse> {
+export async function listMyTests(
+  filters: ListFilters = {}
+): Promise<ListMyTestsResponse> {
   const params = new URLSearchParams();
-  if (filters.mode && filters.mode !== 'all') params.set('mode', filters.mode);
-  if (filters.dateFrom) params.set('from', filters.dateFrom);
-  if (filters.dateTo) params.set('to', filters.dateTo);
-  if (filters.page) params.set('page', String(filters.page));
-  if (filters.pageSize) params.set('pageSize', String(filters.pageSize));
-  if (filters.q) params.set('q', filters.q);
+  if (filters.mode && filters.mode !== "all") params.set("mode", filters.mode);
+  if (filters.dateFrom) params.set("from", filters.dateFrom);
+  if (filters.dateTo) params.set("to", filters.dateTo);
+  if (filters.page) params.set("page", String(filters.page));
+  if (filters.pageSize) params.set("pageSize", String(filters.pageSize));
+  if (filters.q) params.set("q", filters.q);
 
-  const url = `${API_URL}/api/test-sessions/mine${params.toString() ? `?${params.toString()}` : ''}`;
+  const url = `${API_URL}/api/test-sessions/mine${
+    params.toString() ? `?${params.toString()}` : ""
+  }`;
 
   const data = await apiJson<any>(url, {
     auth: true,
-    fallbackError: 'No se pudieron cargar tus tests',
+    fallbackError: "No se pudieron cargar tus tests",
   });
 
   const rawItems = (data.items || data.results || data) as any[];
@@ -232,36 +245,52 @@ export async function listMyTests(filters: ListFilters = {}): Promise<ListMyTest
         mode: it.mode,
         startedAt: it.startedAt,
         finishedAt: it.finishedAt ?? null,
-        durationSeconds: it.durationSeconds ?? it.summary?.durationSeconds ?? null,
+        durationSeconds:
+          it.durationSeconds ?? it.summary?.durationSeconds ?? null,
         diagram: it.diagram
-          ? { id: it.diagram.id, title: it.diagram.title, path: it.diagram.path ?? null }
+          ? {
+              id: it.diagram.id,
+              title: it.diagram.title,
+              path: it.diagram.path ?? null,
+            }
           : null,
-        totalQuestions: Number(it.totalQuestions ?? it.summary?.totalQuestions ?? it.questionCount ?? 0),
+        totalQuestions: Number(
+          it.totalQuestions ??
+            it.summary?.totalQuestions ??
+            it.questionCount ??
+            0
+        ),
         correctCount: Number(it.correctCount ?? it.summary?.correct ?? 0),
         wrongCount: Number(it.wrongCount ?? it.summary?.wrong ?? 0),
         skippedCount: Number(it.skippedCount ?? it.summary?.skipped ?? 0),
         score:
-          typeof it.score === 'number'
+          typeof it.score === "number"
             ? it.score
-            : typeof it.summary?.score === 'number'
+            : typeof it.summary?.score === "number"
             ? it.summary.score
             : null,
         claimCount: Number(it.claimCount ?? 0),
         summary: it.summary ?? {
-          accuracyPct: typeof it.accuracyPct === 'number' ? it.accuracyPct : undefined,
+          accuracyPct:
+            typeof it.accuracyPct === "number" ? it.accuracyPct : undefined,
           score:
-            typeof it.score === 'number'
+            typeof it.score === "number"
               ? it.score
-              : typeof it.summary?.score === 'number'
+              : typeof it.summary?.score === "number"
               ? it.summary.score
               : undefined,
           durationSeconds:
-            typeof it.durationSeconds === 'number'
+            typeof it.durationSeconds === "number"
               ? it.durationSeconds
               : it.summary?.durationSeconds,
           noteLabel: it.noteLabel ?? null,
         },
-        questionCount: Number(it.questionCount ?? it.totalQuestions ?? it.summary?.totalQuestions ?? 0),
+        questionCount: Number(
+          it.questionCount ??
+            it.totalQuestions ??
+            it.summary?.totalQuestions ??
+            0
+        ),
       }))
     : [];
 
@@ -276,15 +305,17 @@ export async function listMyTests(filters: ListFilters = {}): Promise<ListMyTest
 /**
  * Obtiene detalle completo de un test
  * Incluye todas las respuestas, uso de pistas y reclamaciones
- * 
+ *
  * @param sessionId - ID de la sesión
  * @returns Detalle con resultados y eventos de interacción
  * @remarks Calcula totals desde results si el backend no los envía
  */
-export async function getTestDetail(sessionId: string): Promise<TestSessionDetail> {
+export async function getTestDetail(
+  sessionId: string
+): Promise<TestSessionDetail> {
   const data = await apiJson<any>(`${API_URL}/api/test-sessions/${sessionId}`, {
     auth: true,
-    fallbackError: 'No se pudo cargar el detalle del test',
+    fallbackError: "No se pudo cargar el detalle del test",
   });
 
   const results: TestResultItem[] = (data.results || []).map((r: any) => ({
@@ -299,9 +330,10 @@ export async function getTestDetail(sessionId: string): Promise<TestSessionDetai
     attempts: Number(r.attempts ?? r.attemptsCount ?? 0),
     timeSpentSeconds: Number(r.timeSpentSeconds ?? 0),
     isCorrect:
-      typeof r.isCorrect === 'boolean'
+      typeof r.isCorrect === "boolean"
         ? r.isCorrect
-        : typeof r.correctIndex === 'number' && typeof r.selectedIndex === 'number'
+        : typeof r.correctIndex === "number" &&
+          typeof r.selectedIndex === "number"
         ? r.selectedIndex === r.correctIndex
         : undefined,
     claimed: !!r.claimed,
@@ -317,10 +349,16 @@ export async function getTestDetail(sessionId: string): Promise<TestSessionDetai
     finishedAt: data.finishedAt ?? null,
     durationSeconds: data.durationSeconds ?? undefined,
     diagram: data.diagram
-      ? { id: data.diagram.id, title: data.diagram.title, path: data.diagram.path ?? null }
+      ? {
+          id: data.diagram.id,
+          title: data.diagram.title,
+          path: data.diagram.path ?? null,
+        }
       : null,
     totals: {
-      totalQuestions: Number(data.totals?.totalQuestions ?? data.totalQuestions ?? results.length),
+      totalQuestions: Number(
+        data.totals?.totalQuestions ?? data.totalQuestions ?? results.length
+      ),
       answered: Number(
         data.totals?.answered ??
           data.answered ??
@@ -332,7 +370,9 @@ export async function getTestDetail(sessionId: string): Promise<TestSessionDetai
           results.filter((r) => r.isCorrect === true).length
       ),
       wrong: Number(
-        data.totals?.wrong ?? data.wrong ?? results.filter((r) => r.isCorrect === false).length
+        data.totals?.wrong ??
+          data.wrong ??
+          results.filter((r) => r.isCorrect === false).length
       ),
       skipped: Number(
         data.totals?.skipped ??
@@ -350,23 +390,23 @@ export async function getTestDetail(sessionId: string): Promise<TestSessionDetai
           results.filter((r) => r.revealedAnswer).length
       ),
       score:
-        typeof data.totals?.score === 'number'
+        typeof data.totals?.score === "number"
           ? data.totals.score
-          : typeof data.score === 'number'
+          : typeof data.score === "number"
           ? data.score
           : null,
     },
     summary: {
       durationSeconds:
-        typeof data.durationSeconds === 'number'
+        typeof data.durationSeconds === "number"
           ? data.durationSeconds
           : data.totals?.durationSeconds ?? null,
       accuracyPct:
-        typeof data.accuracyPct === 'number'
+        typeof data.accuracyPct === "number"
           ? data.accuracyPct
           : data.totals?.accuracyPct ?? null,
       score:
-        typeof data.score === 'number'
+        typeof data.score === "number"
           ? data.score
           : data.totals?.score ?? null,
     },
@@ -392,19 +432,21 @@ export type SessionDetail = TestSessionDetail;
 /**
  * Lista sesiones del estudiante autenticado
  * Wrapper de listMyTests con parámetros simplificados
- * 
+ *
  * @param params - Filtros de modo, fecha y búsqueda
  * @returns Array de sesiones (sin paginación)
  * @remarks Retorna máximo 200 items, usar listMyTests para paginación completa
  */
-export async function listMySessions(params: {
-  mode?: 'learning' | 'exam' | 'errors';
-  dateFrom?: string;
-  dateTo?: string;
-  q?: string;
-} = {}): Promise<SessionSummary[]> {
+export async function listMySessions(
+  params: {
+    mode?: "learning" | "exam" | "errors";
+    dateFrom?: string;
+    dateTo?: string;
+    q?: string;
+  } = {}
+): Promise<SessionSummary[]> {
   const resp = await listMyTests({
-    mode: params.mode ?? 'all',
+    mode: params.mode ?? "all",
     dateFrom: params.dateFrom,
     dateTo: params.dateTo,
     q: params.q,
@@ -417,10 +459,12 @@ export async function listMySessions(params: {
 /**
  * Obtiene detalle de sesión
  * Alias de getTestDetail para compatibilidad con vistas
- * 
+ *
  * @param sessionId - ID de la sesión
  * @returns Detalle completo con resultados
  */
-export async function getSessionDetail(sessionId: string): Promise<SessionDetail> {
+export async function getSessionDetail(
+  sessionId: string
+): Promise<SessionDetail> {
   return getTestDetail(sessionId);
 }

@@ -4,13 +4,13 @@
  * @module routes/users
  */
 
-import { Router } from 'express';
-import { body, param } from 'express-validator';
+import { Router } from "express";
+import { body, param } from "express-validator";
 
-import usersController from '../controllers/users';
-import { authenticate } from '../middlewares/authenticate';
-import authorize from '../middlewares/authorize';
-import validateDto from '../middlewares/validateDto';
+import usersController from "../controllers/users";
+import { authenticate } from "../middlewares/authenticate";
+import authorize from "../middlewares/authorize";
+import validateDto from "../middlewares/validateDto";
 
 const router = Router();
 
@@ -19,7 +19,7 @@ const router = Router();
  * Obtiene perfil del usuario autenticado
  * @access Privado (alumno, supervisor)
  */
-router.get('/me', authenticate, usersController.getProfile);
+router.get("/me", authenticate, usersController.getProfile);
 
 /**
  * PUT /api/users/me
@@ -27,14 +27,19 @@ router.get('/me', authenticate, usersController.getProfile);
  * @access Privado (alumno, supervisor)
  */
 router.put(
-  '/me',
+  "/me",
   authenticate,
   validateDto([
-    body('name').optional().isString().trim().notEmpty().withMessage('Nombre inválido'),
-    body('lastName').optional().isString().trim(),
-    body('email').optional().isEmail().withMessage('Email inválido'),
+    body("name")
+      .optional()
+      .isString()
+      .trim()
+      .notEmpty()
+      .withMessage("Nombre inválido"),
+    body("lastName").optional().isString().trim(),
+    body("email").optional().isEmail().withMessage("Email inválido"),
   ]),
-  usersController.updateMyProfile,
+  usersController.updateMyProfile
 );
 
 /**
@@ -43,16 +48,19 @@ router.put(
  * @access Privado (alumno, supervisor)
  */
 router.post(
-  '/me/password',
+  "/me/password",
   authenticate,
   validateDto([
-    body('currentPassword').isString().notEmpty().withMessage('Contraseña actual requerida'),
-    body('newPassword')
+    body("currentPassword")
+      .isString()
+      .notEmpty()
+      .withMessage("Contraseña actual requerida"),
+    body("newPassword")
       .isString()
       .isLength({ min: 6 })
-      .withMessage('La nueva contraseña debe tener al menos 6 caracteres'),
+      .withMessage("La nueva contraseña debe tener al menos 6 caracteres"),
   ]),
-  usersController.changeMyPassword,
+  usersController.changeMyPassword
 );
 
 /**
@@ -60,7 +68,12 @@ router.post(
  * Lista todos los usuarios del sistema
  * @access Privado (supervisor)
  */
-router.get('/', authenticate, authorize('supervisor'), usersController.listUsers);
+router.get(
+  "/",
+  authenticate,
+  authorize("supervisor"),
+  usersController.listUsers
+);
 
 /**
  * POST /api/users/batch
@@ -68,18 +81,20 @@ router.get('/', authenticate, authorize('supervisor'), usersController.listUsers
  * @access Privado (supervisor)
  */
 router.post(
-  '/batch',
+  "/batch",
   authenticate,
-  authorize('supervisor'),
+  authorize("supervisor"),
   validateDto([
-    body('users').isArray({ min: 1 }).withMessage('Users array is required'),
-    body('users.*.email').isEmail().withMessage('Each user must have a valid email'),
-    body('users.*.password')
+    body("users").isArray({ min: 1 }).withMessage("Users array is required"),
+    body("users.*.email")
+      .isEmail()
+      .withMessage("Each user must have a valid email"),
+    body("users.*.password")
       .isString()
       .isLength({ min: 6 })
-      .withMessage('Each user password must be at least 6 characters'),
+      .withMessage("Each user password must be at least 6 characters"),
   ]),
-  usersController.batchCreateUsers,
+  usersController.batchCreateUsers
 );
 
 /**
@@ -88,11 +103,11 @@ router.post(
  * @access Privado (alumno, supervisor)
  */
 router.get(
-  '/:userId',
+  "/:userId",
   authenticate,
-  authorize('alumno', 'supervisor'),
-  validateDto([param('userId').isUUID().withMessage('Invalid userId')]),
-  usersController.getUserById,
+  authorize("alumno", "supervisor"),
+  validateDto([param("userId").isUUID().withMessage("Invalid userId")]),
+  usersController.getUserById
 );
 
 /**
@@ -101,21 +116,26 @@ router.get(
  * @access Privado (alumno, supervisor)
  */
 router.put(
-  '/:userId',
+  "/:userId",
   authenticate,
-  authorize('alumno', 'supervisor'),
+  authorize("alumno", "supervisor"),
   validateDto([
-    param('userId').isUUID().withMessage('Invalid userId'),
-    body('email').optional().isEmail().withMessage('Invalid email'),
-    body('name').optional().isString().trim().notEmpty().withMessage('Nombre requerido'),
-    body('lastName').optional().isString().trim(),
-    body('password')
+    param("userId").isUUID().withMessage("Invalid userId"),
+    body("email").optional().isEmail().withMessage("Invalid email"),
+    body("name")
+      .optional()
+      .isString()
+      .trim()
+      .notEmpty()
+      .withMessage("Nombre requerido"),
+    body("lastName").optional().isString().trim(),
+    body("password")
       .optional()
       .isString()
       .isLength({ min: 6 })
-      .withMessage('Contraseña mínima de 6 caracteres'),
+      .withMessage("Contraseña mínima de 6 caracteres"),
   ]),
-  usersController.updateUser,
+  usersController.updateUser
 );
 
 /**
@@ -124,11 +144,11 @@ router.put(
  * @access Privado (supervisor)
  */
 router.delete(
-  '/:userId',
+  "/:userId",
   authenticate,
-  authorize('supervisor'),
-  validateDto([param('userId').isUUID().withMessage('Invalid userId')]),
-  usersController.deleteUser,
+  authorize("supervisor"),
+  validateDto([param("userId").isUUID().withMessage("Invalid userId")]),
+  usersController.deleteUser
 );
 
 export default router;

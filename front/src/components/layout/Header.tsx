@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { logout } from '../../services/auth';
+import React, { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { logout } from "../../services/auth";
 import {
   LogOut,
   ChevronDown,
@@ -10,8 +10,8 @@ import {
   MessageSquare,
   Users,
   Layers,
-} from 'lucide-react';
-import { useAuth } from '../../app/AuthContext';
+} from "lucide-react";
+import { useAuth } from "../../app/AuthContext";
 
 /**
  * Cabecera principal con navegación contextual y menú de usuario.
@@ -29,20 +29,20 @@ const Header: React.FC = () => {
       }
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMenuOpen(false);
+      if (e.key === "Escape") setMenuOpen(false);
     };
-    document.addEventListener('mousedown', onDocClick);
-    document.addEventListener('keydown', onKey);
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
     return () => {
-      document.removeEventListener('mousedown', onDocClick);
-      document.removeEventListener('keydown', onKey);
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
     };
   }, []);
 
   const handleLogout = async () => {
     await logout();
     setProfile(null);
-    navigate('/login', { replace: true });
+    navigate("/login", { replace: true });
   };
 
   if (loading) {
@@ -70,13 +70,14 @@ const Header: React.FC = () => {
   };
 
   const goDashboard = () => {
-    if (profile.role === 'supervisor') navigate('/supervisor/dashboard');
-    else navigate('/student/dashboard');
+    if (profile.role === "supervisor") navigate("/supervisor/dashboard");
+    else navigate("/student/dashboard");
   };
 
-  const isSupervisor = profile.role === 'supervisor';
-  const displayName = (profile.name?.trim() || profile.email || '').trim();
-  const initial = displayName[0]?.toUpperCase() || profile.email?.[0]?.toUpperCase() || 'U';
+  const isSupervisor = profile.role === "supervisor";
+  const displayName = (profile.name?.trim() || profile.email || "").trim();
+  const initial =
+    displayName[0]?.toUpperCase() || profile.email?.[0]?.toUpperCase() || "U";
 
   return (
     <header className="sticky top-0 z-40 backdrop-blur bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950 text-white border-b border-white/10">
@@ -91,15 +92,19 @@ const Header: React.FC = () => {
             <span className="text-xs font-bold tracking-tight">ER</span>
           </div>
           <div className="hidden sm:block text-left leading-tight">
-            <div className="font-semibold tracking-tight group-hover:opacity-90">ERPlay</div>
-            <div className="text-[11px] text-white/60 -mt-0.5">Aprende con tests</div>
+            <div className="font-semibold tracking-tight group-hover:opacity-90">
+              ERPlay
+            </div>
+            <div className="text-[11px] text-white/60 -mt-0.5">
+              Aprende con tests
+            </div>
           </div>
         </button>
 
         <div className="flex items-center gap-2 sm:gap-3">
           {!isSupervisor && (
             <button
-              onClick={() => go('/student/play-menu')}
+              onClick={() => go("/student/play-menu")}
               className="hidden sm:inline-flex items-center gap-2 rounded-xl bg-indigo-500 hover:bg-indigo-400 active:bg-indigo-500 px-3 py-2 text-sm font-medium shadow focus:outline-none focus:ring-2 focus:ring-indigo-300/50"
             >
               <PlayCircle size={18} />
@@ -121,10 +126,17 @@ const Header: React.FC = () => {
 
               <div className="hidden md:flex md:flex-col md:items-start leading-tight">
                 <span className="max-w-[12rem] truncate">{displayName}</span>
-                <span className="text-[10px] text-white/60 capitalize">{profile.role}</span>
+                <span className="text-[10px] text-white/60 capitalize">
+                  {profile.role}
+                </span>
               </div>
 
-              <ChevronDown size={16} className={`hidden sm:block transition ${menuOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown
+                size={16}
+                className={`hidden sm:block transition ${
+                  menuOpen ? "rotate-180" : ""
+                }`}
+              />
             </button>
 
             {menuOpen && (
@@ -144,7 +156,7 @@ const Header: React.FC = () => {
                 {!isSupervisor ? (
                   <>
                     <button
-                      onClick={() => go('/student/my-tests')}
+                      onClick={() => go("/student/my-tests")}
                       role="menuitem"
                       className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-white/10"
                     >
@@ -152,7 +164,7 @@ const Header: React.FC = () => {
                       Mis tests
                     </button>
                     <button
-                      onClick={() => go('/student/questions')}
+                      onClick={() => go("/student/questions")}
                       role="menuitem"
                       className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-white/10"
                     >
@@ -163,7 +175,7 @@ const Header: React.FC = () => {
                 ) : (
                   <>
                     <button
-                      onClick={() => go('/supervisor/users')}
+                      onClick={() => go("/supervisor/users")}
                       role="menuitem"
                       className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-white/10"
                     >
@@ -171,7 +183,7 @@ const Header: React.FC = () => {
                       Usuarios
                     </button>
                     <button
-                      onClick={() => go('/supervisor/tests')}
+                      onClick={() => go("/supervisor/tests")}
                       role="menuitem"
                       className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-white/10"
                     >

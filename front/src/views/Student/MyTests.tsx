@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useState } from "react";
 import PageWithHeader from "../../components/layout/PageWithHeader";
 import { toast } from "react-toastify";
@@ -23,7 +22,11 @@ import {
   Flag,
   ArrowLeft,
 } from "lucide-react";
-import { formatDateTime, formatDate, formatDuration } from "../../shared/utils/datetime";
+import {
+  formatDateTime,
+  formatDate,
+  formatDuration,
+} from "../../shared/utils/datetime";
 import { resolveAssetUrl } from "../../shared/utils/url";
 
 const modeLabel: Record<"learning" | "exam", string> = {
@@ -32,25 +35,21 @@ const modeLabel: Record<"learning" | "exam", string> = {
 };
 type ModeFilter = "ALL" | "learning" | "exam";
 
-
 const PAGE_SIZE = 20;
 
 const MyTests: React.FC = () => {
   const navigate = useNavigate();
 
-  
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<SessionSummary[]>([]);
   const [mode, setMode] = useState<ModeFilter>("ALL");
   const [q, setQ] = useState("");
-  const [dateFrom, setDateFrom] = useState<string>(""); 
-  const [dateTo, setDateTo] = useState<string>(""); 
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
   const [refreshing, setRefreshing] = useState(false);
 
-  
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -58,7 +57,6 @@ const MyTests: React.FC = () => {
   const showLoading = useDelayedFlag(loading);
   const showDetailLoading = useDelayedFlag(detailLoading);
 
-  
   const loadList = async () => {
     setLoading(true);
     try {
@@ -84,10 +82,8 @@ const MyTests: React.FC = () => {
 
   useEffect(() => {
     loadList();
-    
   }, []);
 
-  
   const filtered = useMemo(() => {
     const text = q.trim().toLowerCase();
     return items.filter((it) => {
@@ -109,7 +105,6 @@ const MyTests: React.FC = () => {
     });
   }, [items, mode, q, dateFrom, dateTo]);
 
-  
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
   }, [mode, q, dateFrom, dateTo, items]);
@@ -135,7 +130,6 @@ const MyTests: React.FC = () => {
     }
   };
 
-  
   const openDetail = async (id: string, keepOpen = false) => {
     setSelectedId(id);
     if (!keepOpen) setDetailOpen(true);
@@ -157,7 +151,6 @@ const MyTests: React.FC = () => {
     setDetail(null);
   };
 
-  
   const claimCount = useMemo(() => {
     if (!detail?.results) return 0;
     return detail.results.filter((r: any) => !!(r.claimed || r.claimId)).length;
@@ -165,7 +158,6 @@ const MyTests: React.FC = () => {
 
   const isClaimed = (r: any) => !!(r?.claimed || r?.claimId);
 
-  
   const examScore = useMemo(() => {
     if (!detail || detail.mode !== "exam") return null;
     const s1 =
@@ -180,7 +172,6 @@ const MyTests: React.FC = () => {
     return null;
   }, [detail]);
 
-  
   const loadMore = () => setVisibleCount((v) => v + PAGE_SIZE);
 
   return (
@@ -377,7 +368,8 @@ const MyTests: React.FC = () => {
                             {it.diagram?.title || "—"}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {acc} · {formatDuration(it.summary?.durationSeconds)}
+                            {acc} ·{" "}
+                            {formatDuration(it.summary?.durationSeconds)}
                           </div>
                         </div>
 
@@ -414,7 +406,8 @@ const MyTests: React.FC = () => {
                             {it.diagram?.title || "—"}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {acc} · {formatDuration(it.summary?.durationSeconds)}
+                            {acc} ·{" "}
+                            {formatDuration(it.summary?.durationSeconds)}
                           </div>
                         </div>
 
@@ -621,7 +614,6 @@ const MyTests: React.FC = () => {
                         const answered = typeof r.selectedIndex === "number";
                         const isExam = detail.mode === "exam";
 
-                        
                         const showCorrect =
                           !isExam && typeof r.correctIndex === "number";
                         const isCorrect =
@@ -744,7 +736,7 @@ const MyTests: React.FC = () => {
           </div>
         </div>
       )}
-   </PageWithHeader>
+    </PageWithHeader>
   );
 };
 

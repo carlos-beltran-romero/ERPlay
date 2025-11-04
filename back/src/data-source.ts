@@ -2,16 +2,16 @@
 /**
  * @module data-source
  */
-import 'reflect-metadata';
-import { DataSource } from 'typeorm';
-import { env } from './config/env';
+import "reflect-metadata";
+import { DataSource } from "typeorm";
+import { env } from "./config/env";
 
 /**
  * DataSource de TypeORM compartido por toda la aplicación.
  * @public
  */
 export const AppDataSource = new DataSource({
-  type: 'mysql',
+  type: "mysql",
   host: env.DB_HOST,
   port: env.DB_PORT,
   username: env.DB_USER,

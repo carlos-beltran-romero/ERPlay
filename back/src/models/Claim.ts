@@ -5,13 +5,19 @@
  */
 
 import {
-  Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany,
-  CreateDateColumn, UpdateDateColumn, JoinColumn
-} from 'typeorm';
-import { User } from './User';
-import { Question } from './Question';
-import { Diagram } from './Diagram';
-import { TestResult } from './TestResult';
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
+  JoinColumn,
+} from "typeorm";
+import { User } from "./User";
+import { Question } from "./Question";
+import { Diagram } from "./Diagram";
+import { TestResult } from "./TestResult";
 
 /**
  * Estados posibles de una reclamación
@@ -19,33 +25,33 @@ import { TestResult } from './TestResult';
  */
 export enum ClaimStatus {
   /** Reclamación pendiente de revisión por parte de un supervisor */
-  PENDING = 'PENDING',
+  PENDING = "PENDING",
   /** Reclamación aprobada - se considera que el estudiante tenía razón */
-  APPROVED = 'APPROVED',
+  APPROVED = "APPROVED",
   /** Reclamación rechazada - se mantiene la corrección original */
-  REJECTED = 'REJECTED',
+  REJECTED = "REJECTED",
 }
 
 /**
  * Entidad Claim - Reclamación de estudiante sobre una respuesta de test
  * Permite a los estudiantes disputar la corrección de una pregunta cuando consideren
  * que su respuesta era correcta o que la pregunta contenía errores.
- * 
+ *
  * @remarks
  * El flujo típico es:
  * 1. Estudiante crea reclamación con estado PENDING
  * 2. Supervisor revisa y cambia estado a APPROVED o REJECTED
  * 3. Si es APPROVED, puede actualizarse la pregunta original
- * 
+ *
  * @entity claims
  */
-@Entity('claims')
+@Entity("claims")
 export class Claim {
   /**
    * Identificador único de la reclamación
    * Generado automáticamente como UUID
    */
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   id!: string;
 
   /**
@@ -53,7 +59,7 @@ export class Claim {
    * Controla el flujo de revisión y resolución
    * @default ClaimStatus.PENDING
    */
-  @Column({ type: 'enum', enum: ClaimStatus, default: ClaimStatus.PENDING })
+  @Column({ type: "enum", enum: ClaimStatus, default: ClaimStatus.PENDING })
   status!: ClaimStatus;
 
   /**
@@ -61,8 +67,8 @@ export class Claim {
    * Puede ser null si la pregunta fue eliminada después de crear la reclamación
    * @optional
    */
-  @ManyToOne(() => Question, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'question_id' })
+  @ManyToOne(() => Question, { nullable: true, onDelete: "SET NULL" })
+  @JoinColumn({ name: "question_id" })
   question?: Question | null;
 
   /**
@@ -70,8 +76,11 @@ export class Claim {
    * Vincula la reclamación con el intento concreto del estudiante
    * @optional
    */
-  @ManyToOne(() => TestResult, (tr) => tr.claims, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'test_result_id' })
+  @ManyToOne(() => TestResult, (tr) => tr.claims, {
+    nullable: true,
+    onDelete: "SET NULL",
+  })
+  @JoinColumn({ name: "test_result_id" })
   testResult?: TestResult | null;
 
   /**
@@ -79,51 +88,51 @@ export class Claim {
    * Proporciona contexto visual para la revisión
    * @optional
    */
-  @ManyToOne(() => Diagram, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'diagram_id' })
+  @ManyToOne(() => Diagram, { nullable: true, onDelete: "SET NULL" })
+  @JoinColumn({ name: "diagram_id" })
   diagram?: Diagram | null;
 
   /**
    * Estudiante que realiza la reclamación
    * Referencia obligatoria, se elimina en cascada si se borra el usuario
    */
-  @ManyToOne(() => User, { nullable: false, onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'student_id' })
+  @ManyToOne(() => User, { nullable: false, onDelete: "CASCADE" })
+  @JoinColumn({ name: "student_id" })
   student!: User;
 
   /**
    * Instantánea del enunciado de la pregunta en el momento de la reclamación
    * Preserva el texto exacto que vio el estudiante, independiente de cambios posteriores
    */
-  @Column({ type: 'text' })
+  @Column({ type: "text" })
   promptSnapshot!: string;
 
   /**
    * Instantánea de las opciones de respuesta en el momento de la reclamación
    * Array JSON con todas las opciones tal como se mostraron al estudiante
    */
-  @Column({ type: 'json' })
+  @Column({ type: "json" })
   optionsSnapshot!: string[];
 
   /**
    * Índice de la opción elegida por el estudiante (0-based)
    * Identifica qué respuesta seleccionó el estudiante en el test
    */
-  @Column({ type: 'int' })
+  @Column({ type: "int" })
   chosenIndex!: number;
 
   /**
    * Índice de la respuesta considerada correcta en el momento del test (0-based)
    * Preserva cuál era la respuesta marcada como correcta cuando se realizó el intento
    */
-  @Column({ type: 'int' })
+  @Column({ type: "int" })
   correctIndexAtSubmission!: number;
 
   /**
    * Explicación del estudiante justificando su reclamación
    * Texto libre donde el estudiante argumenta por qué considera incorrecta la corrección
    */
-  @Column({ type: 'text' })
+  @Column({ type: "text" })
   explanation!: string;
 
   /**
@@ -131,8 +140,8 @@ export class Claim {
    * Null mientras está pendiente, se asigna al resolverse
    * @optional
    */
-  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'reviewer_id' })
+  @ManyToOne(() => User, { nullable: true, onDelete: "SET NULL" })
+  @JoinColumn({ name: "reviewer_id" })
   reviewer?: User | null;
 
   /**
@@ -140,7 +149,7 @@ export class Claim {
    * Explica el razonamiento detrás de aprobar o rechazar la reclamación
    * @optional
    */
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: "text", nullable: true })
   reviewerComment?: string | null;
 
   /**
@@ -148,7 +157,7 @@ export class Claim {
    * Se establece cuando un supervisor cambia el estado de PENDING a APPROVED/REJECTED
    * @optional
    */
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: "timestamp", nullable: true })
   reviewedAt?: Date | null;
 
   /**

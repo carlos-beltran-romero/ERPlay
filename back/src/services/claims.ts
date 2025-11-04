@@ -4,28 +4,33 @@
  * @module services/claims
  */
 
-import { env } from '../config/env';
-import { defaultMailer } from '../config/mailer';
-import { createHttpError } from '../core/errors/HttpError';
-import { AppDataSource } from '../data-source';
-import { Claim, ClaimStatus } from '../models/Claim';
-import { Diagram } from '../models/Diagram';
-import { Question, ReviewStatus } from '../models/Question';
-import { TestResult } from '../models/TestResult';
-import { User, UserRole } from '../models/User';
-import { escapeHtml, letterFromIndex, renderCardEmail } from './shared/emailTemplates';
+import { env } from "../config/env";
+import { defaultMailer } from "../config/mailer";
+import { createHttpError } from "../core/errors/HttpError";
+import { AppDataSource } from "../data-source";
+import { Claim, ClaimStatus } from "../models/Claim";
+import { Diagram } from "../models/Diagram";
+import { Question, ReviewStatus } from "../models/Question";
+import { TestResult } from "../models/TestResult";
+import { User, UserRole } from "../models/User";
+import {
+  escapeHtml,
+  letterFromIndex,
+  renderCardEmail,
+} from "./shared/emailTemplates";
 
 const transporter = defaultMailer;
 
 /** Normaliza texto eliminando espacios extra */
 function norm(s: string) {
-  return (s ?? '').toString().trim().replace(/\s+/g, ' ');
+  return (s ?? "").toString().trim().replace(/\s+/g, " ");
 }
 
 /** Compara dos arrays de texto normalizados */
 function arraysEqualText(a: string[], b: string[]) {
   if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) if (norm(a[i]) !== norm(b[i])) return false;
+  for (let i = 0; i < a.length; i++)
+    if (norm(a[i]) !== norm(b[i])) return false;
   return true;
 }
 
@@ -43,7 +48,7 @@ export class ClaimsService {
   /**
    * Crea una nueva reclamación
    * Valida integridad, evita duplicados y notifica a supervisores
-   * 
+   *
    * @param params - Datos de la reclamación
    * @returns Resumen de la reclamación creada
    * @throws {HttpError} 404 si el diagrama no existe
@@ -60,21 +65,28 @@ export class ClaimsService {
     correctIndex: number;
     explanation: string;
   }) {
-    const student = await this.userRepo.findOneByOrFail({ id: params.studentId });
+    const student = await this.userRepo.findOneByOrFail({
+      id: params.studentId,
+    });
     const diagram = await this.diagramRepo.findOneBy({ id: params.diagramId });
-    if (!diagram) throw createHttpError(404, 'Diagrama no encontrado');
+    if (!diagram) throw createHttpError(404, "Diagrama no encontrado");
 
-    if (!params.prompt?.trim()) throw createHttpError(400, 'El enunciado es obligatorio');
+    if (!params.prompt?.trim())
+      throw createHttpError(400, "El enunciado es obligatorio");
     if (!Array.isArray(params.options) || params.options.length < 2) {
-      throw createHttpError(400, 'Mínimo 2 opciones');
+      throw createHttpError(400, "Mínimo 2 opciones");
     }
     if (params.chosenIndex < 0 || params.chosenIndex >= params.options.length) {
-      throw createHttpError(400, 'Índice elegido inválido');
+      throw createHttpError(400, "Índice elegido inválido");
     }
-    if (params.correctIndex < 0 || params.correctIndex >= params.options.length) {
-      throw createHttpError(400, 'Índice correcto inválido');
+    if (
+      params.correctIndex < 0 ||
+      params.correctIndex >= params.options.length
+    ) {
+      throw createHttpError(400, "Índice correcto inválido");
     }
-    if (!params.explanation?.trim()) throw createHttpError(400, 'La explicación es obligatoria');
+    if (!params.explanation?.trim())
+      throw createHttpError(400, "La explicación es obligatoria");
 
     const claim = await AppDataSource.transaction(async (m) => {
       const qRepo = m.getRepository(Question);
@@ -86,12 +98,12 @@ export class ClaimsService {
         testResult = await rRepo.findOne({
           where: { id: params.testResultId },
           relations: { session: { user: true, diagram: true }, question: true },
-          lock: { mode: 'pessimistic_write' },
+          lock: { mode: "pessimistic_write" },
         });
         if (!testResult || testResult.session.user.id !== params.studentId) {
-          throw createHttpError(400, 'Resultado no válido para reclamar');
+          throw createHttpError(400, "Resultado no válido para reclamar");
         }
-        
+
         // Evitar duplicados
         const dup = await m.getRepository(Claim).findOne({
           where: { testResult: { id: testResult.id } },
@@ -106,13 +118,13 @@ export class ClaimsService {
         q = await qRepo.findOne({
           where: { id: params.questionId },
           relations: { diagram: true, options: true },
-          lock: { mode: 'pessimistic_write' },
+          lock: { mode: "pessimistic_write" },
         });
       } else if (testResult?.question) {
         q = await qRepo.findOne({
           where: { id: testResult.question.id },
           relations: { diagram: true, options: true },
-          lock: { mode: 'pessimistic_write' },
+          lock: { mode: "pessimistic_write" },
         });
       }
 
@@ -125,20 +137,23 @@ export class ClaimsService {
         const wantedPrompt = norm(params.prompt);
         const wantedOpts = params.options.map(norm);
 
-        q = candidate.find(c => {
-          const cPrompt = norm(c.prompt);
-          const cOpts = (c.options ?? [])
-            .slice()
-            .sort((a, b) => a.orderIndex - b.orderIndex)
-            .map(o => norm(o.text));
-          return cPrompt === wantedPrompt && arraysEqualText(cOpts, wantedOpts);
-        }) || null;
+        q =
+          candidate.find((c) => {
+            const cPrompt = norm(c.prompt);
+            const cOpts = (c.options ?? [])
+              .slice()
+              .sort((a, b) => a.orderIndex - b.orderIndex)
+              .map((o) => norm(o.text));
+            return (
+              cPrompt === wantedPrompt && arraysEqualText(cOpts, wantedOpts)
+            );
+          }) || null;
 
         if (q) {
           q = await qRepo.findOne({
             where: { id: q.id },
             relations: { diagram: true, options: true },
-            lock: { mode: 'pessimistic_write' },
+            lock: { mode: "pessimistic_write" },
           });
         }
       }
@@ -157,7 +172,7 @@ export class ClaimsService {
         student,
         testResult: testResult ?? null,
         promptSnapshot: params.prompt.trim(),
-        optionsSnapshot: params.options.map(s => s.trim()),
+        optionsSnapshot: params.options.map((s) => s.trim()),
         chosenIndex: params.chosenIndex,
         correctIndexAtSubmission: params.correctIndex,
         explanation: params.explanation.trim(),
@@ -168,7 +183,11 @@ export class ClaimsService {
     });
 
     await this.notifySupervisorsNewClaim(claim);
-    return { id: claim.id, status: claim.status, testResultId: claim.testResult?.id ?? null };
+    return {
+      id: claim.id,
+      status: claim.status,
+      testResultId: claim.testResult?.id ?? null,
+    };
   }
 
   /**
@@ -178,11 +197,16 @@ export class ClaimsService {
   async listPending() {
     const rows = await this.claimRepo.find({
       where: { status: ClaimStatus.PENDING },
-      relations: { student: true, question: true, diagram: true, testResult: true },
-      order: { createdAt: 'DESC' },
+      relations: {
+        student: true,
+        question: true,
+        diagram: true,
+        testResult: true,
+      },
+      order: { createdAt: "DESC" },
     });
 
-    return rows.map(c => ({
+    return rows.map((c) => ({
       id: c.id,
       testResultId: c.testResult?.id ?? null,
       questionId: c.question?.id ?? null,
@@ -195,11 +219,15 @@ export class ClaimsService {
       student: {
         id: c.student.id,
         email: c.student.email,
-        name: c.student.name ?? '',
-        lastName: c.student.lastName ?? '',
+        name: c.student.name ?? "",
+        lastName: c.student.lastName ?? "",
       },
       diagram: c.diagram
-        ? { id: c.diagram.id, title: c.diagram.title, path: c.diagram.path ?? null }
+        ? {
+            id: c.diagram.id,
+            title: c.diagram.title,
+            path: c.diagram.path ?? null,
+          }
         : null,
     }));
   }
@@ -221,10 +249,10 @@ export class ClaimsService {
     const rows = await this.claimRepo.find({
       where: { student: { id: studentId } },
       relations: { diagram: true, testResult: true },
-      order: { createdAt: 'DESC' },
+      order: { createdAt: "DESC" },
     });
 
-    return rows.map(c => ({
+    return rows.map((c) => ({
       id: c.id,
       status: c.status,
       testResultId: c.testResult?.id ?? null,
@@ -236,7 +264,11 @@ export class ClaimsService {
       chosenIndex: c.chosenIndex,
       correctIndex: c.correctIndexAtSubmission,
       diagram: c.diagram
-        ? { id: c.diagram.id, title: c.diagram.title, path: c.diagram.path ?? null }
+        ? {
+            id: c.diagram.id,
+            title: c.diagram.title,
+            path: c.diagram.path ?? null,
+          }
         : null,
     }));
   }
@@ -244,7 +276,7 @@ export class ClaimsService {
   /**
    * Resuelve una reclamación (aprobar o rechazar)
    * Actualiza la pregunta y notifica al estudiante
-   * 
+   *
    * @param params - Decisión del supervisor
    * @throws {HttpError} 403 si el reviewer no es supervisor
    * @throws {HttpError} 404 si la reclamación no existe
@@ -253,28 +285,31 @@ export class ClaimsService {
   async decideClaim(params: {
     claimId: string;
     reviewerId: string;
-    decision: 'approve' | 'reject';
+    decision: "approve" | "reject";
     comment?: string;
   }) {
-    const reviewer = await this.userRepo.findOneByOrFail({ id: params.reviewerId });
-    if (reviewer.role !== UserRole.SUPERVISOR) throw createHttpError(403, 'No autorizado');
+    const reviewer = await this.userRepo.findOneByOrFail({
+      id: params.reviewerId,
+    });
+    if (reviewer.role !== UserRole.SUPERVISOR)
+      throw createHttpError(403, "No autorizado");
 
     await AppDataSource.transaction(async (m) => {
       const claim = await m.getRepository(Claim).findOne({
         where: { id: params.claimId },
         relations: { question: true, student: true, diagram: true },
-        lock: { mode: 'pessimistic_write' },
+        lock: { mode: "pessimistic_write" },
       });
-      if (!claim) throw createHttpError(404, 'Reclamación no encontrada');
+      if (!claim) throw createHttpError(404, "Reclamación no encontrada");
       if (claim.status !== ClaimStatus.PENDING) {
-        throw createHttpError(409, 'La reclamación ya fue resuelta');
+        throw createHttpError(409, "La reclamación ya fue resuelta");
       }
 
       const q = claim.question
         ? await m.getRepository(Question).findOne({
             where: { id: claim.question.id },
             relations: { options: true },
-            lock: { mode: 'pessimistic_write' },
+            lock: { mode: "pessimistic_write" },
           })
         : null;
 
@@ -282,7 +317,7 @@ export class ClaimsService {
       claim.reviewerComment = params.comment?.trim() || null;
       claim.reviewedAt = new Date();
 
-      if (params.decision === 'approve') {
+      if (params.decision === "approve") {
         claim.status = ClaimStatus.APPROVED;
 
         if (q) {
@@ -290,8 +325,12 @@ export class ClaimsService {
           let newIdx = claim.chosenIndex;
 
           if (chosenText && Array.isArray(q.options)) {
-            const sorted = q.options.slice().sort((a, b) => a.orderIndex - b.orderIndex);
-            const found = sorted.findIndex(o => norm(o.text) === norm(chosenText));
+            const sorted = q.options
+              .slice()
+              .sort((a, b) => a.orderIndex - b.orderIndex);
+            const found = sorted.findIndex(
+              (o) => norm(o.text) === norm(chosenText)
+            );
             if (found >= 0) newIdx = found;
           }
 
@@ -317,7 +356,7 @@ export class ClaimsService {
       await this.notifyStudentDecision({
         to: claim.student.email,
         status: claim.status,
-        diagramTitle: claim.diagram?.title ?? 'Diagrama',
+        diagramTitle: claim.diagram?.title ?? "Diagrama",
         prompt: claim.promptSnapshot,
         chosenIndex: claim.chosenIndex,
         correctIndexNow,
@@ -328,7 +367,10 @@ export class ClaimsService {
 
     return {
       id: params.claimId,
-      status: params.decision === 'approve' ? ClaimStatus.APPROVED : ClaimStatus.REJECTED,
+      status:
+        params.decision === "approve"
+          ? ClaimStatus.APPROVED
+          : ClaimStatus.REJECTED,
     };
   }
 
@@ -339,17 +381,21 @@ export class ClaimsService {
     if (fixed) {
       recipients = [fixed];
     } else {
-      const sups = await this.userRepo.find({ where: { role: UserRole.SUPERVISOR } });
-      recipients = sups.map(s => s.email).filter(Boolean);
+      const sups = await this.userRepo.find({
+        where: { role: UserRole.SUPERVISOR },
+      });
+      recipients = sups.map((s) => s.email).filter(Boolean);
     }
     if (!recipients.length) return;
 
     const studentFullName =
-      `${claim.student.name ?? ''} ${claim.student.lastName ?? ''}`.trim() || claim.student.email;
-    const diagTitle = claim.diagram?.title ?? 'Diagrama';
+      `${claim.student.name ?? ""} ${claim.student.lastName ?? ""}`.trim() ||
+      claim.student.email;
+    const diagTitle = claim.diagram?.title ?? "Diagrama";
 
-    const chosenTxt = claim.optionsSnapshot?.[claim.chosenIndex] ?? '';
-    const correctTxt = claim.optionsSnapshot?.[claim.correctIndexAtSubmission] ?? '';
+    const chosenTxt = claim.optionsSnapshot?.[claim.chosenIndex] ?? "";
+    const correctTxt =
+      claim.optionsSnapshot?.[claim.correctIndexAtSubmission] ?? "";
 
     const body = `
       <div style="font-size:14px;line-height:1.6">
@@ -361,11 +407,15 @@ export class ClaimsService {
 
         <table role="presentation" style="width:100%;border-collapse:collapse">
           <tr><td style="padding:6px 0;width:120px;color:#6b7280;">Alumno</td>
-              <td style="padding:6px 0;"><strong>${escapeHtml(studentFullName)}</strong> (${escapeHtml(claim.student.email)})</td></tr>
+              <td style="padding:6px 0;"><strong>${escapeHtml(
+                studentFullName
+              )}</strong> (${escapeHtml(claim.student.email)})</td></tr>
           <tr><td style="padding:6px 0;width:120px;color:#6b7280;">Diagrama</td>
               <td style="padding:6px 0;">${escapeHtml(diagTitle)}</td></tr>
           <tr><td style="padding:6px 0;width:120px;color:#6b7280;">Enviada</td>
-              <td style="padding:6px 0;">${escapeHtml(new Date(claim.createdAt).toLocaleString())}</td></tr>
+              <td style="padding:6px 0;">${escapeHtml(
+                new Date(claim.createdAt).toLocaleString()
+              )}</td></tr>
         </table>
 
         <div style="margin:16px 0;padding:12px;border:1px solid #e5e7eb;border-radius:10px;background:#F9FAFB">
@@ -376,13 +426,17 @@ export class ClaimsService {
         <div style="display:flex;gap:8px;margin:10px 0 16px;flex-wrap:wrap">
           <span style="display:inline-block;border:1px solid #D1D5DB;border-radius:10px;padding:6px 10px;background:#ffffff;">
             <strong>Resp. alumno</strong>:
-            <span style="font-variant-numeric:tabular-nums">${letterFromIndex(claim.chosenIndex)}</span>
-            ${chosenTxt ? `· ${escapeHtml(chosenTxt)}` : ''}
+            <span style="font-variant-numeric:tabular-nums">${letterFromIndex(
+              claim.chosenIndex
+            )}</span>
+            ${chosenTxt ? `· ${escapeHtml(chosenTxt)}` : ""}
           </span>
           <span style="display:inline-block;border:1px solid #D1D5DB;border-radius:10px;padding:6px 10px;background:#ffffff;">
             <strong>Resp. oficial</strong>:
-            <span style="font-variant-numeric:tabular-nums">${letterFromIndex(claim.correctIndexAtSubmission)}</span>
-            ${correctTxt ? `· ${escapeHtml(correctTxt)}` : ''}
+            <span style="font-variant-numeric:tabular-nums">${letterFromIndex(
+              claim.correctIndexAtSubmission
+            )}</span>
+            ${correctTxt ? `· ${escapeHtml(correctTxt)}` : ""}
           </span>
         </div>
 
@@ -396,15 +450,15 @@ export class ClaimsService {
     `;
 
     const html = renderCardEmail({
-      title: 'Nueva reclamación pendiente',
+      title: "Nueva reclamación pendiente",
       bodyHtml: body,
-      accent: '#FEF3C7',
+      accent: "#FEF3C7",
     });
 
     await transporter.sendMail({
       from: '"ERPlay Notificaciones" <no-reply@erplay.com>',
-      to: recipients.join(','),
-      subject: 'Nueva reclamación pendiente de revisión',
+      to: recipients.join(","),
+      subject: "Nueva reclamación pendiente de revisión",
       html,
     });
   }
@@ -422,8 +476,8 @@ export class ClaimsService {
   }) {
     const approved = args.status === ClaimStatus.APPROVED;
 
-    const chosenTxt = args.options?.[args.chosenIndex] ?? '';
-    const correctTxt = args.options?.[args.correctIndexNow] ?? '';
+    const chosenTxt = args.options?.[args.chosenIndex] ?? "";
+    const correctTxt = args.options?.[args.correctIndexNow] ?? "";
 
     const statusBadge = approved
       ? `<span style="display:inline-block;padding:2px 10px;border-radius:999px;background:#D1FAE5;color:#065F46;border:1px solid #A7F3D0;font-size:12px;font-weight:600;">Aprobada</span>`
@@ -435,7 +489,9 @@ export class ClaimsService {
 
         <table role="presentation" style="width:100%;border-collapse:collapse">
           <tr><td style="padding:6px 0;width:120px;color:#6b7280;">Diagrama</td>
-              <td style="padding:6px 0;">${escapeHtml(args.diagramTitle)}</td></tr>
+              <td style="padding:6px 0;">${escapeHtml(
+                args.diagramTitle
+              )}</td></tr>
         </table>
 
         <div style="margin:16px 0;padding:12px;border:1px solid #e5e7eb;border-radius:10px;background:#F9FAFB">
@@ -446,13 +502,17 @@ export class ClaimsService {
         <div style="display:flex;gap:8px;margin:10px 0 16px;flex-wrap:wrap">
           <span style="display:inline-block;border:1px solid #D1D5DB;border-radius:10px;padding:6px 10px;background:#ffffff;">
             <strong>Tu respuesta</strong>:
-            <span style="font-variant-numeric:tabular-nums">${letterFromIndex(args.chosenIndex)}</span>
-            ${chosenTxt ? `· ${escapeHtml(chosenTxt)}` : ''}
+            <span style="font-variant-numeric:tabular-nums">${letterFromIndex(
+              args.chosenIndex
+            )}</span>
+            ${chosenTxt ? `· ${escapeHtml(chosenTxt)}` : ""}
           </span>
           <span style="display:inline-block;border:1px solid #D1D5DB;border-radius:10px;padding:6px 10px;background:#ffffff;">
             <strong>Respuesta oficial tras revisión</strong>:
-            <span style="font-variant-numeric:tabular-nums">${letterFromIndex(args.correctIndexNow)}</span>
-            ${correctTxt ? `· ${escapeHtml(correctTxt)}` : ''}
+            <span style="font-variant-numeric:tabular-nums">${letterFromIndex(
+              args.correctIndexNow
+            )}</span>
+            ${correctTxt ? `· ${escapeHtml(correctTxt)}` : ""}
           </span>
         </div>
 
@@ -464,21 +524,23 @@ export class ClaimsService {
                    ${escapeHtml(args.reviewerComment)}
                  </div>
                </div>`
-            : ''
+            : ""
         }
       </div>
     `;
 
     const html = renderCardEmail({
-      title: 'Resultado de tu reclamación',
+      title: "Resultado de tu reclamación",
       bodyHtml: body,
-      accent: approved ? '#D1FAE5' : '#FEE2E2',
+      accent: approved ? "#D1FAE5" : "#FEE2E2",
     });
 
     await transporter.sendMail({
       from: '"ERPlay Revisión" <no-reply@erplay.com>',
       to: args.to,
-      subject: approved ? 'Tu reclamación ha sido aprobada' : 'Tu reclamación ha sido revisada',
+      subject: approved
+        ? "Tu reclamación ha sido aprobada"
+        : "Tu reclamación ha sido revisada",
       html,
     });
   }

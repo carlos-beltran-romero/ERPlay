@@ -27,7 +27,7 @@ export interface CardEmailOptions {
  * @returns HTML listo para enviarse por correo.
  */
 export function renderCardEmail(options: CardEmailOptions): string {
-  const accent = options.accent ?? '#F3F4F6';
+  const accent = options.accent ?? "#F3F4F6";
   const year = new Date().getFullYear();
 
   return `
@@ -39,7 +39,9 @@ export function renderCardEmail(options: CardEmailOptions): string {
         overflow:hidden;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
         color:#111827;">
         <div style="padding:14px 20px;background:${accent};border-bottom:1px solid #e5e7eb;">
-          <h2 style="margin:0;font-size:18px;line-height:1.3;color:#111827">${options.title}</h2>
+          <h2 style="margin:0;font-size:18px;line-height:1.3;color:#111827">${
+            options.title
+          }</h2>
         </div>
         <div style="padding:20px">
           ${options.bodyHtml}
@@ -60,12 +62,12 @@ export function renderCardEmail(options: CardEmailOptions): string {
  * @returns Cadena segura para interpolar.
  */
 export function escapeHtml(raw: string | null | undefined): string {
-  return (raw ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+  return (raw ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 /**

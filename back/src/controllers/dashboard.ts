@@ -4,8 +4,8 @@
  * @module controllers/dashboard
  */
 
-import { Request, Response } from 'express';
-import { getRecentActivity } from '../services/dashboard';
+import { Request, Response } from "express";
+import { getRecentActivity } from "../services/dashboard";
 
 /**
  * Lista la actividad reciente del usuario

@@ -4,10 +4,10 @@
  * @module controllers/claims
  */
 
-import { Request, Response } from 'express';
-import { z } from 'zod';
-import { ClaimsService } from '../services/claims';
-import { UserRole } from '../models/User';
+import { Request, Response } from "express";
+import { z } from "zod";
+import { ClaimsService } from "../services/claims";
+import { UserRole } from "../models/User";
 
 type AuthUser = { id: string; role: UserRole; email?: string };
 type AuthedReq = Request & { user?: AuthUser };
@@ -21,15 +21,15 @@ const CreateClaimSchema = z.object({
   testResultId: z.string().uuid().optional().nullable(),
   questionId: z.string().uuid().optional().nullable(),
   diagramId: z.string().uuid(),
-  prompt: z.string().min(1, 'El enunciado es obligatorio'),
-  options: z.array(z.string().min(1)).min(2, 'Mínimo 2 opciones'),
+  prompt: z.string().min(1, "El enunciado es obligatorio"),
+  options: z.array(z.string().min(1)).min(2, "Mínimo 2 opciones"),
   chosenIndex: z.number().int().nonnegative(),
   correctIndex: z.number().int().nonnegative(),
-  explanation: z.string().min(5, 'La explicación es obligatoria'),
+  explanation: z.string().min(5, "La explicación es obligatoria"),
 });
 
 const VerifyClaimSchema = z.object({
-  decision: z.enum(['approve', 'reject']),
+  decision: z.enum(["approve", "reject"]),
   comment: z.string().max(2000).optional(),
 });
 
@@ -42,7 +42,7 @@ const VerifyClaimSchema = z.object({
 export const createClaim = async (req: AuthedReq, res: Response) => {
   try {
     if (!req.user?.id || req.user.role !== UserRole.STUDENT) {
-      res.status(403).json({ error: 'No autorizado' });
+      res.status(403).json({ error: "No autorizado" });
       return;
     }
     const input = CreateClaimSchema.parse(req.body);
@@ -61,7 +61,9 @@ export const createClaim = async (req: AuthedReq, res: Response) => {
 
     res.status(201).json(result);
   } catch (e: any) {
-    res.status(400).json({ error: e.message || 'No se pudo registrar la reclamación' });
+    res
+      .status(400)
+      .json({ error: e.message || "No se pudo registrar la reclamación" });
   }
 };
 
@@ -73,13 +75,15 @@ export const createClaim = async (req: AuthedReq, res: Response) => {
 export const listMyClaims = async (req: AuthedReq, res: Response) => {
   try {
     if (!req.user?.id || req.user.role !== UserRole.STUDENT) {
-      res.status(403).json({ error: 'No autorizado' });
+      res.status(403).json({ error: "No autorizado" });
       return;
     }
     const rows = await claimsService.listMine(req.user.id);
     res.json(rows);
   } catch (e: any) {
-    res.status(400).json({ error: e.message || 'No se pudieron cargar tus reclamaciones' });
+    res
+      .status(400)
+      .json({ error: e.message || "No se pudieron cargar tus reclamaciones" });
   }
 };
 
@@ -93,7 +97,7 @@ export const listPendingClaims = async (_req: AuthedReq, res: Response) => {
     const rows = await claimsService.listPending();
     res.json(rows);
   } catch (e: any) {
-    res.status(400).json({ error: e.message || 'No disponible' });
+    res.status(400).json({ error: e.message || "No disponible" });
   }
 };
 
@@ -107,7 +111,7 @@ export const getPendingClaimCount = async (_req: AuthedReq, res: Response) => {
     const count = await claimsService.getPendingCount();
     res.json({ count });
   } catch (e: any) {
-    res.status(400).json({ error: e.message || 'No disponible' });
+    res.status(400).json({ error: e.message || "No disponible" });
   }
 };
 
@@ -120,7 +124,7 @@ export const getPendingClaimCount = async (_req: AuthedReq, res: Response) => {
 export const verifyClaim = async (req: AuthedReq, res: Response) => {
   try {
     if (!req.user?.id || req.user.role !== UserRole.SUPERVISOR) {
-      res.status(403).json({ error: 'No autorizado' });
+      res.status(403).json({ error: "No autorizado" });
       return;
     }
     const { decision, comment } = VerifyClaimSchema.parse(req.body);
@@ -132,6 +136,8 @@ export const verifyClaim = async (req: AuthedReq, res: Response) => {
     });
     res.json(result);
   } catch (e: any) {
-    res.status(400).json({ error: e.message || 'No se pudo procesar la reclamación' });
+    res
+      .status(400)
+      .json({ error: e.message || "No se pudo procesar la reclamación" });
   }
 };

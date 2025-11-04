@@ -1,23 +1,27 @@
-version: '3.9'
+version: "3.9"
 
 services:
   db:
     image: mysql:8.0
     restart: unless-stopped
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_0900_ai_ci
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: erplay
       MYSQL_USER: erplay
       MYSQL_PASSWORD: erplay
     ports:
-      - '3306:3306'
+      - "3306:3306"
     volumes:
       - db_data:/var/lib/mysql
     healthcheck:
-      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
       start_period: 30s
 
   api:
@@ -36,23 +40,46 @@ services:
       DB_USER: erplay
       DB_PASSWORD: erplay
       DB_NAME: erplay
-      FRONTEND_URL: http://localhost:5173
+      FRONTEND_URL: http://localhost:8080
       PUBLIC_API_BASE_URL: http://localhost:3000/api
       APP_URL: http://localhost:3000
-      JWT_SECRET: super-secret-access
-      JWT_REFRESH_SECRET: super-secret-refresh
-      JWT_RESET_SECRET: super-secret-reset
-      SMTP_HOST: smtp.example.com
-      SMTP_PORT: 587
-      SMTP_USER: demo@example.com
-      SMTP_PASS: demo-password
-      SMTP_FROM: "ERPlay <no-reply@erplay.com>"
-      SUPERVISOR_NOTIFY_EMAIL: supervisor@example.com
+      JWT_SECRET: 9f4a1e7c2d5b8f0134c6e2a8b7d8f0a1c3e5b6d7a8c9e0f1b2c3d4e5f6a7b82
+      JWT_REFRESH_SECRET: 3b1f2c4d5e6a7b8c9d0e1f223b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1z
+      JWT_RESET_SECRET: 3b1f2c4d5e6a7bbh9d0e1f223b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f3dza
+      SMTP_HOST: smtp.gmail.com
+      SMTP_PORT: 465
+      SMTP_USER: erplay.contact@gmail.com
+      SMTP_PASS: "tygv synh whha lcnf"
     ports:
-      - '3000:3000'
+      - "3000:3000"
     volumes:
       - ./back/uploads:/app/uploads
-    command: sh -c "npm run migration:run && node dist/index.js"
+      - ./back/src:/app/src
+      - ./back/node_modules:/app/node_modules
+    command: >
+      sh -c "npm run migration:run:js && node dist/index.js"
+
+  web:
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    healthcheck:
+      test:
+        ["CMD-SHELL", "wget -qO- http://localhost/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - ./front/src:/usr/share/nginx/html
 
 volumes:
   db_data:

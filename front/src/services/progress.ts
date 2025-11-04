@@ -4,9 +4,9 @@
  * @module services/progress
  */
 
-import { apiJson, API_URL } from './http';
+import { apiJson, API_URL } from "./http";
 
-async function getJSON(url: string, fallbackError = 'Error de servidor') {
+async function getJSON(url: string, fallbackError = "Error de servidor") {
   return apiJson<any>(url, { auth: true, fallbackError });
 }
 
@@ -82,7 +82,7 @@ export type Goal = {
 export type MyQuestionItem = {
   id: string;
   title: string;
-  status: 'approved' | 'rejected' | 'pending';
+  status: "approved" | "rejected" | "pending";
   reviewedAt?: string | null;
   reviewerName?: string | null;
 };
@@ -95,12 +95,18 @@ export type MyQuestionItem = {
 export async function getOverview(): Promise<Overview> {
   const data = await getJSON(`${API_URL}/api/progress/overview`);
   return {
-    accuracyLearningPct: Number(data.accuracyLearningPct ?? data.learningAccuracyPct ?? 0),
+    accuracyLearningPct: Number(
+      data.accuracyLearningPct ?? data.learningAccuracyPct ?? 0
+    ),
     examScoreAvg: Number(data.examScoreAvg ?? data.avgExamScore ?? 0),
     answeredCount: Number(data.answeredCount ?? data.answered ?? 0),
-    avgTimePerQuestionSec: Number(data.avgTimePerQuestionSec ?? data.avgSecPerQuestion ?? 0),
+    avgTimePerQuestionSec: Number(
+      data.avgTimePerQuestionSec ?? data.avgSecPerQuestion ?? 0
+    ),
     sessionsCompleted: Number(data.sessionsCompleted ?? data.sessions ?? 0),
-    deltaExamVsLearningPts: Number(data.deltaExamVsLearningPts ?? data.deltaExamLearning ?? 0),
+    deltaExamVsLearningPts: Number(
+      data.deltaExamVsLearningPts ?? data.deltaExamLearning ?? 0
+    ),
     bestStreakDays: Number(data.bestStreakDays ?? data.bestStreak ?? 0),
   };
 }
@@ -111,21 +117,27 @@ export async function getOverview(): Promise<Overview> {
  * @returns Serie temporal de precisión y nota
  * @remarks Útil para gráficas de evolución histórica
  */
-export async function getTrends(params?: { from?: string; to?: string; bucket?: 'day' | 'week' }) {
+export async function getTrends(params?: {
+  from?: string;
+  to?: string;
+  bucket?: "day" | "week";
+}) {
   const q = new URLSearchParams();
-  if (params?.from) q.set('from', params.from);
-  if (params?.to) q.set('to', params.to);
-  if (params?.bucket) q.set('bucket', params.bucket);
-  const url = `${API_URL}/api/progress/trends${q.toString() ? `?${q.toString()}` : ''}`;
+  if (params?.from) q.set("from", params.from);
+  if (params?.to) q.set("to", params.to);
+  if (params?.bucket) q.set("bucket", params.bucket);
+  const url = `${API_URL}/api/progress/trends${
+    q.toString() ? `?${q.toString()}` : ""
+  }`;
 
   const data = await apiJson<any>(url, {
     auth: true,
-    fallbackError: 'No se pudieron cargar tendencias',
+    fallbackError: "No se pudieron cargar tendencias",
   });
 
-  const arr = Array.isArray(data) ? data : (data.items || []);
+  const arr = Array.isArray(data) ? data : data.items || [];
   return (arr as any[]).map((d) => ({
-    date: String(d.date ?? d.day ?? d.bucket ?? ''),
+    date: String(d.date ?? d.day ?? d.bucket ?? ""),
     accuracyLearningPct: d.accuracyLearningPct ?? d.accLearningPct ?? undefined,
     examScorePct: d.examScorePct ?? d.examPct ?? undefined,
     correctCount: Number(d.correctCount ?? d.correct ?? 0),
@@ -140,22 +152,27 @@ export async function getTrends(params?: { from?: string; to?: string; bucket?: 
  * @remarks Identifica puntos débiles para repaso dirigido
  */
 export async function getErrors(limit = 5): Promise<ErrorItem[]> {
-  const data = await apiJson<any>(`${API_URL}/api/progress/errors?limit=${limit}`, {
-    auth: true,
-    fallbackError: 'No se pudieron cargar errores',
-  });
-  const arr = Array.isArray(data) ? data : (data.items || []);
+  const data = await apiJson<any>(
+    `${API_URL}/api/progress/errors?limit=${limit}`,
+    {
+      auth: true,
+      fallbackError: "No se pudieron cargar errores",
+    }
+  );
+  const arr = Array.isArray(data) ? data : data.items || [];
   return (arr as any[]).map((e) => ({
     id: String(e.id ?? e.questionId ?? crypto.randomUUID()),
-    title: String(e.title ?? e.prompt ?? 'Pregunta'),
+    title: String(e.title ?? e.prompt ?? "Pregunta"),
     errorRatePct: Number(e.errorRatePct ?? e.errorPct ?? 0),
     commonChosenIndex:
-      typeof e.commonChosenIndex === 'number'
+      typeof e.commonChosenIndex === "number"
         ? e.commonChosenIndex
         : e.commonChosenIndex != null
         ? Number(e.commonChosenIndex)
         : undefined,
-    commonChosenText: e.commonChosenText ? String(e.commonChosenText) : undefined,
+    commonChosenText: e.commonChosenText
+      ? String(e.commonChosenText)
+      : undefined,
   }));
 }
 
@@ -173,7 +190,9 @@ export async function getHabits(): Promise<Habits> {
   }));
   return {
     byHour,
-    avgSessionDurationSec: Number(data.avgSessionDurationSec ?? data.avgSessionSec ?? 0),
+    avgSessionDurationSec: Number(
+      data.avgSessionDurationSec ?? data.avgSessionSec ?? 0
+    ),
     hintsPerQuestionPct: Number(data.hintsPerQuestionPct ?? data.hintsPct ?? 0),
   } as Habits;
 }
@@ -184,7 +203,10 @@ export async function getHabits(): Promise<Habits> {
  */
 export async function getClaimsStats(): Promise<ClaimsStats> {
   const data = await getJSON(`${API_URL}/api/progress/claims`);
-  return { submitted: Number(data.submitted ?? 0), approved: Number(data.approved ?? 0) };
+  return {
+    submitted: Number(data.submitted ?? 0),
+    approved: Number(data.approved ?? 0),
+  };
 }
 
 /**
@@ -194,7 +216,9 @@ export async function getClaimsStats(): Promise<ClaimsStats> {
 export async function getGoal(): Promise<Goal> {
   const data = await getJSON(`${API_URL}/api/progress/goal`);
   return {
-    weeklyTargetQuestions: Number(data.weeklyTargetQuestions ?? data.target ?? 0),
+    weeklyTargetQuestions: Number(
+      data.weeklyTargetQuestions ?? data.target ?? 0
+    ),
     weekAnswered: Number(data.weekAnswered ?? data.answered ?? 0),
     currentStreakDays: Number(data.currentStreakDays ?? data.streak ?? 0),
   };
@@ -208,12 +232,12 @@ export async function getGoal(): Promise<Goal> {
 export async function getBadges(): Promise<BadgeItem[]> {
   const data = await apiJson<any>(`${API_URL}/api/progress/badges`, {
     auth: true,
-    fallbackError: 'No se pudieron cargar insignias',
+    fallbackError: "No se pudieron cargar insignias",
   });
-  const arr = Array.isArray(data) ? data : (data.items || []);
+  const arr = Array.isArray(data) ? data : data.items || [];
   return (arr as any[]).map((b) => ({
     id: String(b.id ?? crypto.randomUUID()),
-    label: String(b.label ?? b.name ?? 'Insignia'),
+    label: String(b.label ?? b.name ?? "Insignia"),
     earnedAt: b.earnedAt ?? b.at ?? undefined,
   }));
 }
@@ -225,14 +249,19 @@ export async function getBadges(): Promise<BadgeItem[]> {
  * @returns Texto de la opción o null si no existe
  * @remarks Usado para mostrar respuestas comunes erróneas
  */
-export async function getQuestionOptionText(questionId: string, optionIndex: number): Promise<string | null> {
+export async function getQuestionOptionText(
+  questionId: string,
+  optionIndex: number
+): Promise<string | null> {
   const data = await apiJson<any>(`${API_URL}/api/questions/${questionId}`, {
     auth: true,
-    fallbackError: 'No se pudo obtener la pregunta',
+    fallbackError: "No se pudo obtener la pregunta",
   });
   if (!data) return null;
   const options = Array.isArray(data.options) ? data.options : [];
-  const found = options.find((o: any) => Number(o.orderIndex) === Number(optionIndex));
+  const found = options.find(
+    (o: any) => Number(o.orderIndex) === Number(optionIndex)
+  );
   return found?.text ?? null;
 }
 
@@ -243,32 +272,38 @@ export async function getQuestionOptionText(questionId: string, optionIndex: num
  * @remarks Intenta múltiples endpoints para compatibilidad con backend legacy
  */
 export async function getMyCreatedQuestions(params?: {
-  limit?: number; page?: number; status?: 'all'|'approved'|'rejected'|'pending'
+  limit?: number;
+  page?: number;
+  status?: "all" | "approved" | "rejected" | "pending";
 }): Promise<MyQuestionItem[]> {
   const limit = params?.limit ?? 50;
-  const status = params?.status ?? 'all';
+  const status = params?.status ?? "all";
   const qs = new URLSearchParams();
-  qs.set('limit', String(limit));
-  if (params?.page) qs.set('page', String(params.page));
-  if (status !== 'all') qs.set('status', status);
+  qs.set("limit", String(limit));
+  if (params?.page) qs.set("page", String(params.page));
+  if (status !== "all") qs.set("status", status);
 
   async function hit(url: string) {
     const data = await apiJson<any>(url, {
       auth: true,
       fallbackError: 'No se pudo cargar "mis preguntas"',
     });
-    const arr = Array.isArray(data) ? data : (data.items || data.results || []);
+    const arr = Array.isArray(data) ? data : data.items || data.results || [];
     return (arr as any[]).map((q) => ({
       id: String(q.id),
-      title: String(q.title ?? q.prompt ?? 'Pregunta'),
-      status: (q.status ?? q.reviewStatus ?? 'pending').toLowerCase(),
+      title: String(q.title ?? q.prompt ?? "Pregunta"),
+      status: (q.status ?? q.reviewStatus ?? "pending").toLowerCase(),
       reviewedAt: q.reviewedAt ?? q.review_date ?? q.updatedAt ?? null,
       reviewerName: q.reviewer?.name ?? q.reviewerName ?? null,
     })) as MyQuestionItem[];
   }
 
-  try { return await hit(`${API_URL}/api/progress/my-questions?${qs.toString()}`); } catch {}
-  try { return await hit(`${API_URL}/api/questions/mine?${qs.toString()}`); } catch {}
+  try {
+    return await hit(`${API_URL}/api/progress/my-questions?${qs.toString()}`);
+  } catch {}
+  try {
+    return await hit(`${API_URL}/api/questions/mine?${qs.toString()}`);
+  } catch {}
   return await hit(`${API_URL}/api/questions?createdBy=me&${qs.toString()}`);
 }
 
@@ -277,15 +312,19 @@ export async function getMyCreatedQuestions(params?: {
  * @param payload - Nueva meta de preguntas por semana
  * @returns Objetivo actualizado con progreso actual
  */
-export async function updateGoal(payload: { weeklyTargetQuestions: number }) : Promise<Goal> {
+export async function updateGoal(payload: {
+  weeklyTargetQuestions: number;
+}): Promise<Goal> {
   const data = await apiJson<any>(`${API_URL}/api/progress/goal`, {
-    method: 'PUT',
+    method: "PUT",
     auth: true,
     json: payload,
-    fallbackError: 'No se pudo actualizar el objetivo',
+    fallbackError: "No se pudo actualizar el objetivo",
   });
   return {
-    weeklyTargetQuestions: Number(data.weeklyTargetQuestions ?? data.target ?? payload.weeklyTargetQuestions),
+    weeklyTargetQuestions: Number(
+      data.weeklyTargetQuestions ?? data.target ?? payload.weeklyTargetQuestions
+    ),
     weekAnswered: Number(data.weekAnswered ?? data.answered ?? 0),
     currentStreakDays: Number(data.currentStreakDays ?? data.streak ?? 0),
   };
@@ -310,7 +349,9 @@ export async function getMyWeeklyProgress(): Promise<WeeklyProgressRow | null> {
     `${API_URL}/api/progress/weekly-progress`,
     `${API_URL}/api/progress/weekly-goal/progress`,
   ];
-  let data: any = null, ok = false, lastErr: any = null;
+  let data: any = null,
+    ok = false,
+    lastErr: any = null;
 
   for (const url of urls) {
     try {
@@ -321,17 +362,24 @@ export async function getMyWeeklyProgress(): Promise<WeeklyProgressRow | null> {
       lastErr = e;
     }
   }
-  if (!ok) throw lastErr || new Error('No disponible');
+  if (!ok) throw lastErr || new Error("No disponible");
 
   if (!data) return null;
 
   const target = Number(data.target ?? 0);
-  const done   = Number(data.done ?? 0);
-  const pct    = typeof data.pct === 'number' ? data.pct : (target ? Math.round((done / target) * 100) : 0);
+  const done = Number(data.done ?? 0);
+  const pct =
+    typeof data.pct === "number"
+      ? data.pct
+      : target
+      ? Math.round((done / target) * 100)
+      : 0;
 
   return {
-    userId: String(data.userId ?? 'me'),
-    done, target, pct,
+    userId: String(data.userId ?? "me"),
+    done,
+    target,
+    pct,
     completed: Boolean(data.completed ?? (target > 0 && done >= target)),
     weekStart: data.weekStart ?? null,
     weekEnd: data.weekEnd ?? null,

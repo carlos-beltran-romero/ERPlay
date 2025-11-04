@@ -4,7 +4,7 @@
  * @module services/review
  */
 
-import { apiJson } from './http';
+import { apiJson } from "./http";
 
 /**
  * Obtiene contador de preguntas pendientes de revisión
@@ -13,9 +13,9 @@ import { apiJson } from './http';
  */
 export async function getPendingStudentQuestionsCount(): Promise<number> {
   try {
-    const data = await apiJson<any>('/api/questions/pending/count', {
+    const data = await apiJson<any>("/api/questions/pending/count", {
       auth: true,
-      fallbackError: 'No disponible',
+      fallbackError: "No disponible",
     });
     return Number(data?.count ?? 0);
   } catch {

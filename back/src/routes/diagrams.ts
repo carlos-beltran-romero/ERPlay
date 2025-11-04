@@ -4,10 +4,10 @@
  * @module routes/diagrams
  */
 
-import { Router } from 'express';
-import { authenticate } from '../middlewares/authenticate';
-import authorize from '../middlewares/authorize';
-import { uploadDiagramImage } from '../middlewares/upload';
+import { Router } from "express";
+import { authenticate } from "../middlewares/authenticate";
+import authorize from "../middlewares/authorize";
+import { uploadDiagramImage } from "../middlewares/upload";
 import {
   listDiagrams,
   getDiagram,
@@ -15,7 +15,7 @@ import {
   updateDiagram,
   deleteDiagram,
   listPublicDiagrams,
-} from '../controllers/diagrams';
+} from "../controllers/diagrams";
 
 const router = Router();
 
@@ -26,9 +26,9 @@ const router = Router();
  * @note Debe ir antes de /:id para evitar conflictos de rutas
  */
 router.get(
-  '/public',
+  "/public",
   authenticate,
-  authorize('alumno', 'supervisor'),
+  authorize("alumno", "supervisor"),
   listPublicDiagrams
 );
 
@@ -37,24 +37,14 @@ router.get(
  * Lista todos los diagramas del sistema
  * @access Privado (supervisor)
  */
-router.get(
-  '/',
-  authenticate,
-  authorize('supervisor'),
-  listDiagrams
-);
+router.get("/", authenticate, authorize("supervisor"), listDiagrams);
 
 /**
  * GET /api/diagrams/:id
  * Obtiene detalles de un diagrama específico
  * @access Privado (supervisor)
  */
-router.get(
-  '/:id',
-  authenticate,
-  authorize('supervisor'),
-  getDiagram
-);
+router.get("/:id", authenticate, authorize("supervisor"), getDiagram);
 
 /**
  * POST /api/diagrams
@@ -62,9 +52,9 @@ router.get(
  * @access Privado (supervisor)
  */
 router.post(
-  '/',
+  "/",
   authenticate,
-  authorize('supervisor'),
+  authorize("supervisor"),
   uploadDiagramImage,
   createDiagram
 );
@@ -75,9 +65,9 @@ router.post(
  * @access Privado (supervisor)
  */
 router.put(
-  '/:id',
+  "/:id",
   authenticate,
-  authorize('supervisor'),
+  authorize("supervisor"),
   uploadDiagramImage,
   updateDiagram
 );
@@ -87,11 +77,6 @@ router.put(
  * Elimina un diagrama del sistema
  * @access Privado (supervisor)
  */
-router.delete(
-  '/:id',
-  authenticate,
-  authorize('supervisor'),
-  deleteDiagram
-);
+router.delete("/:id", authenticate, authorize("supervisor"), deleteDiagram);
 
 export default router;

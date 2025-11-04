@@ -1,77 +1,93 @@
-import React, { useEffect, useMemo, useState, useEffect as ReactUseEffect } from 'react';
-import PageWithHeader from '../../components/layout/PageWithHeader';
-import { fetchStudents, updateStudent, deleteStudent, type StudentSummary } from '../../services/users';
-import { toast } from 'react-toastify';
-import { Pencil, Trash2, Search, X, AlertTriangle, BarChart3, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+  useEffect as ReactUseEffect,
+} from "react";
+import PageWithHeader from "../../components/layout/PageWithHeader";
+import {
+  fetchStudents,
+  updateStudent,
+  deleteStudent,
+  type StudentSummary,
+} from "../../services/users";
+import { toast } from "react-toastify";
+import {
+  Pencil,
+  Trash2,
+  Search,
+  X,
+  AlertTriangle,
+  BarChart3,
+  ArrowLeft,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const normalize = (s: string) =>
-  s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+  s
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
 
 type EditForm = {
   id: string;
   name: string;
   lastName: string;
   email: string;
-  password: string; 
+  password: string;
 };
 
-const PAGE_SIZE = 20; 
+const PAGE_SIZE = 20;
 
 const SupervisorStudents: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<StudentSummary[]>([]);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<EditForm | null>(null);
   const [editingOriginal, setEditingOriginal] = useState<EditForm | null>(null);
   const [saving, setSaving] = useState(false);
 
-  
-  const [confirmDelete, setConfirmDelete] = useState<StudentSummary | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<StudentSummary | null>(
+    null
+  );
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  
   useEffect(() => {
     (async () => {
       try {
         const data = await fetchStudents();
         setStudents(data);
       } catch (e: any) {
-        toast.error(e.message || 'Error cargando alumnos');
+        toast.error(e.message || "Error cargando alumnos");
       } finally {
         setLoading(false);
       }
     })();
   }, []);
 
-  
   const filtered = useMemo(() => {
     const q = normalize(query.trim());
     if (!q) return students;
-    return students.filter(s => {
+    return students.filter((s) => {
       const full = normalize(`${s.name} ${s.lastName}`);
       return full.includes(q) || normalize(s.email).includes(q);
     });
   }, [students, query]);
 
-  
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
   }, [query, students]);
 
-  
   const openEdit = (s: StudentSummary) => {
     const base: EditForm = {
       id: s.id,
-      name: s.name || '',
-      lastName: s.lastName || '',
+      name: s.name || "",
+      lastName: s.lastName || "",
       email: s.email,
-      password: '',
+      password: "",
     };
     setEditing(base);
     setEditingOriginal(base);
@@ -80,33 +96,41 @@ const SupervisorStudents: React.FC = () => {
   const isEditDirty =
     !!editing &&
     !!editingOriginal &&
-    (
-      editing.name !== editingOriginal.name ||
+    (editing.name !== editingOriginal.name ||
       editing.lastName !== editingOriginal.lastName ||
       editing.email !== editingOriginal.email ||
-      editing.password.trim() !== ''
-    );
+      editing.password.trim() !== "");
 
   const closeEdit = () => {
-    if (isEditDirty && !window.confirm('Hay cambios sin guardar. ¿Seguro que deseas salir?')) return;
+    if (
+      isEditDirty &&
+      !window.confirm("Hay cambios sin guardar. ¿Seguro que deseas salir?")
+    )
+      return;
     setEditing(null);
     setEditingOriginal(null);
   };
 
-  
   ReactUseEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isEditDirty) { e.preventDefault(); e.returnValue = ''; }
+      if (isEditDirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
     };
-    if (editing && isEditDirty) window.addEventListener('beforeunload', onBeforeUnload);
-    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+    if (editing && isEditDirty)
+      window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [editing, isEditDirty]);
 
-  
   const handleSave = async () => {
     if (!editing) return;
-    if (!editing.name.trim() || !editing.lastName.trim() || !editing.email.trim()) {
-      toast.error('Nombre, apellidos y email son obligatorios');
+    if (
+      !editing.name.trim() ||
+      !editing.lastName.trim() ||
+      !editing.email.trim()
+    ) {
+      toast.error("Nombre, apellidos y email son obligatorios");
       return;
     }
     setSaving(true);
@@ -119,28 +143,29 @@ const SupervisorStudents: React.FC = () => {
       if (editing.password.trim()) dto.password = editing.password;
 
       const updated = await updateStudent(editing.id, dto);
-      setStudents(prev => prev.map(s => (s.id === updated.id ? updated : s)));
-      toast.success('Alumno actualizado');
+      setStudents((prev) =>
+        prev.map((s) => (s.id === updated.id ? updated : s))
+      );
+      toast.success("Alumno actualizado");
       setEditing(null);
       setEditingOriginal(null);
     } catch (e: any) {
-      toast.error(e.message || 'No se pudo actualizar');
+      toast.error(e.message || "No se pudo actualizar");
     } finally {
       setSaving(false);
     }
   };
 
-  
   const confirmDeleteNow = async () => {
     if (!confirmDelete) return;
     setDeletingId(confirmDelete.id);
     try {
       await deleteStudent(confirmDelete.id);
-      setStudents(prev => prev.filter(st => st.id !== confirmDelete.id));
-      toast.success('Alumno eliminado');
+      setStudents((prev) => prev.filter((st) => st.id !== confirmDelete.id));
+      toast.success("Alumno eliminado");
       setConfirmDelete(null);
     } catch (e: any) {
-      toast.error(e.message || 'No se pudo eliminar');
+      toast.error(e.message || "No se pudo eliminar");
     } finally {
       setDeletingId(null);
     }
@@ -153,7 +178,12 @@ const SupervisorStudents: React.FC = () => {
         <div className="mb-3">
           <button
             onClick={() => {
-              if (editing && isEditDirty && !window.confirm('Hay cambios sin guardar. ¿Salir igualmente?')) return;
+              if (
+                editing &&
+                isEditDirty &&
+                !window.confirm("Hay cambios sin guardar. ¿Salir igualmente?")
+              )
+                return;
               navigate("/supervisor/dashboard");
             }}
             className="inline-flex items-center rounded-full border border-gray-300 bg-white p-2 hover:bg-gray-50"
@@ -194,28 +224,38 @@ const SupervisorStudents: React.FC = () => {
           {loading ? (
             <div className="p-6 text-gray-500">Cargando…</div>
           ) : filtered.length === 0 ? (
-            <div className="p-6 text-gray-500">No hay alumnos que coincidan con el filtro.</div>
+            <div className="p-6 text-gray-500">
+              No hay alumnos que coincidan con el filtro.
+            </div>
           ) : (
             <>
               <div className="divide-y">
                 {filtered.slice(0, visibleCount).map((s) => {
-                  const fullName = `${s.name || ''} ${s.lastName || ''}`.trim();
+                  const fullName = `${s.name || ""} ${s.lastName || ""}`.trim();
                   return (
                     <div key={s.id} className="px-4 py-3">
                       {/* Fila desktop */}
                       <div className="hidden md:grid grid-cols-12 gap-3 items-center">
                         <div className="col-span-3 min-w-0">
-                          <div className="truncate" title={s.name}>{s.name}</div>
+                          <div className="truncate" title={s.name}>
+                            {s.name}
+                          </div>
                         </div>
                         <div className="col-span-3 min-w-0">
-                          <div className="truncate" title={s.lastName}>{s.lastName}</div>
+                          <div className="truncate" title={s.lastName}>
+                            {s.lastName}
+                          </div>
                         </div>
                         <div className="col-span-4 min-w-0">
-                          <div className="truncate" title={s.email}>{s.email}</div>
+                          <div className="truncate" title={s.email}>
+                            {s.email}
+                          </div>
                         </div>
                         <div className="col-span-2 flex justify-end gap-2">
                           <button
-                            onClick={() => navigate(`/supervisor/students/${s.id}`)}
+                            onClick={() =>
+                              navigate(`/supervisor/students/${s.id}`)
+                            }
                             className="rounded-lg px-2 py-1 text-sky-700 hover:bg-sky-50"
                             title="Ver progreso y actividad"
                             aria-label="Ver progreso y actividad"
@@ -244,12 +284,18 @@ const SupervisorStudents: React.FC = () => {
                       <div className="md:hidden">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <div className="font-medium break-words">{fullName || '—'}</div>
-                            <div className="text-xs text-gray-500 break-words">{s.email}</div>
+                            <div className="font-medium break-words">
+                              {fullName || "—"}
+                            </div>
+                            <div className="text-xs text-gray-500 break-words">
+                              {s.email}
+                            </div>
                           </div>
                           <div className="shrink-0 flex gap-1">
                             <button
-                              onClick={() => navigate(`/supervisor/students/${s.id}`)}
+                              onClick={() =>
+                                navigate(`/supervisor/students/${s.id}`)
+                              }
                               className="rounded-lg p-1.5 text-sky-700 hover:bg-sky-50"
                               title="Ver progreso y actividad"
                               aria-label="Ver progreso y actividad"
@@ -284,11 +330,12 @@ const SupervisorStudents: React.FC = () => {
               {/* Footer paginado ⬇️ */}
               <div className="flex items-center justify-between px-4 py-3">
                 <span className="text-xs text-gray-500">
-                  Mostrando {Math.min(visibleCount, filtered.length)} de {filtered.length}
+                  Mostrando {Math.min(visibleCount, filtered.length)} de{" "}
+                  {filtered.length}
                 </span>
                 {visibleCount < filtered.length ? (
                   <button
-                    onClick={() => setVisibleCount(v => v + PAGE_SIZE)}
+                    onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}
                     className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm hover:bg-gray-50"
                   >
                     Cargar más
@@ -385,11 +432,11 @@ const SupervisorStudents: React.FC = () => {
                   disabled={saving}
                   className={`rounded-xl px-5 py-2 text-sm font-medium text-white ${
                     saving
-                      ? 'bg-indigo-400 cursor-not-allowed'
-                      : 'bg-indigo-600 hover:bg-indigo-500'
+                      ? "bg-indigo-400 cursor-not-allowed"
+                      : "bg-indigo-600 hover:bg-indigo-500"
                   }`}
                 >
-                  {saving ? 'Guardando…' : 'Guardar cambios'}
+                  {saving ? "Guardando…" : "Guardar cambios"}
                 </button>
               </div>
             </div>
@@ -413,10 +460,10 @@ const SupervisorStudents: React.FC = () => {
 
               <div className="px-6 py-5 space-y-3">
                 <p className="text-gray-700">
-                  ¿Seguro que quieres eliminar a{' '}
+                  ¿Seguro que quieres eliminar a{" "}
                   <strong>
                     {confirmDelete.name} {confirmDelete.lastName}
-                  </strong>{' '}
+                  </strong>{" "}
                   ({confirmDelete.email})?
                 </p>
                 <p className="text-sm text-gray-500">
@@ -437,18 +484,18 @@ const SupervisorStudents: React.FC = () => {
                   disabled={deletingId === confirmDelete.id}
                   className={`rounded-xl px-5 py-2 text-sm font-medium text-white ${
                     deletingId === confirmDelete.id
-                      ? 'bg-rose-400 cursor-not-allowed'
-                      : 'bg-rose-600 hover:bg-rose-500'
+                      ? "bg-rose-400 cursor-not-allowed"
+                      : "bg-rose-600 hover:bg-rose-500"
                   }`}
                 >
-                  {deletingId === confirmDelete.id ? 'Eliminando…' : 'Eliminar'}
+                  {deletingId === confirmDelete.id ? "Eliminando…" : "Eliminar"}
                 </button>
               </div>
             </div>
           </div>
         )}
       </div>
-   </PageWithHeader>
+    </PageWithHeader>
   );
 };
 
