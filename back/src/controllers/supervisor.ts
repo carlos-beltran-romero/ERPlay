@@ -1,3 +1,9 @@
+/**
+ * Módulo del controlador de supervisor
+ * Gestiona las peticiones relacionadas con la supervisión de estudiantes y su progreso
+ * @module controllers/supervisor
+ */
+
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { env } from '../config/env';
@@ -9,52 +15,67 @@ import { ClaimsService } from '../services/claims';
 import { UserRole } from '../models/User';
 import { getCurrentWeeklyGoal, setWeeklyGoal, listWeeklyProgress } from '../services/weeklyGoal';
 
-
-
+/**
+ * Tipo extendido de Request con autenticación
+ */
 type AuthedReq = Request & { user?: { id: string; role: UserRole } };
 
-
+/**
+ * Instancias de servicios necesarios
+ */
 const usersSvc = new UsersService();
 const questionsSvc = new QuestionsService();
 const sessionsSvc = new TestSessionsService();
 const claimsSvc = new ClaimsService();
 
+/**
+ * Esquemas de validación para supervisor
+ */
 const PutSchema = z.object({
   targetTests: z.coerce.number().int().positive(),
   weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   weekEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  notify: z.boolean().optional(), // por defecto lo trataremos como true si no viene
+  notify: z.boolean().optional(),
 });
 
 const IdParam = z.object({ studentId: z.string().uuid() });
+
 const TrendsQ = z.object({
   from: z.string().date().optional(),
   to: z.string().date().optional(),
   bucket: z.enum(['day', 'week']).optional(),
 });
+
 const TestsQ = z.object({
   mode: z.enum(['learning', 'exam', 'errors']).optional(),
   dateFrom: z.string().date().optional(),
   dateTo: z.string().date().optional(),
   q: z.string().optional(),
 });
+
 const LimitQ = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(5),
 });
 
+/**
+ * Funciones auxiliares para URLs y normalización
+ */
 const serviceBaseUrl = (req: Request) => {
   const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol;
   const host = req.get('host');
   const base = env.PUBLIC_API_BASE_URL ?? `${proto}://${host}`;
   return base.replace(/\/+$/, '');
 };
+
 const withBase = (req: Request, maybePath?: string | null) => {
   if (!maybePath) return maybePath ?? null;
   if (/^https?:\/\//i.test(maybePath)) return maybePath;
   return `${serviceBaseUrl(req)}${maybePath.startsWith('/') ? '' : '/'}${maybePath}`;
 };
 
-// Normaliza cualquier variante a token minúscula
+/**
+ * Normaliza el estado de una reclamación o pregunta
+ */
 function normalizeStatus(s?: string | null) {
   const k = String(s ?? '').toLowerCase();
   if (k.includes('approve')) return 'approved';
@@ -63,7 +84,11 @@ function normalizeStatus(s?: string | null) {
   return 'pending';
 }
 
-/** GET /api/supervisor/students/:studentId */
+/**
+ * Obtiene información detallada de un estudiante específico
+ * @param req Objeto Request de Express con ID del estudiante
+ * @param res Objeto Response de Express
+ */
 export async function getStudent(req: Request, res: Response) {
   try {
     const { studentId } = IdParam.parse(req.params);
@@ -74,8 +99,11 @@ export async function getStudent(req: Request, res: Response) {
   }
 }
 
-/** === PROGRESO === */
-
+/**
+ * Obtiene el resumen general del progreso de un estudiante
+ * @param req Objeto Request de Express con ID del estudiante
+ * @param res Objeto Response de Express
+ */
 export async function getOverview(req: Request, res: Response) {
   try {
     const { studentId } = IdParam.parse(req.params);
@@ -86,6 +114,11 @@ export async function getOverview(req: Request, res: Response) {
   }
 }
 
+/**
+ * Obtiene las tendencias de progreso de un estudiante en un período
+ * @param req Objeto Request de Express con ID del estudiante y filtros de fecha
+ * @param res Objeto Response de Express
+ */
 export async function getTrends(req: Request, res: Response) {
   try {
     const { studentId } = IdParam.parse(req.params);
@@ -97,7 +130,11 @@ export async function getTrends(req: Request, res: Response) {
   }
 }
 
-/** ✅ Misma forma que /api/progress/errors del alumno */
+/**
+ * Obtiene los errores más frecuentes de un estudiante
+ * @param req Objeto Request de Express con ID del estudiante y límite de resultados
+ * @param res Objeto Response de Express
+ */
 export async function getErrors(req: Request, res: Response) {
   try {
     const { studentId } = IdParam.parse(req.params);
@@ -109,8 +146,11 @@ export async function getErrors(req: Request, res: Response) {
   }
 }
 
-/** === RECLAMACIONES === */
-
+/**
+ * Obtiene estadísticas de reclamaciones de un estudiante
+ * @param req Objeto Request de Express con ID del estudiante
+ * @param res Objeto Response de Express
+ */
 export async function getClaimsStats(req: Request, res: Response) {
   try {
     const { studentId } = IdParam.parse(req.params);
@@ -121,6 +161,11 @@ export async function getClaimsStats(req: Request, res: Response) {
   }
 }
 
+/**
+ * Lista todas las reclamaciones de un estudiante con detalles completos
+ * @param req Objeto Request de Express con ID del estudiante
+ * @param res Objeto Response de Express
+ */
 export async function listUserClaims(req: Request, res: Response) {
   try {
     const { studentId } = IdParam.parse(req.params);
@@ -129,7 +174,6 @@ export async function listUserClaims(req: Request, res: Response) {
     const out = rows.map((c: any) => {
       const statusToken = normalizeStatus(c.status);
 
-      // Normalizaciones/alias como en alumno:
       const options = Array.isArray(c.options) ? c.options : Array.isArray(c.optionsSnapshot) ? c.optionsSnapshot : [];
       const chosenIndex =
         typeof c.chosenIndex === 'number' ? c.chosenIndex :
@@ -142,27 +186,21 @@ export async function listUserClaims(req: Request, res: Response) {
 
       return {
         id: c.id,
-        status: statusToken,                 // 'pending' | 'approved' | 'rejected'
+        status: statusToken,
         createdAt: c.createdAt,
         reviewedAt: c.reviewedAt ?? null,
-
-        // ====== NUEVO: resolución/comentario ======
         reviewerComment: c.reviewerComment ?? null,
         resolution: {
           decidedAt: c.reviewedAt ?? null,
           comment: c.reviewerComment ?? null,
         },
-
-        // ====== NUEVO: datos para comparar respuestas (como alumno) ======
-        promptSnapshot: c.prompt,           // igual que alumno
+        promptSnapshot: c.prompt,
         prompt: c.prompt,
         optionsSnapshot: options,
         options,
-
-        chosenIndex,                        // número o null
-        correctIndexAtSubmission,           // número o null
+        chosenIndex,
+        correctIndexAtSubmission,
         correctIndex: correctIndexAtSubmission,
-
         diagram: c.diagram
           ? {
               id: c.diagram.id,
@@ -170,8 +208,6 @@ export async function listUserClaims(req: Request, res: Response) {
               path: withBase(req, c.diagram.path),
             }
           : null,
-
-        // mantenemos question por compat
         question: c.prompt ? { prompt: c.prompt } : undefined,
       };
     });
@@ -182,24 +218,22 @@ export async function listUserClaims(req: Request, res: Response) {
   }
 }
 
-
-
-
-/** === PREGUNTAS CREADAS === */
-
-// GET /api/supervisor/students/:studentId/questions
+/**
+ * Lista todas las preguntas creadas por un estudiante
+ * @param req Objeto Request de Express con ID del estudiante
+ * @param res Objeto Response de Express
+ */
 export async function listCreatedQuestions(req: Request, res: Response) {
   try {
     const { studentId } = IdParam.parse(req.params);
     const limit = Math.min(500, Math.max(1, Number(req.query.limit ?? 100)));
 
-    // ⬇️ reutiliza tu servicio (ya normaliza options/correctIndex)
     const rows = await questionsSvc.listMine(studentId);
 
     const out = rows.slice(0, limit).map((q) => ({
       id: q.id,
       prompt: q.prompt,
-      status: q.status, // el front ya lo normaliza con normalizeReviewStatus
+      status: q.status,
       reviewComment: q.reviewComment ?? null,
       createdAt: q.createdAt,
       reviewedAt: q.reviewedAt ?? null,
@@ -210,8 +244,6 @@ export async function listCreatedQuestions(req: Request, res: Response) {
             path: withBase(req, q.diagram.path),
           }
         : undefined,
-
-      // 👇 Igual que en el alumno:
       options: Array.isArray(q.options) ? q.options : [],
       correctIndex:
         typeof q.correctIndex === 'number'
@@ -225,9 +257,11 @@ export async function listCreatedQuestions(req: Request, res: Response) {
   }
 }
 
-
-/** === TESTS === */
-
+/**
+ * Lista las sesiones de test de un estudiante con filtros opcionales
+ * @param req Objeto Request de Express con ID del estudiante y filtros
+ * @param res Objeto Response de Express
+ */
 export async function listUserSessions(req: Request, res: Response) {
   try {
     const { studentId } = IdParam.parse(req.params);
@@ -245,15 +279,17 @@ export async function listUserSessions(req: Request, res: Response) {
   }
 }
 
-/** GET /api/supervisor/students/:studentId/tests/:sessionId (detalle con “resolución”) */
+/**
+ * Obtiene el detalle completo de una sesión de test específica
+ * @param req Objeto Request de Express con ID del estudiante e ID de sesión
+ * @param res Objeto Response de Express
+ */
 export async function getUserSessionDetail(req: Request, res: Response) {
   try {
     const { studentId } = IdParam.parse(req.params);
     const sessionId = z.string().uuid().parse(req.params.sessionId);
     const data = await sessionsSvc.getOne({ userId: studentId, sessionId });
 
-    // No tocamos el shape (el front alumno ya sabe pintarlo),
-    // solo aseguramos ruta absoluta del diagrama para zoom:
     const diagram = data.diagram
       ? { ...data.diagram, path: withBase(req, data.diagram.path) }
       : null;
@@ -264,6 +300,11 @@ export async function getUserSessionDetail(req: Request, res: Response) {
   }
 }
 
+/**
+ * Obtiene el objetivo semanal global actual
+ * @param req Objeto Request de Express autenticado
+ * @param res Objeto Response de Express
+ */
 export async function getWeeklyGoal(_req: AuthedReq, res: Response) {
   try {
     const g = await getCurrentWeeklyGoal();
@@ -273,6 +314,12 @@ export async function getWeeklyGoal(_req: AuthedReq, res: Response) {
   }
 }
 
+/**
+ * Establece un nuevo objetivo semanal global
+ * @param req Objeto Request de Express autenticado con datos del objetivo
+ * @param res Objeto Response de Express
+ * @requires Role.SUPERVISOR
+ */
 export async function putWeeklyGoal(req: AuthedReq, res: Response) {
   try {
     if (!req.user?.id || req.user.role !== UserRole.SUPERVISOR) {
@@ -293,6 +340,11 @@ export async function putWeeklyGoal(req: AuthedReq, res: Response) {
   }
 }
 
+/**
+ * Obtiene el progreso semanal de todos los estudiantes o de uno específico
+ * @param req Objeto Request de Express autenticado con filtros opcionales
+ * @param res Objeto Response de Express
+ */
 export async function getWeeklyGoalProgress(req: AuthedReq, res: Response) {
   try {
     const weekStart = typeof req.query.weekStart === 'string' ? req.query.weekStart : undefined;
@@ -313,20 +365,17 @@ export async function getWeeklyGoalProgress(req: AuthedReq, res: Response) {
   }
 }
 
-/** === INSIGNIAS DEL ALUMNO === */
-/** GET /api/supervisor/students/:studentId/badges */
+/**
+ * Obtiene las insignias conseguidas por un estudiante
+ * @param req Objeto Request de Express con ID del estudiante
+ * @param res Objeto Response de Express
+ */
 export async function getStudentBadges(req: Request, res: Response) {
   try {
     const { studentId } = IdParam.parse(req.params);
-    // Reutilizamos el servicio de progreso del alumno
     const items = await progressSvc.getBadges(studentId);
-    // items suele traer: [{ id, label, weekStart?, weekEnd?, earnedAt? }, ...]
     res.json(Array.isArray(items) ? items : []);
   } catch (e: any) {
     res.status(400).json({ error: e?.message || 'No se pudieron listar las insignias' });
   }
 }
-
-
-
-

@@ -1,4 +1,4 @@
-// src/views/NewQuestion.tsx
+
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PageWithHeader from '../../components/layout/PageWithHeader';
 import { toast } from 'react-toastify';
@@ -18,18 +18,18 @@ const NewQuestion: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Diagrama
+  
   const [diagrams, setDiagrams] = useState<PublicDiagram[]>([]);
-  const [q, setQ] = useState(''); // búsqueda por nombre
+  const [q, setQ] = useState(''); 
   const [selectedDiagramId, setSelectedDiagramId] = useState<string>('');
 
-  // Pregunta
+  
   const [prompt, setPrompt] = useState('');
   const [hint, setHint] = useState('');
   const [options, setOptions] = useState<string[]>(['', '']);
   const [correctIndex, setCorrectIndex] = useState<number>(0);
 
-  // Confirmación de salida sin guardar
+  
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
   const initialSnapRef = useRef<string>('');
 
@@ -46,7 +46,7 @@ const NewQuestion: React.FC = () => {
     })();
   }, []);
 
-  // Snapshot inicial del formulario vacío (para detectar cambios)
+  
   useEffect(() => {
     initialSnapRef.current = JSON.stringify({
       diagramId: '',
@@ -56,7 +56,7 @@ const NewQuestion: React.FC = () => {
     });
   }, []);
 
-  // Filtrado por título
+  
   const filtered = useMemo(() => {
     const needle = normalize(q.trim());
     if (!needle) return diagrams;
@@ -68,7 +68,7 @@ const NewQuestion: React.FC = () => {
     [diagrams, selectedDiagramId]
   );
 
-  // Helpers de opciones
+  
   const setOption = (i: number, v: string) => {
     const next = options.slice();
     next[i] = v;
@@ -85,7 +85,7 @@ const NewQuestion: React.FC = () => {
     setCorrectIndex(Math.min(ci, Math.max(0, next.length - 1)));
   };
 
-  // Validación simple
+  
   const nonEmpty = options.map((o) => o.trim()).filter(Boolean);
   const canSave =
     !!selectedDiagramId &&
@@ -96,7 +96,7 @@ const NewQuestion: React.FC = () => {
     correctIndex < options.length &&
     options[correctIndex].trim().length > 0;
 
-  // Detección de cambios para el modal
+  
   const currentSnap = useMemo(
     () =>
       JSON.stringify({
@@ -134,7 +134,7 @@ const NewQuestion: React.FC = () => {
         correctIndex,
       });
 
-      // (Opcional) resetea snapshot para no avisar si el usuario permanece en la página
+      
       initialSnapRef.current = JSON.stringify({
         diagramId: '',
         prompt: '',

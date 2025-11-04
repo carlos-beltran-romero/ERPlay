@@ -1,6 +1,13 @@
+/**
+ * Módulo de servicios de preguntas
+ * Gestiona creación, revisión y consulta de preguntas propuestas por estudiantes
+ * @module services/questions
+ */
+
 import { apiJson } from './http';
 import { resolveAssetUrl } from '../shared/utils/url';
 
+/** Pregunta pendiente de revisión */
 export interface PendingQuestion {
   id: string;
   prompt: string;
@@ -12,6 +19,7 @@ export interface PendingQuestion {
   diagram?: { id: string; title: string; path: string };
 }
 
+/** Pregunta propia del estudiante con estado de revisión */
 type MyQuestion = {
   id: string;
   prompt: string;
@@ -24,6 +32,13 @@ type MyQuestion = {
   correctIndex?: number;
 };
 
+/**
+ * Normaliza estado de revisión desde formatos heterogéneos
+ * @param v - Valor crudo del backend (string/number/boolean)
+ * @returns Estado normalizado
+ * @remarks Maneja formatos legacy (0=pending, 1=approved, 2=rejected)
+ * @internal
+ */
 function normalizeReviewStatus(v: any): 'PENDING' | 'APPROVED' | 'REJECTED' {
   if (typeof v === 'string') {
     const s = v.toUpperCase();
@@ -40,6 +55,11 @@ function normalizeReviewStatus(v: any): 'PENDING' | 'APPROVED' | 'REJECTED' {
   return 'PENDING';
 }
 
+/**
+ * Obtiene contador de preguntas pendientes de revisión
+ * @returns Número total de preguntas con status=PENDING
+ * @remarks Usado para mostrar badge en panel de supervisor
+ */
 export async function getPendingCount(): Promise<number> {
   const data = await apiJson<any>('/api/questions/pending/count', {
     auth: true,
@@ -48,6 +68,13 @@ export async function getPendingCount(): Promise<number> {
   return Number(data?.count ?? 0);
 }
 
+/**
+ * Lista preguntas pendientes de revisión
+ * Solo accesible para supervisores
+ * 
+ * @returns Array de preguntas con datos del creador y diagrama asociado
+ * @remarks Normaliza múltiples formatos de backend (opciones como string[] o array de objetos)
+ */
 export async function listPendingQuestions(): Promise<PendingQuestion[]> {
   const raw = await apiJson<any[]>('/api/questions/pending', {
     auth: true,
@@ -111,6 +138,16 @@ export async function listPendingQuestions(): Promise<PendingQuestion[]> {
   });
 }
 
+/**
+ * Resuelve una pregunta pendiente
+ * El supervisor aprueba o rechaza la propuesta
+ * 
+ * @param id - ID de la pregunta
+ * @param decision - Decisión del revisor
+ * @param comment - Comentario opcional explicando la decisión
+ * @throws {Error} Si la pregunta no existe
+ * @remarks APPROVED: La pregunta se añade al banco; REJECTED: Se notifica al creador
+ */
 export async function verifyQuestion(
   id: string,
   decision: 'approve' | 'reject',
@@ -124,6 +161,11 @@ export async function verifyQuestion(
   });
 }
 
+/**
+ * Lista preguntas creadas por el estudiante autenticado
+ * @returns Array de preguntas con estado de revisión y comentarios del supervisor
+ * @remarks Incluye todas las preguntas (pendientes, aprobadas, rechazadas)
+ */
 export async function listMyQuestions(): Promise<MyQuestion[]> {
   const data = await apiJson<any[]>('/api/questions/mine', {
     auth: true,
@@ -177,6 +219,15 @@ export async function listMyQuestions(): Promise<MyQuestion[]> {
   });
 }
 
+/**
+ * Crea una nueva pregunta
+ * El estudiante propone pregunta asociada a un diagrama
+ * 
+ * @param payload - Datos de la pregunta (prompt, opciones, correctIndex)
+ * @returns ID y estado inicial (siempre PENDING)
+ * @throws {Error} Si el diagrama no existe o falta información requerida
+ * @remarks Requiere mínimo 2 opciones y correctIndex válido
+ */
 export async function createQuestion(payload: {
   diagramId: string;
   prompt: string;

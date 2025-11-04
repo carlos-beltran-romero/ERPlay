@@ -1,4 +1,4 @@
-// src/views/Supervisor/StudentDetail.tsx
+
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PageWithHeader from "../../components/layout/PageWithHeader";
@@ -13,8 +13,8 @@ import {
   supGetCreatedQuestions,
   supListUserSessions,
   supListUserClaims,
-  supGetWeeklyProgress, // ⬅️ nuevo
-  supGetStudentBadges, // ⬅️ nuevo
+  supGetWeeklyProgress, 
+  supGetStudentBadges, 
   type SupStudent,
   type SupOverview,
   type SupTrendPoint,
@@ -23,8 +23,8 @@ import {
   type SupQuestionItem,
   type SupSessionSummary,
   type SupClaimItem,
-  type WeeklyProgressRow, // ⬅️ nuevo
-  type SupBadgeItem, // ⬅️ nuevo
+  type WeeklyProgressRow, 
+  type SupBadgeItem, 
 } from "../../services/supervisor";
 import { getSessionDetail, type SessionDetail } from "../../services/tests";
 import {
@@ -48,8 +48,8 @@ import {
   Loader2,
   CheckCircle2,
   MessageSquare,
-  Target, // ⬅️ nuevo
-  Award, // ⬅️ nuevo
+  Target, 
+  Award, 
 } from "lucide-react";
 import {
   formatDateTime,
@@ -160,8 +160,8 @@ const KPI: React.FC<{
 );
 
 /* ---------- Mini-charts ---------- */
-const COLOR_A = "#10b981"; // Acierto (learning)
-const COLOR_B = "#3b82f6"; // Nota (examen)
+const COLOR_A = "#10b981"; 
+const COLOR_B = "#3b82f6"; 
 
 const DualLineChart: React.FC<{
   data: { a?: number | null; b?: number | null }[];
@@ -471,12 +471,12 @@ const StudentDetail: React.FC = () => {
   const [tests, setTests] = useState<SupSessionSummary[]>([]);
   const [claims, setClaims] = useState<SupClaimItem[]>([]);
 
-  // NUEVO: progreso semanal e insignias
+  
   const [progRows, setProgRows] = useState<WeeklyProgressRow[]>([]);
   const [bgs, setBgs] = useState<SupBadgeItem[]>([]);
   const [showBadges, setShowBadges] = useState(false);
 
-  // tests filtros
+  
   const [mode, setMode] = useState<"ALL" | "learning" | "exam" | "errors">(
     "ALL"
   );
@@ -484,24 +484,24 @@ const StudentDetail: React.FC = () => {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
-  // claims filtros
+  
   const [qClaims, setQClaims] = useState("");
   const [stClaims, setStClaims] = useState<
     "ALL" | "PENDING" | "APPROVED" | "REJECTED"
   >("ALL");
 
-  // paginación tipo “Cargar más” para Preguntas y Reclamaciones
+  
   const PAGE_SIZE = 15;
   const [visibleQ, setVisibleQ] = useState(PAGE_SIZE);
   const [visibleC, setVisibleC] = useState(PAGE_SIZE);
 
-  // zoom imagen
+  
   const [previewImg, setPreviewImg] = useState<{
     src: string;
     title: string;
   } | null>(null);
 
-  // detalle test
+  
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detail, setDetail] = useState<SessionDetail | null>(null);
@@ -519,8 +519,8 @@ const StudentDetail: React.FC = () => {
           qs,
           ts,
           cl,
-          rows, // ⬅️ progreso semanal
-          badges, // ⬅️ insignias
+          rows, 
+          badges, 
         ] = await Promise.all([
           supGetStudent(studentId),
           supGetOverview(studentId),
@@ -631,7 +631,7 @@ const StudentDetail: React.FC = () => {
     if (s2 != null) return s2;
     const total = detail.totals?.totalQuestions ?? 0;
     const correct = detail.totals?.correct ?? 0;
-    return total > 0 ? Math.round((correct / total) * 100) / 10 : null; // 0..10 con 1 decimal
+    return total > 0 ? Math.round((correct / total) * 100) / 10 : null; 
   }, [detail]);
 
   /* ------- Abrir detalle test ------- */
@@ -644,7 +644,7 @@ const StudentDetail: React.FC = () => {
     setDetailOpen(true);
     setDetailLoading(true);
     try {
-      // intenta supervisor si existe
+      
       let d: any = null;
       try {
         const supMod: any = await import("../../services/supervisor");
@@ -674,7 +674,7 @@ const StudentDetail: React.FC = () => {
     setDetail(null);
   };
 
-  // Helper progress row (si hay varias filas, buscamos por userId)
+  
   const progRow: WeeklyProgressRow | null = useMemo(() => {
     if (!progRows?.length) return null;
     const found = progRows.find((r) => r.userId === studentId);

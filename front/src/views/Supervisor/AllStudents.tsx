@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import { Pencil, Trash2, Search, X, AlertTriangle, BarChart3, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-// Búsqueda sin tildes (José ≈ Jose)
+
 const normalize = (s: string) =>
   s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
 
@@ -14,10 +14,10 @@ type EditForm = {
   name: string;
   lastName: string;
   email: string;
-  password: string; // opcional
+  password: string; 
 };
 
-const PAGE_SIZE = 20; // ⬅️ tamaño del “Cargar más”
+const PAGE_SIZE = 20; 
 
 const SupervisorStudents: React.FC = () => {
   const navigate = useNavigate();
@@ -28,14 +28,14 @@ const SupervisorStudents: React.FC = () => {
   const [editingOriginal, setEditingOriginal] = useState<EditForm | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // estado para borrar
+  
   const [confirmDelete, setConfirmDelete] = useState<StudentSummary | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // ⬇️ paginación “Cargar más”
+  
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  // Cargar alumnos
+  
   useEffect(() => {
     (async () => {
       try {
@@ -49,7 +49,7 @@ const SupervisorStudents: React.FC = () => {
     })();
   }, []);
 
-  // Filtrado por nombre/apellidos/email
+  
   const filtered = useMemo(() => {
     const q = normalize(query.trim());
     if (!q) return students;
@@ -59,12 +59,12 @@ const SupervisorStudents: React.FC = () => {
     });
   }, [students, query]);
 
-  // Reset del “Cargar más” al cambiar búsqueda o datos
+  
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
   }, [query, students]);
 
-  // Abrir modal de edición
+  
   const openEdit = (s: StudentSummary) => {
     const base: EditForm = {
       id: s.id,
@@ -93,7 +93,7 @@ const SupervisorStudents: React.FC = () => {
     setEditingOriginal(null);
   };
 
-  // Aviso al cerrar pestaña si el modal está abierto con cambios
+  
   ReactUseEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isEditDirty) { e.preventDefault(); e.returnValue = ''; }
@@ -102,7 +102,7 @@ const SupervisorStudents: React.FC = () => {
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [editing, isEditDirty]);
 
-  // Guardar cambios
+  
   const handleSave = async () => {
     if (!editing) return;
     if (!editing.name.trim() || !editing.lastName.trim() || !editing.email.trim()) {
@@ -130,7 +130,7 @@ const SupervisorStudents: React.FC = () => {
     }
   };
 
-  // Confirmar borrado (desde modal)
+  
   const confirmDeleteNow = async () => {
     if (!confirmDelete) return;
     setDeletingId(confirmDelete.id);

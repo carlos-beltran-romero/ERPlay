@@ -15,8 +15,8 @@ const ResetPassword: React.FC = () => {
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
 
-  const tooShort = password.length < MIN_PW; // validación base
-  const showLengthError = submitted && tooShort; // solo tras intentar enviar
+  const tooShort = password.length < MIN_PW; 
+  const showLengthError = submitted && tooShort; 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +24,7 @@ const ResetPassword: React.FC = () => {
     setStatus('idle');
     setError(null);
 
-    if (tooShort) return; // no llamamos a la API si no cumple longitud
+    if (tooShort) return; 
 
     try {
       await resetPassword(token, password);

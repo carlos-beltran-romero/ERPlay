@@ -1,29 +1,27 @@
+/**
+ * Módulo de servicios de reclamaciones
+ * Gestiona el flujo completo de disputas sobre preguntas incorrectas
+ * @module services/claims
+ */
+
 import { apiJson } from './http';
 import { resolveAssetUrl } from '../shared/utils/url';
 
-/**
- * Reclamación registrada por el alumno.
- * @public
- */
+/** Reclamación vista desde el estudiante que la creó */
 export type MyClaim = {
   id: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   reviewerComment?: string | null;
   createdAt?: string;
   reviewedAt?: string | null;
-
   question?: { id?: string; prompt: string };
   diagram?: { id: string; title: string; path?: string };
-
   chosenIndex?: number;
   correctIndex?: number;
   options?: string[];
 };
 
-/**
- * Reclamación pendiente para revisión.
- * @public
- */
+/** Reclamación vista desde el supervisor que la revisa */
 export type PendingClaim = {
   id: string;
   diagram?: { id: string; title: string; path?: string };
@@ -39,10 +37,17 @@ export type PendingClaim = {
 };
 
 /**
- * Registra una reclamación sobre una pregunta respondida.
- * @param payload - Datos capturados en el formulario de reclamación.
- * @returns Promesa resuelta cuando la operación finaliza.
- * @public
+ * Registra una nueva reclamación
+ * El estudiante disputa que la respuesta marcada correcta es errónea
+ * 
+ * @param payload - Datos de la pregunta disputada y justificación
+ * @throws {Error} Si falta información requerida o el envío falla
+ * @remarks
+ * - testResultId: Asocia la reclamación a la respuesta en el test
+ * - explanation: Justificación del estudiante (mínimo 10 caracteres)
+ * - chosenIndex: Índice que el estudiante seleccionó
+ * - correctIndex: Índice que el sistema marcó como correcto
+ * - Las reclamaciones entran en estado PENDING para revisión
  */
 export async function createClaim(payload: {
   testResultId?: string;
@@ -64,9 +69,13 @@ export async function createClaim(payload: {
 }
 
 /**
- * Obtiene las reclamaciones enviadas por el alumno autenticado.
- * @returns Arreglo de reclamaciones normalizadas.
- * @public
+ * Lista las reclamaciones enviadas por el estudiante autenticado
+ * 
+ * @returns Array de reclamaciones con estado de revisión
+ * @remarks
+ * - Ordenadas por fecha descendente (más recientes primero)
+ * - reviewerComment: Visible solo si status = REJECTED o APPROVED
+ * - Los índices de opciones son 0-based
  */
 export async function listMyClaims(): Promise<MyClaim[]> {
   const raw = await apiJson<any[]>('/api/claims/mine', {
@@ -110,9 +119,14 @@ export async function listMyClaims(): Promise<MyClaim[]> {
 }
 
 /**
- * Lista las reclamaciones pendientes para revisión.
- * @returns Reclamaciones con referencias normalizadas.
- * @public
+ * Lista reclamaciones pendientes de revisión
+ * Solo accesible para usuarios con rol supervisor
+ * 
+ * @returns Array de reclamaciones pendientes con datos del reportero
+ * @remarks
+ * - Ordenadas por fecha descendente
+ * - reporter: Datos del estudiante que reportó (nombre, email)
+ * - explanation: Justificación del estudiante
  */
 export async function listPendingClaims(): Promise<PendingClaim[]> {
   const raw = await apiJson<any[]>('/api/claims/pending', {
@@ -176,9 +190,10 @@ export async function listPendingClaims(): Promise<PendingClaim[]> {
 }
 
 /**
- * Cuenta las reclamaciones pendientes de revisión.
- * @returns Número total pendiente.
- * @public
+ * Obtiene el contador de reclamaciones pendientes
+ * Usado para mostrar badges en el panel de supervisor
+ * 
+ * @returns Número total de reclamaciones con status PENDING
  */
 export async function getPendingClaimsCount(): Promise<number> {
   const data = await apiJson<any>('/api/claims/pending/count', {
@@ -189,12 +204,18 @@ export async function getPendingClaimsCount(): Promise<number> {
 }
 
 /**
- * Envía la resolución de una reclamación.
- * @param id - Identificador de la reclamación.
- * @param decision - Decisión aplicada.
- * @param comment - Observaciones opcionales.
- * @returns Promesa resuelta tras confirmar el cambio.
- * @public
+ * Resuelve una reclamación
+ * El supervisor decide si es válida (APPROVED) o no (REJECTED)
+ * 
+ * @param id - ID de la reclamación a resolver
+ * @param decision - Decisión del revisor
+ * @param comment - Comentario opcional explicando la decisión
+ * @throws {Error} Si la reclamación no existe o el revisor no tiene permisos
+ * @remarks
+ * - APPROVED: La reclamación era correcta, se notifica al estudiante
+ * - REJECTED: La reclamación era incorrecta, el comment explica por qué
+ * - El estudiante recibe email con el resultado
+ * - La reclamación no puede volver a editarse tras resolución
  */
 export async function verifyClaim(
   id: string,
@@ -210,9 +231,11 @@ export async function verifyClaim(
 }
 
 /**
- * Normaliza las opciones recibidas desde el backend.
- * @param raw - Opciones en formato heterogéneo.
- * @returns Arreglo plano de textos.
+ * Normaliza opciones del backend
+ * Maneja formatos legacy (array de objetos) y modernos (array de strings)
+ * 
+ * @param raw - Opciones en formato heterogéneo
+ * @returns Array plano de textos
  * @internal
  */
 function normalizeOptions(raw: unknown): string[] {

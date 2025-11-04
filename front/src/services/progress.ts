@@ -1,34 +1,40 @@
+/**
+ * Módulo de servicios de progreso del estudiante
+ * Gestiona métricas personales, tendencias, objetivos y logros
+ * @module services/progress
+ */
+
 import { apiJson, API_URL } from './http';
 
 async function getJSON(url: string, fallbackError = 'Error de servidor') {
   return apiJson<any>(url, { auth: true, fallbackError });
 }
 
-/* =========================
- * Tipos del módulo
- * ========================= */
+/** KPIs principales del estudiante */
 export type Overview = {
-  accuracyLearningPct: number; // 0..100
-  examScoreAvg: number;       // 0..10
+  accuracyLearningPct: number;
+  examScoreAvg: number;
   answeredCount: number;
   avgTimePerQuestionSec: number;
   sessionsCompleted: number;
-  deltaExamVsLearningPts: number; // puntos porcentuales
+  deltaExamVsLearningPts: number;
   bestStreakDays: number;
 };
 
+/** Progreso semanal de un estudiante */
 export type WeeklyProgressRow = {
   userId: string;
   name?: string;
   email?: string;
   done: number;
   target: number;
-  pct: number;       // 0..100
+  pct: number;
   completed: boolean;
   weekStart?: string | null;
   weekEnd?: string | null;
 };
 
+/** Insignia ganada por cumplir objetivos */
 export type BadgeItem = {
   id: string;
   label: string;
@@ -37,6 +43,7 @@ export type BadgeItem = {
   earnedAt?: string | null;
 };
 
+/** Pregunta problemática del estudiante */
 export type ErrorItem = {
   id: string;
   title: string;
@@ -45,31 +52,46 @@ export type ErrorItem = {
   commonChosenText?: string;
 };
 
+/** Punto de serie temporal para gráficas */
 export type TrendPoint = {
-  date: string; // YYYY-MM-DD
-  accuracyLearningPct?: number; // 0..100
-  examScorePct?: number;        // 0..100
+  date: string;
+  accuracyLearningPct?: number;
+  examScorePct?: number;
   correctCount?: number;
   incorrectCount?: number;
 };
 
+/** Patrones de uso y hábitos de estudio */
 export type Habits = {
-  byHour: { hour: number; answered: number }[]; // 0..23
+  byHour: { hour: number; answered: number }[];
   avgSessionDurationSec: number;
-  hintsPerQuestionPct: number; // 0..100 (solo learning)
+  hintsPerQuestionPct: number;
 };
 
+/** Estadísticas de reclamaciones */
 export type ClaimsStats = { submitted: number; approved: number };
 
+/** Objetivo semanal y racha actual */
 export type Goal = {
   weeklyTargetQuestions: number;
   weekAnswered: number;
   currentStreakDays: number;
 };
 
-/* =========================
- * Endpoints de progreso
- * ========================= */
+/** Pregunta creada por el estudiante */
+export type MyQuestionItem = {
+  id: string;
+  title: string;
+  status: 'approved' | 'rejected' | 'pending';
+  reviewedAt?: string | null;
+  reviewerName?: string | null;
+};
+
+/**
+ * Obtiene resumen general de progreso
+ * @returns KPIs principales (precisión, nota media, respuestas totales, racha)
+ * @remarks Normaliza formatos legacy del backend (learningAccuracyPct vs accuracyLearningPct)
+ */
 export async function getOverview(): Promise<Overview> {
   const data = await getJSON(`${API_URL}/api/progress/overview`);
   return {
@@ -83,6 +105,12 @@ export async function getOverview(): Promise<Overview> {
   };
 }
 
+/**
+ * Obtiene tendencias temporales de rendimiento
+ * @param params - Rango de fechas y granularidad (day/week)
+ * @returns Serie temporal de precisión y nota
+ * @remarks Útil para gráficas de evolución histórica
+ */
 export async function getTrends(params?: { from?: string; to?: string; bucket?: 'day' | 'week' }) {
   const q = new URLSearchParams();
   if (params?.from) q.set('from', params.from);
@@ -105,6 +133,12 @@ export async function getTrends(params?: { from?: string; to?: string; bucket?: 
   })) as TrendPoint[];
 }
 
+/**
+ * Lista preguntas con mayor tasa de error
+ * @param limit - Máximo de preguntas a retornar (default: 5)
+ * @returns Array ordenado por errorRatePct descendente
+ * @remarks Identifica puntos débiles para repaso dirigido
+ */
 export async function getErrors(limit = 5): Promise<ErrorItem[]> {
   const data = await apiJson<any>(`${API_URL}/api/progress/errors?limit=${limit}`, {
     auth: true,
@@ -125,6 +159,11 @@ export async function getErrors(limit = 5): Promise<ErrorItem[]> {
   }));
 }
 
+/**
+ * Obtiene patrones de uso y hábitos de estudio
+ * @returns Distribución horaria, duración promedio de sesiones y uso de pistas
+ * @remarks byHour: Array de 24 elementos (0=00:00, 23=23:00)
+ */
 export async function getHabits(): Promise<Habits> {
   const data = await getJSON(`${API_URL}/api/progress/habits`);
   const byHourSrc = Array.isArray(data.byHour) ? data.byHour : [];
@@ -139,11 +178,19 @@ export async function getHabits(): Promise<Habits> {
   } as Habits;
 }
 
+/**
+ * Obtiene estadísticas de reclamaciones
+ * @returns Total enviadas y aprobadas
+ */
 export async function getClaimsStats(): Promise<ClaimsStats> {
   const data = await getJSON(`${API_URL}/api/progress/claims`);
   return { submitted: Number(data.submitted ?? 0), approved: Number(data.approved ?? 0) };
 }
 
+/**
+ * Obtiene objetivo semanal y progreso actual
+ * @returns Meta, respuestas completadas y racha de días
+ */
 export async function getGoal(): Promise<Goal> {
   const data = await getJSON(`${API_URL}/api/progress/goal`);
   return {
@@ -153,6 +200,11 @@ export async function getGoal(): Promise<Goal> {
   };
 }
 
+/**
+ * Lista insignias ganadas por el estudiante
+ * @returns Array de badges ordenados por fecha de obtención
+ * @remarks Incluye insignias semanales y de logros especiales
+ */
 export async function getBadges(): Promise<BadgeItem[]> {
   const data = await apiJson<any>(`${API_URL}/api/progress/badges`, {
     auth: true,
@@ -166,6 +218,13 @@ export async function getBadges(): Promise<BadgeItem[]> {
   }));
 }
 
+/**
+ * Obtiene texto de una opción de pregunta
+ * @param questionId - ID de la pregunta
+ * @param optionIndex - Índice 0-based de la opción
+ * @returns Texto de la opción o null si no existe
+ * @remarks Usado para mostrar respuestas comunes erróneas
+ */
 export async function getQuestionOptionText(questionId: string, optionIndex: number): Promise<string | null> {
   const data = await apiJson<any>(`${API_URL}/api/questions/${questionId}`, {
     auth: true,
@@ -177,14 +236,12 @@ export async function getQuestionOptionText(questionId: string, optionIndex: num
   return found?.text ?? null;
 }
 
-export type MyQuestionItem = {
-  id: string;
-  title: string;
-  status: 'approved' | 'rejected' | 'pending';
-  reviewedAt?: string | null;
-  reviewerName?: string | null;
-};
-
+/**
+ * Lista preguntas creadas por el estudiante
+ * @param params - Filtros de paginación y estado
+ * @returns Array de preguntas con estado de revisión
+ * @remarks Intenta múltiples endpoints para compatibilidad con backend legacy
+ */
 export async function getMyCreatedQuestions(params?: {
   limit?: number; page?: number; status?: 'all'|'approved'|'rejected'|'pending'
 }): Promise<MyQuestionItem[]> {
@@ -215,6 +272,11 @@ export async function getMyCreatedQuestions(params?: {
   return await hit(`${API_URL}/api/questions?createdBy=me&${qs.toString()}`);
 }
 
+/**
+ * Actualiza objetivo semanal del estudiante
+ * @param payload - Nueva meta de preguntas por semana
+ * @returns Objetivo actualizado con progreso actual
+ */
 export async function updateGoal(payload: { weeklyTargetQuestions: number }) : Promise<Goal> {
   const data = await apiJson<any>(`${API_URL}/api/progress/goal`, {
     method: 'PUT',
@@ -229,11 +291,20 @@ export async function updateGoal(payload: { weeklyTargetQuestions: number }) : P
   };
 }
 
+/**
+ * Alias de getBadges para compatibilidad
+ * @deprecated Usar getBadges directamente
+ */
 export async function getMyBadges(): Promise<BadgeItem[]> {
   const data = await getJSON(`${API_URL}/api/progress/badges`);
   return Array.isArray(data) ? data : [];
 }
 
+/**
+ * Obtiene progreso semanal del estudiante autenticado
+ * @returns Progreso actual o null si no hay objetivo activo
+ * @remarks Intenta múltiples endpoints para compatibilidad
+ */
 export async function getMyWeeklyProgress(): Promise<WeeklyProgressRow | null> {
   const urls = [
     `${API_URL}/api/progress/weekly-progress`,

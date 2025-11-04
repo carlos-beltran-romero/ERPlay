@@ -1,4 +1,4 @@
-// src/views/Student/MyTests.tsx
+
 import React, { useEffect, useMemo, useState } from "react";
 import PageWithHeader from "../../components/layout/PageWithHeader";
 import { toast } from "react-toastify";
@@ -31,31 +31,31 @@ const modeLabel: Record<"learning" | "exam", string> = {
 };
 type ModeFilter = "ALL" | "learning" | "exam";
 
-// === Paginación en cliente ===
+
 const PAGE_SIZE = 20;
 
 const MyTests: React.FC = () => {
   const navigate = useNavigate();
 
-  // List state
+  
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<SessionSummary[]>([]);
   const [mode, setMode] = useState<ModeFilter>("ALL");
   const [q, setQ] = useState("");
-  const [dateFrom, setDateFrom] = useState<string>(""); // yyyy-mm-dd
-  const [dateTo, setDateTo] = useState<string>(""); // yyyy-mm-dd
+  const [dateFrom, setDateFrom] = useState<string>(""); 
+  const [dateTo, setDateTo] = useState<string>(""); 
   const [refreshing, setRefreshing] = useState(false);
 
-  // Visible chunk
+  
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  // Detail modal
+  
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detail, setDetail] = useState<SessionDetail | null>(null);
 
-  // Load list
+  
   const loadList = async () => {
     setLoading(true);
     try {
@@ -81,10 +81,10 @@ const MyTests: React.FC = () => {
 
   useEffect(() => {
     loadList();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, []);
 
-  // Filter locally
+  
   const filtered = useMemo(() => {
     const text = q.trim().toLowerCase();
     return items.filter((it) => {
@@ -106,7 +106,7 @@ const MyTests: React.FC = () => {
     });
   }, [items, mode, q, dateFrom, dateTo]);
 
-  // Reset del paginado cuando cambien filtros o datos
+  
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
   }, [mode, q, dateFrom, dateTo, items]);
@@ -132,7 +132,7 @@ const MyTests: React.FC = () => {
     }
   };
 
-  // Open detail in modal
+  
   const openDetail = async (id: string, keepOpen = false) => {
     setSelectedId(id);
     if (!keepOpen) setDetailOpen(true);
@@ -154,7 +154,7 @@ const MyTests: React.FC = () => {
     setDetail(null);
   };
 
-  // ======= Claims helpers (front-only) =======
+  
   const claimCount = useMemo(() => {
     if (!detail?.results) return 0;
     return detail.results.filter((r: any) => !!(r.claimed || r.claimId)).length;
@@ -162,7 +162,7 @@ const MyTests: React.FC = () => {
 
   const isClaimed = (r: any) => !!(r?.claimed || r?.claimId);
 
-  // Nota (modo examen) robusta
+  
   const examScore = useMemo(() => {
     if (!detail || detail.mode !== "exam") return null;
     const s1 =
@@ -177,7 +177,7 @@ const MyTests: React.FC = () => {
     return null;
   }, [detail]);
 
-  // Handler botón "Cargar más"
+  
   const loadMore = () => setVisibleCount((v) => v + PAGE_SIZE);
 
   return (
@@ -618,7 +618,7 @@ const MyTests: React.FC = () => {
                         const answered = typeof r.selectedIndex === "number";
                         const isExam = detail.mode === "exam";
 
-                        // Ocultar la correcta en examen
+                        
                         const showCorrect =
                           !isExam && typeof r.correctIndex === "number";
                         const isCorrect =

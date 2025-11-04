@@ -1,3 +1,9 @@
+/**
+ * Módulo de servicio de sesiones de test
+ * Gestiona el ciclo completo de exámenes: creación, progreso, finalización y consulta
+ * @module services/testSession
+ */
+
 import { AppDataSource } from '../data-source';
 import { Diagram } from '../models/Diagram';
 import { Question, ReviewStatus } from '../models/Question';
@@ -7,65 +13,111 @@ import { TestEvent } from '../models/TestEvent';
 import { User } from '../models/User';
 import { Brackets } from 'typeorm';
 
-// ❌ (el import de "duration" de zod era innecesario y lo quitamos)
-
+/** Parámetros para iniciar sesión */
 type StartSessionArgs = { userId: string; mode: TestMode; limit?: number };
+
+/** Parámetros para actualizar resultado de pregunta */
 type PatchResultArgs = {
-  userId: string; sessionId: string; resultId: string;
+  userId: string;
+  sessionId: string;
+  resultId: string;
   body: {
     selectedIndex?: number | null;
     attemptsDelta?: number;
     usedHint?: boolean;
     revealedAnswer?: boolean;
     timeSpentSecondsDelta?: number;
-  }
+  };
 };
-type LogEventArgs = { userId: string; sessionId: string; type: string; resultId?: string; payload?: any };
+
+/** Parámetros para registrar evento de sesión */
+type LogEventArgs = {
+  userId: string;
+  sessionId: string;
+  type: string;
+  resultId?: string;
+  payload?: any;
+};
+
+/** Parámetros para finalizar sesión */
 type FinishSessionArgs = { userId: string; sessionId: string };
-type ListMineArgs = { userId: string; mode?: TestMode; dateFrom?: string; dateTo?: string; q?: string };
+
+/** Parámetros para listar sesiones del usuario */
+type ListMineArgs = {
+  userId: string;
+  mode?: TestMode;
+  dateFrom?: string;
+  dateTo?: string;
+  q?: string;
+};
+
+/** Parámetros para obtener detalle de sesión */
 type GetOneArgs = { userId: string; sessionId: string };
 
+/**
+ * Servicio de sesiones de test
+ * Orquesta la lógica completa de exámenes y tests de práctica
+ */
 export class TestSessionsService {
   private diagramRepo = AppDataSource.getRepository(Diagram);
   private questionRepo = AppDataSource.getRepository(Question);
   private sessionRepo = AppDataSource.getRepository(TestSession);
-  private resultRepo  = AppDataSource.getRepository(TestResult);
-  private eventRepo   = AppDataSource.getRepository(TestEvent);
-  private userRepo    = AppDataSource.getRepository(User);
+  private resultRepo = AppDataSource.getRepository(TestResult);
+  private eventRepo = AppDataSource.getRepository(TestEvent);
+  private userRepo = AppDataSource.getRepository(User);
 
-  // ======= Crear sesión =======
+  /**
+   * Inicia una nueva sesión de test
+   * Selecciona diagrama aleatorio y preguntas aprobadas
+   * 
+   * @param params - Usuario, modo (learning/exam) y límite de preguntas
+   * @returns Datos de sesión y preguntas snapshot
+   * @throws {Error} Si no hay tests disponibles o preguntas aprobadas
+   * @remarks
+   * - Elige diagrama aleatorio con preguntas aprobadas
+   * - Baraja preguntas y toma hasta `limit` (default: 10)
+   * - Crea snapshots inmutables de prompts/opciones
+   * - Modo learning: expone correctIndex y hint desde el inicio
+   * - Modo exam: oculta correctIndex (revelado al finalizar)
+   */
   async startSession({ userId, mode, limit = 10 }: StartSessionArgs) {
     const user = await this.userRepo.findOneByOrFail({ id: userId });
 
-    // 1) Escoge diagrama con preguntas aprobadas
-    const rows = await this.diagramRepo.createQueryBuilder('d')
-      .innerJoin('d.questions','q','q.status = :st', { st: ReviewStatus.APPROVED })
-      .select('d.id','id').groupBy('d.id')
-      .getRawMany<{id:string}>();
+    const rows = await this.diagramRepo
+      .createQueryBuilder('d')
+      .innerJoin('d.questions', 'q', 'q.status = :st', { st: ReviewStatus.APPROVED })
+      .select('d.id', 'id')
+      .groupBy('d.id')
+      .getRawMany<{ id: string }>();
     if (!rows.length) throw new Error('No hay tests disponibles');
 
     const diagramId = rows[Math.floor(Math.random() * rows.length)].id;
     const diagram = await this.diagramRepo.findOne({
       where: { id: diagramId },
-      relations: { questions: { options: true } }
+      relations: { questions: { options: true } },
     });
     if (!diagram) throw new Error('Test no encontrado');
 
-    const approved = (diagram.questions || []).filter(q => q.status === ReviewStatus.APPROVED);
+    const approved = (diagram.questions || []).filter((q) => q.status === ReviewStatus.APPROVED);
     if (!approved.length) throw new Error('El test no tiene preguntas aprobadas');
 
-    const chosen = approved.sort(()=>Math.random()-0.5).slice(0, Math.min(limit, approved.length));
+    const chosen = approved.sort(() => Math.random() - 0.5).slice(0, Math.min(limit, approved.length));
 
-    // 2) Crea session + results snapshot
     const sess = await AppDataSource.transaction(async (m) => {
       const s = m.create(TestSession, {
-        user, diagram, mode, totalQuestions: chosen.length
+        user,
+        diagram,
+        mode,
+        totalQuestions: chosen.length,
       });
       await m.save(s);
 
       const results: TestResult[] = [];
       chosen.forEach((q, i) => {
-        const opts = (q.options || []).slice().sort((a,b)=>a.orderIndex-b.orderIndex).map(o=>o.text);
+        const opts = (q.options || [])
+          .slice()
+          .sort((a, b) => a.orderIndex - b.orderIndex)
+          .map((o) => o.text);
         const r = m.create(TestResult, {
           session: s,
           question: q,
@@ -78,7 +130,7 @@ export class TestSessionsService {
           revealedAnswer: false,
           attemptsCount: 0,
           timeSpentSeconds: 0,
-          isCorrect: null
+          isCorrect: null,
         });
         results.push(r);
       });
@@ -89,28 +141,40 @@ export class TestSessionsService {
     const results = await this.resultRepo.find({
       where: { session: { id: sess.id } },
       order: { orderIndex: 'ASC' },
-      relations: { question: true }
+      relations: { question: true },
     });
 
     return {
       sessionId: sess.id,
       diagram: { id: diagram.id, title: diagram.title, path: diagram.path ?? null },
-      questions: results.map(r => ({
+      questions: results.map((r) => ({
         resultId: r.id,
         questionId: r.question?.id,
         prompt: r.promptSnapshot,
         options: r.optionsSnapshot,
         ...(mode === 'learning' ? { correctIndex: r.correctIndexAtTest } : {}),
-        hint: r.question?.hint || undefined
-      }))
+        hint: r.question?.hint || undefined,
+      })),
     };
   }
 
-  // ======= Guardar resultado =======
+  /**
+   * Actualiza el resultado de una pregunta durante la sesión
+   * Gestiona respuestas, intentos, pistas y tiempo invertido
+   * 
+   * @param params - IDs de sesión/resultado y actualizaciones parciales
+   * @returns Confirmación de operación
+   * @throws {Error} Si el resultado no existe o no pertenece al usuario
+   * @remarks
+   * - selectedIndex: Marca respuesta y calcula isCorrect automáticamente
+   * - attemptsDelta: Incrementa contador de intentos
+   * - usedHint/revealedAnswer: Flags booleanos (solo pueden activarse, nunca resetear)
+   * - timeSpentSecondsDelta: Acumula tiempo (nunca resta, usa Math.max(0))
+   */
   async patchResult({ userId, sessionId, resultId, body }: PatchResultArgs) {
     const result = await this.resultRepo.findOne({
       where: { id: resultId, session: { id: sessionId, user: { id: userId } } },
-      relations: { session: true }
+      relations: { session: true },
     });
     if (!result) throw new Error('Resultado no encontrado');
 
@@ -127,14 +191,27 @@ export class TestSessionsService {
       result.attemptsCount += body.attemptsDelta;
     }
     if (typeof body.usedHint === 'boolean') result.usedHint = result.usedHint || body.usedHint;
-    if (typeof body.revealedAnswer === 'boolean') result.revealedAnswer = result.revealedAnswer || body.revealedAnswer;
-    if (typeof body.timeSpentSecondsDelta === 'number') result.timeSpentSeconds += Math.max(0, body.timeSpentSecondsDelta);
+    if (typeof body.revealedAnswer === 'boolean')
+      result.revealedAnswer = result.revealedAnswer || body.revealedAnswer;
+    if (typeof body.timeSpentSecondsDelta === 'number')
+      result.timeSpentSeconds += Math.max(0, body.timeSpentSecondsDelta);
 
     await this.resultRepo.save(result);
     return { ok: true };
   }
 
-  // ======= Log de eventos =======
+  /**
+   * Registra evento de telemetría durante la sesión
+   * Útil para análisis de comportamiento y debugging
+   * 
+   * @param params - Usuario, sesión, tipo de evento y payload opcional
+   * @returns Confirmación de operación
+   * @throws {Error} Si la sesión no existe
+   * @remarks
+   * - Tipos comunes: 'question_viewed', 'hint_used', 'answer_revealed'
+   * - payload: JSON libre para metadata adicional
+   * - resultId: Opcional, asocia evento a pregunta específica
+   */
   async logEvent({ userId, sessionId, type, resultId, payload }: LogEventArgs) {
     const session = await this.sessionRepo.findOne({ where: { id: sessionId, user: { id: userId } } });
     if (!session) throw new Error('Sesión no encontrada');
@@ -144,21 +221,36 @@ export class TestSessionsService {
       : null;
 
     const ev = this.eventRepo.create({
-      session, result: result || null, type, payload: payload || null
+      session,
+      result: result || null,
+      type,
+      payload: payload || null,
     });
     await this.eventRepo.save(ev);
     return { ok: true };
   }
 
-  // ======= Finalizar sesión (DURACIÓN = fin − inicio, autoritativa) =======
+  /**
+   * Finaliza una sesión de test
+   * Calcula duración, nota y contadores con precisión SQL (servidor)
+   * 
+   * @param params - Usuario y sesión a finalizar
+   * @returns Resumen final con métricas calculadas
+   * @throws {Error} Si la sesión no existe
+   * @remarks
+   * - Idempotente: múltiples llamadas retornan el mismo resultado
+   * - Duración: TIMESTAMPDIFF(SECOND, createdAt, NOW()) en MySQL
+   * - Nota (modo exam): (correctas / total) * 10, redondeado a 2 decimales
+   * - Usa NOW() y TIMESTAMPDIFF para evitar desfases de timezone
+   * - Recuenta correctas/incorrectas desde TestResult (authoritative source)
+   */
   async finishSession({ userId, sessionId }: FinishSessionArgs) {
     const session = await this.sessionRepo.findOne({
       where: { id: sessionId, user: { id: userId } },
-      relations: { diagram: true }
+      relations: { diagram: true },
     });
     if (!session) throw new Error('Sesión no encontrada');
 
-    // Idempotencia: si ya está cerrada, devolvemos lo que hay (o calculamos fallback JS)
     if (session.completedAt) {
       const duration =
         typeof session.durationSeconds === 'number'
@@ -173,44 +265,39 @@ export class TestSessionsService {
           correct: session.correctCount ?? 0,
           incorrect: session.incorrectCount ?? 0,
           durationSeconds: duration,
-          score: session.score ?? null
-        }
+          score: session.score ?? null,
+        },
       };
     }
 
-    // Recontar correctas/incorrectas (siempre en server)
     const results = await this.resultRepo.find({ where: { session: { id: sessionId } } });
-    const correct = results.filter(r => r.isCorrect === true).length;
-    const incorrect = results.filter(r => r.isCorrect === false).length;
+    const correct = results.filter((r) => r.isCorrect === true).length;
+    const incorrect = results.filter((r) => r.isCorrect === false).length;
 
-    // Calcular nota (mantengo tu escala 0..10)
-    const score = session.mode === 'exam' && session.totalQuestions
-      ? Math.round((correct / session.totalQuestions) * 1000) / 100
-      : null;
+    const score =
+      session.mode === 'exam' && session.totalQuestions
+        ? Math.round((correct / session.totalQuestions) * 1000) / 100
+        : null;
 
-    // Guardar contadores/nota primero
     await this.sessionRepo.update(session.id, {
       correctCount: correct,
       incorrectCount: incorrect,
-      score
+      score,
     });
 
-    // Fijar fin y duración EN LA BASE DE DATOS (NOW() y TIMESTAMPDIFF)
     await this.sessionRepo
       .createQueryBuilder()
       .update(TestSession)
       .set({
-        // @ts-ignore — usamos funciones SQL
         completedAt: () => 'NOW()',
         durationSeconds: () => 'GREATEST(0, TIMESTAMPDIFF(SECOND, createdAt, NOW()))',
       })
       .where('id = :id', { id: session.id })
       .execute();
 
-    // Recargar sesión ya actualizada para responder al cliente
     const updated = await this.sessionRepo.findOneOrFail({
       where: { id: session.id },
-      relations: { diagram: true }
+      relations: { diagram: true },
     });
 
     return {
@@ -222,14 +309,27 @@ export class TestSessionsService {
         correct,
         incorrect,
         durationSeconds: updated.durationSeconds ?? 0,
-        score: updated.score ?? null
-      }
+        score: updated.score ?? null,
+      },
     };
   }
 
-  // ======= Listado para "Mis tests" =======
+  /**
+   * Lista sesiones del usuario con filtros opcionales
+   * Usado en vista "Mis tests" del estudiante
+   * 
+   * @param params - Usuario y filtros de modo, fecha y búsqueda
+   * @returns Array de sesiones ordenadas cronológicamente (desc)
+   * @remarks
+   * - mode: Filtra por 'learning' o 'exam'
+   * - dateFrom/dateTo: Rango de fechas (formato YYYY-MM-DD)
+   * - q: Búsqueda en título del diagrama (case-insensitive)
+   * - skippedCount: Calculado como total - correct - incorrect
+   * - noteLabel: Nota en formato "8.50" o fracción "7/10" según disponibilidad
+   */
   async listMine({ userId, mode, dateFrom, dateTo, q }: ListMineArgs) {
-    const qb = this.sessionRepo.createQueryBuilder('s')
+    const qb = this.sessionRepo
+      .createQueryBuilder('s')
       .leftJoinAndSelect('s.diagram', 'd')
       .where('s.userId = :uid', { uid: userId })
       .orderBy('s.createdAt', 'DESC');
@@ -239,49 +339,75 @@ export class TestSessionsService {
     if (dateTo) qb.andWhere('s.createdAt <= :dt', { dt: new Date(dateTo + 'T23:59:59') });
     if (q && q.trim()) {
       const t = `%${q.trim().toLowerCase()}%`;
-      qb.andWhere(new Brackets(b => {
-        b.where('LOWER(d.title) LIKE :t', { t });
-      }));
+      qb.andWhere(
+        new Brackets((b) => {
+          b.where('LOWER(d.title) LIKE :t', { t });
+        })
+      );
     }
 
     const rows = await qb.getMany();
 
-    return rows.map(s => {
-      // ⬇️ Fallback por si quedan sesiones antiguas sin durationSeconds persistido
+    return rows.map((s) => {
+
       const duration =
         typeof s.durationSeconds === 'number'
           ? s.durationSeconds
-          : (s.completedAt ? Math.max(0, Math.floor((+s.completedAt - +s.createdAt) / 1000)) : null);
+          : s.completedAt
+          ? Math.max(0, Math.floor((+s.completedAt - +s.createdAt) / 1000))
+          : null;
 
       return {
         id: s.id,
         mode: s.mode as TestMode,
         startedAt: s.createdAt,
         finishedAt: s.completedAt ?? null,
-        diagram: s.diagram ? { id: s.diagram.id, title: s.diagram.title, path: s.diagram.path ?? null } : null,
+        diagram: s.diagram
+          ? { id: s.diagram.id, title: s.diagram.title, path: s.diagram.path ?? null }
+          : null,
         questionCount: s.totalQuestions ?? 0,
         totalQuestions: s.totalQuestions ?? 0,
         correctCount: s.correctCount ?? 0,
         wrongCount: s.incorrectCount ?? 0,
-        skippedCount: Math.max(0, (s.totalQuestions ?? 0) - (s.correctCount ?? 0) - (s.incorrectCount ?? 0)),
+        skippedCount: Math.max(
+          0,
+          (s.totalQuestions ?? 0) - (s.correctCount ?? 0) - (s.incorrectCount ?? 0)
+        ),
         score: s.score ?? null,
         summary: {
           durationSeconds: duration,
-          accuracyPct: (s.totalQuestions ? Math.round((100 * (s.correctCount ?? 0)) / s.totalQuestions) : null),
+          accuracyPct: s.totalQuestions
+            ? Math.round((100 * (s.correctCount ?? 0)) / s.totalQuestions)
+            : null,
           score: s.score ?? null,
-          noteLabel: s.score != null
-            ? `${s.score}`
-            : (s.totalQuestions ? `${s.correctCount ?? 0}/${s.totalQuestions}` : null),
-        }
+          noteLabel:
+            s.score != null
+              ? `${s.score}`
+              : s.totalQuestions
+              ? `${s.correctCount ?? 0}/${s.totalQuestions}`
+              : null,
+        },
       };
     });
   }
 
-  // ======= Detalle de una sesión =======
+  /**
+   * Obtiene detalle completo de una sesión finalizada
+   * Incluye todas las preguntas, respuestas y estado de reclamaciones
+   * 
+   * @param params - Usuario y sesión a consultar
+   * @returns Datos completos de sesión y resultados individuales
+   * @throws {Error} Si la sesión no existe
+   * @remarks
+   * - Expone correctIndex siempre (sesión ya finalizada)
+   * - claimed: true si existe al menos una reclamación
+   * - claimStatus: Estado de la primera reclamación encontrada
+   * - Duración: Usa valor persistido o calcula fallback si es necesario
+   */
   async getOne({ userId, sessionId }: GetOneArgs) {
     const s = await this.sessionRepo.findOne({
       where: { id: sessionId, user: { id: userId } },
-      relations: { diagram: true }
+      relations: { diagram: true },
     });
     if (!s) throw new Error('Sesión no encontrada');
 
@@ -291,11 +417,12 @@ export class TestSessionsService {
       relations: { claims: true },
     });
 
-    // ⬇️ Fallback de duración si no quedó guardada
     const duration =
       typeof s.durationSeconds === 'number'
         ? s.durationSeconds
-        : (s.completedAt ? Math.max(0, Math.floor((+s.completedAt - +s.createdAt) / 1000)) : null);
+        : s.completedAt
+        ? Math.max(0, Math.floor((+s.completedAt - +s.createdAt) / 1000))
+        : null;
 
     return {
       id: s.id,
@@ -303,13 +430,17 @@ export class TestSessionsService {
       startedAt: s.createdAt,
       finishedAt: s.completedAt ?? null,
       durationSeconds: duration ?? null,
-      diagram: s.diagram ? { id: s.diagram.id, title: s.diagram.title, path: s.diagram.path ?? null } : null,
+      diagram: s.diagram
+        ? { id: s.diagram.id, title: s.diagram.title, path: s.diagram.path ?? null }
+        : null,
       summary: {
         durationSeconds: duration ?? null,
-        accuracyPct: (s.totalQuestions ? Math.round((100 * (s.correctCount ?? 0)) / s.totalQuestions) : null),
+        accuracyPct: s.totalQuestions
+          ? Math.round((100 * (s.correctCount ?? 0)) / s.totalQuestions)
+          : null,
         score: s.score ?? null,
       },
-      results: results.map(r => ({
+      results: results.map((r) => ({
         resultId: r.id,
         prompt: r.promptSnapshot,
         options: r.optionsSnapshot,

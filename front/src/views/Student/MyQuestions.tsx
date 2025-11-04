@@ -4,10 +4,6 @@ import { toast } from "react-toastify";
 import { listMyQuestions } from "../../services/questions";
 import { useNavigate } from "react-router-dom";
 
-/**
- * Gestión de preguntas y reclamaciones creadas por el alumno.
- * @module views/Student/MyQuestions
- */
 import {
   Plus,
   Search,
@@ -21,10 +17,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 
-/**
- * Pregunta enviada por el alumno para revisión.
- * @public
- */
+
 type MyQuestion = {
   id: string;
   prompt: string;
@@ -37,10 +30,7 @@ type MyQuestion = {
   correctIndex?: number;
 };
 
-/**
- * Reclamación registrada por el alumno sobre una pregunta.
- * @public
- */
+
 type MyClaim = {
   id: string;
   status: "PENDING" | "APPROVED" | "REJECTED";
@@ -54,47 +44,25 @@ type MyClaim = {
   options?: string[];
 };
 
-/**
- * Número de elementos mostrados inicialmente por pestaña.
- * @internal
- */
+
 const PAGE_SIZE = 15;
-/**
- * Longitud mínima para contraer enunciados.
- * @internal
- */
+
 const MIN_HALF_TOGGLE = 120;
-/**
- * Longitud mínima para contraer opciones.
- * @internal
- */
+
 const MIN_HALF_TOGGLE_OPT = 80;
 
-/**
- * Etiquetas traducidas para cada estado.
- * @internal
- */
+
 const STATUS_LABEL = {
   PENDING: "Pendiente",
   APPROVED: "Aprobada",
   REJECTED: "Rechazada",
 } as const;
 
-/**
- * Devuelve la letra asociada a una opción.
- * @param i - Índice de la opción.
- * @returns Letra en mayúscula o guion.
- * @internal
- */
+
 const letter = (i?: number) =>
   typeof i === "number" && i >= 0 ? String.fromCharCode(65 + i) : "—";
 
-/**
- * Convierte una fecha ISO a representación local.
- * @param iso - Fecha en formato ISO.
- * @returns Fecha corta o cadena vacía.
- * @internal
- */
+
 const fmtDate = (iso?: string) =>
   iso ? new Date(iso).toLocaleDateString() : "";
 
@@ -104,11 +72,7 @@ interface ExpandableTextProps {
   className?: string;
 }
 
-/**
- * Corta textos extensos y permite alternar su visualización.
- * @param props - Propiedades del componente.
- * @internal
- */
+
 const ExpandableText: React.FC<ExpandableTextProps> = ({
   text,
   minToHalf = MIN_HALF_TOGGLE,
@@ -141,11 +105,7 @@ interface StatusBadgeProps {
   status: MyQuestion["status"] | MyClaim["status"];
 }
 
-/**
- * Chip con el estado visual de una pregunta o reclamación.
- * @param props - Propiedades del componente.
- * @internal
- */
+
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   const common =
     "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium";
@@ -176,11 +136,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   );
 };
 
-/**
- * Vista con listados de preguntas creadas y reclamaciones.
- * @returns Contenido principal de la sección Mis preguntas.
- * @public
- */
+
 const MyQuestionsView: React.FC = () => {
   const navigate = useNavigate();
 

@@ -1,4 +1,4 @@
-// src/views/UploadDiagram.tsx
+
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageWithHeader from "../../components/layout/PageWithHeader";
@@ -15,13 +15,13 @@ import {
 
 type QuestionForm = {
   prompt: string;
-  options: string[]; // >= 2
-  correctIndex: number; // 0..n-1
-  hint: string; // obligatorio
+  options: string[]; 
+  correctIndex: number; 
+  hint: string; 
   errors?: {
     prompt?: string;
-    options?: string[]; // por opción
-    optionsGeneral?: string; // mínimo 2
+    options?: string[]; 
+    optionsGeneral?: string; 
     correctIndex?: string;
     hint?: string;
   };
@@ -46,11 +46,11 @@ const UploadDiagram: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
 
-  // snapshot para detectar cambios
+  
   const initialSnapRef = useRef<string>("");
 
   useEffect(() => {
-    // snapshot inicial (form vacío)
+    
     initialSnapRef.current = JSON.stringify({
       title: "",
       hasFile: false,
@@ -105,7 +105,7 @@ const UploadDiagram: React.FC = () => {
       prev.map((q, i) => {
         if (i !== qIdx || q.options.length <= MIN_OPTIONS) return q;
 
-        // Reajustar correcta si procede
+        
         let newCorrect = q.correctIndex;
         if (optIdx === q.correctIndex) newCorrect = 0;
         else if (optIdx < q.correctIndex) newCorrect = q.correctIndex - 1;
@@ -127,7 +127,7 @@ const UploadDiagram: React.FC = () => {
     );
   };
 
-  // Valida y pinta errores en el formulario
+  
   const validate = (): boolean => {
     let ok = true;
     const next = questions.map((q) => {
@@ -166,7 +166,7 @@ const UploadDiagram: React.FC = () => {
     return ok;
   };
 
-  // Solo para estilo/estado del botón (no pinta errores)
+  
   const canSubmit = useMemo(() => {
     if (!title.trim() || !file) return false;
     for (const q of questions) {
@@ -191,7 +191,7 @@ const UploadDiagram: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // aunque el botón parezca desactivado, aquí hacemos guardado defensivo + toast
+    
     if (!validate() || !file) return;
 
     setSubmitting(true);
@@ -208,11 +208,11 @@ const UploadDiagram: React.FC = () => {
       });
 
       toast.success("Diagrama subido correctamente");
-      // reset
+      
       setTitle("");
       setFile(null);
       setQuestions([emptyQuestion()]);
-      // reset snapshot para evitar aviso al salir
+      
       initialSnapRef.current = JSON.stringify({
         title: "",
         hasFile: false,
@@ -491,10 +491,10 @@ const UploadDiagram: React.FC = () => {
                 }
               `}
               onClick={(e) => {
-                // Si el formulario no está listo, evitamos submit y mostramos toast
+                
                 if (!canSubmit) {
                   e.preventDefault();
-                  validate(); // pinta errores
+                  validate(); 
                 }
               }}
             >

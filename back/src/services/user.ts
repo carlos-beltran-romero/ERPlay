@@ -1,16 +1,23 @@
-import bcrypt from 'bcrypt';
+/**
+ * Módulo de servicio de usuarios
+ * Gestiona CRUD de estudiantes y perfiles de usuario
+ * @module services/user
+ */
 
+import bcrypt from 'bcrypt';
 import { createHttpError } from '../core/errors/HttpError';
 import { AppDataSource } from '../data-source';
 import { User, UserRole } from '../models/User';
 
+/** DTO para actualización de perfil de usuario */
 export interface UpdateUserDTO {
   name?: string;
-  lastName?: string;       // si tu columna es "lastName", ver nota más abajo
+  lastName?: string;
   email?: string;
-  password?: string;       // si llega, se cambia
+  password?: string;
 }
 
+/** DTO para creación masiva de estudiantes */
 export interface BatchStudentDTO {
   name: string;
   lastName: string;
@@ -18,6 +25,7 @@ export interface BatchStudentDTO {
   password: string;
 }
 
+/** Representación segura de usuario sin datos sensibles */
 export interface SafeUser {
   id: string;
   name: string;
@@ -27,10 +35,25 @@ export interface SafeUser {
   createdAt: Date;
 }
 
+/**
+ * Servicio de usuarios
+ * Gestiona operaciones sobre estudiantes y perfiles
+ */
 export class UsersService {
   private userRepo = AppDataSource.getRepository(User);
 
-  // Crea los válidos, omite existentes o duplicados en payload
+  /**
+   * Crea múltiples estudiantes en lote
+   * Omite usuarios con emails duplicados o ya existentes
+   * 
+   * @param payload - Array de estudiantes a crear
+   * @returns Usuarios creados y listas de omitidos
+   * @remarks
+   * - Normaliza emails a lowercase antes de comparar
+   * - Duplicados en payload: solo crea la primera ocurrencia
+   * - Existentes en BD: se omiten sin error
+   * - Hash de contraseñas con bcrypt (cost factor 10)
+   */
   async batchCreateStudents(payload: BatchStudentDTO[]): Promise<{
     created: SafeUser[];
     skipped: { exists: string[]; payloadDuplicates: string[] };
@@ -42,7 +65,6 @@ export class UsersService {
       password: u.password,
     }));
 
-    // Duplicados dentro del propio lote (identifica correos repetidos)
     const counter = new Map<string, number>();
     const duplicatesInPayload: string[] = [];
     for (const u of input) {
@@ -52,7 +74,6 @@ export class UsersService {
     }
     const payloadDupSet = new Set(duplicatesInPayload);
 
-    // Ya existentes en BD
     const existing = await this.userRepo
       .createQueryBuilder('u')
       .select(['u.email'])
@@ -60,12 +81,10 @@ export class UsersService {
       .getMany();
     const existingSet = new Set(existing.map(e => e.email));
 
-    // Filtramos a crear: 1ª aparición en payload y que NO exista en BD
     const seenCreate = new Set<string>();
     const toCreate = input.filter(u => {
       if (existingSet.has(u.email)) return false;
       if (payloadDupSet.has(u.email)) {
-        // si está duplicado, solo dejamos pasar la 1ª ocurrencia
         if (seenCreate.has(u.email)) return false;
       }
       if (seenCreate.has(u.email)) return false;
@@ -73,7 +92,6 @@ export class UsersService {
       return true;
     });
 
-    // Crear entidades + hash
     const entities = await Promise.all(
       toCreate.map(async u => {
         const passwordHash = await bcrypt.hash(u.password, 10);
@@ -106,6 +124,11 @@ export class UsersService {
       },
     };
   }
+
+  /**
+   * Lista todos los estudiantes del sistema
+   * @returns Array de estudiantes ordenados por fecha de creación descendente
+   */
   async listStudents(): Promise<SafeUser[]> {
     const rows = await this.userRepo.find({
       where: { role: UserRole.STUDENT },
@@ -115,6 +138,12 @@ export class UsersService {
     return rows as SafeUser[];
   }
 
+  /**
+   * Obtiene un usuario por ID
+   * @param userId - ID del usuario
+   * @returns Datos del usuario sin contraseña
+   * @throws {HttpError} 404 si el usuario no existe
+   */
   async getById(userId: string): Promise<SafeUser> {
     const user = await this.userRepo.findOne({
       where: { id: userId },
@@ -124,11 +153,24 @@ export class UsersService {
     return user as SafeUser;
   }
 
+  /**
+   * Actualiza datos de perfil de usuario
+   * Permite cambiar nombre, apellidos, email y contraseña
+   * 
+   * @param userId - ID del usuario a actualizar
+   * @param dto - Campos a actualizar (todos opcionales)
+   * @returns Usuario actualizado
+   * @throws {HttpError} 404 si el usuario no existe
+   * @throws {HttpError} 409 si el nuevo email ya está en uso
+   * @remarks
+   * - Email: valida unicidad antes de actualizar
+   * - Password: rehashea con bcrypt si se proporciona
+   * - Campos no enviados permanecen sin cambios
+   */
   async updateUser(userId: string, dto: UpdateUserDTO): Promise<SafeUser> {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw createHttpError(404, 'Usuario no encontrado');
 
-    // Email en uso por otro usuario
     if (dto.email) {
       const exists = await this.userRepo.findOne({
         where: { email: dto.email.toLowerCase() },
@@ -140,13 +182,7 @@ export class UsersService {
     }
 
     if (dto.name !== undefined) user.name = dto.name.trim();
-
-    if (dto.lastName !== undefined) {
-      // 👇 Si en tu entidad el campo es lastName mapeado a "lastName", esto funciona.
-      // Si aún tienes "lastName" en la clase, descomenta la línea alternativa:
-      user.lastName = dto.lastName.trim();
-      // (user as any).lastName = dto.lastName.trim();
-    }
+    if (dto.lastName !== undefined) user.lastName = dto.lastName.trim();
 
     if (dto.password) {
       user.passwordHash = await bcrypt.hash(dto.password, 10);
@@ -157,6 +193,16 @@ export class UsersService {
     return safe as SafeUser;
   }
 
+  /**
+   * Elimina un estudiante del sistema
+   * 
+   * @param userId - ID del estudiante a eliminar
+   * @throws {HttpError} 404 si el usuario no existe
+   * @throws {HttpError} 403 si el usuario no es estudiante
+   * @remarks
+   * - Solo permite eliminar usuarios con role = STUDENT
+   * - La eliminación es en cascada (sesiones, resultados, etc.)
+   */
   async deleteStudent(userId: string): Promise<void> {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw createHttpError(404, 'Usuario no encontrado');
@@ -166,5 +212,3 @@ export class UsersService {
     await this.userRepo.remove(user);
   }
 }
-
-

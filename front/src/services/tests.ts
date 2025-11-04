@@ -1,7 +1,15 @@
+/**
+ * Módulo de servicios de tests
+ * Gestiona inicio, progreso y consulta de sesiones de tests (learning/exam/errors)
+ * @module services/tests
+ */
+
 import { apiJson, apiRequest, API_URL } from './http';
 
+/** Modo de test disponible */
 export type TestMode = 'learning' | 'exam' | 'errors';
 
+/** Sesión iniciada con preguntas cargadas */
 export type StartedSession = {
   sessionId: string;
   diagram: { id: string; title: string; path: string | null };
@@ -11,25 +19,24 @@ export type StartedSession = {
     prompt: string;
     options: string[];
     hint?: string;
-    correctIndex?: number; // presente en learning
+    correctIndex?: number;
   }>;
 };
 
+/** Sesión en lista de historial */
 export type TestSessionListItem = {
   id: string;
   mode: TestMode;
-  startedAt: string;           // ISO
-  finishedAt?: string | null;  // ISO
+  startedAt: string;
+  finishedAt?: string | null;
   durationSeconds?: number;
   diagram?: { id: string; title: string; path: string | null } | null;
-
   totalQuestions: number;
   correctCount: number;
   wrongCount: number;
   skippedCount: number;
-  score?: number | null;       // 0..100 en examen
+  score?: number | null;
   claimCount?: number;
-
   summary?: {
     accuracyPct?: number | null;
     score?: number | null;
@@ -39,6 +46,7 @@ export type TestSessionListItem = {
   questionCount?: number;
 };
 
+/** Respuesta paginada de listado de tests */
 export type ListMyTestsResponse = {
   items: TestSessionListItem[];
   page: number;
@@ -46,6 +54,7 @@ export type ListMyTestsResponse = {
   total: number;
 };
 
+/** Resultado individual de pregunta */
 export type TestResultItem = {
   resultId: string;
   questionId?: string | null;
@@ -64,6 +73,7 @@ export type TestResultItem = {
   claimCreatedAt?: string | null;
 };
 
+/** Detalle completo de sesión con resultados */
 export type TestSessionDetail = {
   id: string;
   mode: TestMode;
@@ -79,7 +89,7 @@ export type TestSessionDetail = {
     skipped: number;
     usedHints: number;
     revealed: number;
-    score?: number | null; // 0..100 en examen
+    score?: number | null;
   };
   summary?: {
     durationSeconds?: number | null;
@@ -90,19 +100,27 @@ export type TestSessionDetail = {
   events?: Array<{ id: string; type: string; at: string; resultId?: string; payload?: any }>;
 };
 
-/* ===== Filtros para listados ===== */
+/** Filtros para listados de tests */
 export type ListFilters = {
   mode?: TestMode | 'all';
-  dateFrom?: string; // 'YYYY-MM-DD'
-  dateTo?: string;   // 'YYYY-MM-DD'
-  page?: number;     // 1-based
-  pageSize?: number; // por defecto 20
-  q?: string;        // búsqueda libre (si el back la soporta)
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  pageSize?: number;
+  q?: string;
 };
 
-/* =========================
- * Sesión de test (jugar)
- * ========================= */
+/**
+ * Inicia una nueva sesión de test
+ * Carga diagrama y preguntas según modo seleccionado
+ * 
+ * @param params - Modo y límite de preguntas
+ * @returns Sesión creada con preguntas snapshot
+ * @remarks
+ * - learning: Muestra correctIndex durante el test
+ * - exam: Oculta correctIndex hasta finalizar
+ * - errors: Carga preguntas previamente falladas
+ */
 export async function startTestSession(params: { mode: TestMode; limit?: number }) {
   return apiJson<StartedSession>(`${API_URL}/api/test-sessions/start`, {
     method: 'POST',
@@ -112,6 +130,15 @@ export async function startTestSession(params: { mode: TestMode; limit?: number 
   });
 }
 
+/**
+ * Actualiza respuesta de una pregunta
+ * Guarda progreso incremental (selectedIndex, intentos, tiempo)
+ * 
+ * @param sessionId - ID de la sesión activa
+ * @param resultId - ID del resultado a actualizar
+ * @param body - Campos a modificar (patch parcial)
+ * @remarks Permite múltiples updates de la misma pregunta (reintentos)
+ */
 export async function patchResult(
   sessionId: string,
   resultId: string,
@@ -135,6 +162,14 @@ export async function patchResult(
   return true;
 }
 
+/**
+ * Registra evento de interacción durante el test
+ * Usado para analytics y tracking de comportamiento
+ * 
+ * @param sessionId - ID de la sesión activa
+ * @param body - Tipo de evento y payload opcional
+ * @remarks Silencia errores para no interrumpir flujo del test
+ */
 export async function logEvent(
   sessionId: string,
   body: { type: string; resultId?: string; payload?: any }
@@ -150,6 +185,14 @@ export async function logEvent(
   }
 }
 
+/**
+ * Finaliza sesión de test
+ * Calcula nota final, guarda timestamp de completitud y genera insignias
+ * 
+ * @param sessionId - ID de la sesión a finalizar
+ * @returns Resumen final con score y estadísticas
+ * @remarks No se puede reabrir tras finalizar (finishedAt != null)
+ */
 export async function finishSession(sessionId: string) {
   return apiJson(`${API_URL}/api/test-sessions/${sessionId}/finish`, {
     method: 'POST',
@@ -158,9 +201,14 @@ export async function finishSession(sessionId: string) {
   });
 }
 
-/* =========================
- * Mis tests (listado + detalle)
- * ========================= */
+/**
+ * Lista tests del estudiante autenticado
+ * Soporta filtros de modo, fecha y paginación
+ * 
+ * @param filters - Filtros de búsqueda y paginación
+ * @returns Respuesta paginada con tests completados
+ * @remarks Ordenados por startedAt descendente (más recientes primero)
+ */
 export async function listMyTests(filters: ListFilters = {}): Promise<ListMyTestsResponse> {
   const params = new URLSearchParams();
   if (filters.mode && filters.mode !== 'all') params.set('mode', filters.mode);
@@ -225,6 +273,14 @@ export async function listMyTests(filters: ListFilters = {}): Promise<ListMyTest
   };
 }
 
+/**
+ * Obtiene detalle completo de un test
+ * Incluye todas las respuestas, uso de pistas y reclamaciones
+ * 
+ * @param sessionId - ID de la sesión
+ * @returns Detalle con resultados y eventos de interacción
+ * @remarks Calcula totals desde results si el backend no los envía
+ */
 export async function getTestDetail(sessionId: string): Promise<TestSessionDetail> {
   const data = await apiJson<any>(`${API_URL}/api/test-sessions/${sessionId}`, {
     auth: true,
@@ -321,13 +377,26 @@ export async function getTestDetail(sessionId: string): Promise<TestSessionDetai
   return detail;
 }
 
-/* =========================
- * Alias esperados por la vista Student/MyTests
- * ========================= */
+/**
+ * Alias de TestSessionListItem para compatibilidad con vistas
+ * @deprecated Usar TestSessionListItem directamente
+ */
 export type SessionSummary = TestSessionListItem;
+
+/**
+ * Alias de TestSessionDetail para compatibilidad con vistas
+ * @deprecated Usar TestSessionDetail directamente
+ */
 export type SessionDetail = TestSessionDetail;
 
-/** Lista tus sesiones (learning/exam/errors). La vista lo importa como listMySessions */
+/**
+ * Lista sesiones del estudiante autenticado
+ * Wrapper de listMyTests con parámetros simplificados
+ * 
+ * @param params - Filtros de modo, fecha y búsqueda
+ * @returns Array de sesiones (sin paginación)
+ * @remarks Retorna máximo 200 items, usar listMyTests para paginación completa
+ */
 export async function listMySessions(params: {
   mode?: 'learning' | 'exam' | 'errors';
   dateFrom?: string;
@@ -345,7 +414,13 @@ export async function listMySessions(params: {
   return resp.items;
 }
 
-/** Detalle de una sesión. La vista lo importa como getSessionDetail */
+/**
+ * Obtiene detalle de sesión
+ * Alias de getTestDetail para compatibilidad con vistas
+ * 
+ * @param sessionId - ID de la sesión
+ * @returns Detalle completo con resultados
+ */
 export async function getSessionDetail(sessionId: string): Promise<SessionDetail> {
   return getTestDetail(sessionId);
 }

@@ -1,4 +1,4 @@
-// src/views/Professor/VerifyQuestions.tsx
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageWithHeader from '../../components/layout/PageWithHeader';
@@ -34,9 +34,9 @@ const joinName = (name?: string | null, lastName?: string | null) =>
 /** Texto expandible con "Ver más / Ver menos" (por caracteres) */
 const ExpandableText: React.FC<{
   text?: string | null;
-  clamp?: number;           // nº de caracteres antes de cortar
+  clamp?: number;           
   className?: string;
-  inline?: boolean;         // si true, renderiza inline
+  inline?: boolean;         
 }> = ({ text, clamp = 220, className, inline }) => {
   const [expanded, setExpanded] = useState(false);
   const t = (text || '').trim();
@@ -68,25 +68,25 @@ const VerifyQuestions: React.FC = () => {
 
   const [tab, setTab] = useState<'questions' | 'claims'>('questions');
 
-  // Estado preguntas
+  
   const [qLoading, setQLoading] = useState(true);
   const [pendingQ, setPendingQ] = useState<PendingQuestion[]>([]);
   const [qCount, setQCount] = useState<number>(0);
   const [qSubmitting, setQSubmitting] = useState<string | null>(null);
 
-  // Estado reclamaciones
+  
   const [cLoading, setCLoading] = useState(true);
   const [pendingC, setPendingC] = useState<PendingClaim[]>([]);
   const [cCount, setCCount] = useState<number>(0);
   const [cSubmitting, setCSubmitting] = useState<string | null>(null);
 
-  // Lightbox
+  
   const [lightbox, setLightbox] = useState<{ src: string; title?: string } | null>(null);
 
-  // Si escriben comentarios en cualquier textarea, marcamos "dirty"
+  
   const [hasTypedComment, setHasTypedComment] = useState(false);
 
-  // Aviso al cerrar/reload pestaña si hay comentarios sin enviar
+  
   useEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasTypedComment) { e.preventDefault(); e.returnValue = ''; }
@@ -104,19 +104,19 @@ const VerifyQuestions: React.FC = () => {
     setQLoading(true);
     setCLoading(true);
     try {
-      // Pedimos todo a la vez
+      
       const [rawQuestions, rawClaims, pendingClaimsCount] = await Promise.all([
         listPendingQuestions(),
         listPendingClaims(),
         getPendingClaimsCount(),
       ]);
 
-      // Conjunto de questionIds que tienen una reclamación pendiente
+      
       const claimedIds = new Set(
         rawClaims.map(c => c.questionId).filter(Boolean) as string[]
       );
 
-      // Filtramos preguntas que ya tengan claim
+      
       const filteredQ = rawQuestions.filter(q => !claimedIds.has(q.id));
 
       setPendingQ(filteredQ);
@@ -135,7 +135,7 @@ const VerifyQuestions: React.FC = () => {
     loadAll();
   }, []);
 
-  // Acciones sobre preguntas
+  
   const onDecideQuestion = async (q: PendingQuestion, decision: 'approve' | 'reject', comment?: string) => {
     setQSubmitting(q.id);
     try {
@@ -153,7 +153,7 @@ const VerifyQuestions: React.FC = () => {
     }
   };
 
-  // Acciones sobre reclamaciones
+  
   const onDecideClaim = async (c: PendingClaim, decision: 'approve' | 'reject', comment?: string) => {
     setCSubmitting(c.id);
     try {

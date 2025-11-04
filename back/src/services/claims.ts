@@ -1,6 +1,7 @@
 /**
+ * Módulo de servicio de reclamaciones
+ * Gestiona el ciclo de vida completo de reclamaciones sobre preguntas
  * @module services/claims
- * Reclamaciones sobre preguntas y resultados de test.
  */
 
 import { env } from '../config/env';
@@ -16,10 +17,12 @@ import { escapeHtml, letterFromIndex, renderCardEmail } from './shared/emailTemp
 
 const transporter = defaultMailer;
 
-// ===== helpers =====
+/** Normaliza texto eliminando espacios extra */
 function norm(s: string) {
   return (s ?? '').toString().trim().replace(/\s+/g, ' ');
 }
+
+/** Compara dos arrays de texto normalizados */
 function arraysEqualText(a: string[], b: string[]) {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) if (norm(a[i]) !== norm(b[i])) return false;
@@ -27,10 +30,8 @@ function arraysEqualText(a: string[], b: string[]) {
 }
 
 /**
- * Gestiona el ciclo de vida de las reclamaciones generadas por estudiantes.
- * Encapsula transacciones, notificaciones y reglas de negocio.
- *
- * @public
+ * Servicio de reclamaciones
+ * Encapsula transacciones, notificaciones y reglas de negocio
  */
 export class ClaimsService {
   private claimRepo = AppDataSource.getRepository(Claim);
@@ -39,18 +40,18 @@ export class ClaimsService {
   private userRepo = AppDataSource.getRepository(User);
   private resultRepo = AppDataSource.getRepository(TestResult);
 
-  // ================== Crear reclamación ==================
   /**
-   * Crea una nueva reclamación para una pregunta, enlazando el resultado si existe.
-   * Valida integridad, evita duplicados y dispara la notificación a supervisores.
-   *
-   * @public
-   * @param params - Datos enviados por el alumno.
-   * @returns Resumen de la reclamación creada.
+   * Crea una nueva reclamación
+   * Valida integridad, evita duplicados y notifica a supervisores
+   * 
+   * @param params - Datos de la reclamación
+   * @returns Resumen de la reclamación creada
+   * @throws {HttpError} 404 si el diagrama no existe
+   * @throws {HttpError} 400 si los datos son inválidos
    */
   async createClaim(params: {
     studentId: string;
-    testResultId?: string | null;   // ⬅️ NUEVO
+    testResultId?: string | null;
     questionId?: string | null;
     diagramId: string;
     prompt: string;
@@ -79,7 +80,7 @@ export class ClaimsService {
       const qRepo = m.getRepository(Question);
       const rRepo = m.getRepository(TestResult);
 
-      // 1) Si nos dan testResultId, comprobar propiedad (que sea del alumno)
+      // Validar testResult si se proporciona
       let testResult: TestResult | null = null;
       if (params.testResultId) {
         testResult = await rRepo.findOne({
@@ -90,14 +91,15 @@ export class ClaimsService {
         if (!testResult || testResult.session.user.id !== params.studentId) {
           throw createHttpError(400, 'Resultado no válido para reclamar');
         }
-        // evita duplicados de claim para el mismo resultado
+        
+        // Evitar duplicados
         const dup = await m.getRepository(Claim).findOne({
           where: { testResult: { id: testResult.id } },
         });
-        if (dup) return dup; // ya existía, devolvemos la existente
+        if (dup) return dup;
       }
 
-      // 2) Resolver pregunta: por questionId -> por testResult.question -> por matching prompt/opciones
+      // Resolver pregunta asociada
       let q: Question | null = null;
 
       if (params.questionId) {
@@ -114,6 +116,7 @@ export class ClaimsService {
         });
       }
 
+      // Buscar pregunta por matching de texto si no se encontró
       if (!q) {
         const candidate = await qRepo.find({
           where: { diagram: { id: params.diagramId } },
@@ -140,19 +143,19 @@ export class ClaimsService {
         }
       }
 
-      // 3) Si hay pregunta, pasarla a PENDING mientras se revisa
+      // Pasar pregunta a PENDING mientras se revisa
       if (q) {
         q.status = ReviewStatus.PENDING;
         await m.save(q);
       }
 
-      // 4) Crear claim (enlazando TestResult si lo tenemos)
+      // Crear claim
       const c = m.create(Claim, {
         status: ClaimStatus.PENDING,
         question: q ?? null,
         diagram,
         student,
-        testResult: testResult ?? null, // ⬅️ clave para enlazar con el resultado
+        testResult: testResult ?? null,
         promptSnapshot: params.prompt.trim(),
         optionsSnapshot: params.options.map(s => s.trim()),
         chosenIndex: params.chosenIndex,
@@ -168,12 +171,9 @@ export class ClaimsService {
     return { id: claim.id, status: claim.status, testResultId: claim.testResult?.id ?? null };
   }
 
-  // ================== Listados ==================
   /**
-   * Recupera reclamaciones pendientes para los paneles de supervisión.
-   *
-   * @public
-   * @returns Array resumido con contexto del estudiante y del diagrama.
+   * Lista reclamaciones pendientes de revisión
+   * @returns Array con contexto de estudiante y diagrama
    */
   async listPending() {
     const rows = await this.claimRepo.find({
@@ -205,21 +205,17 @@ export class ClaimsService {
   }
 
   /**
-   * Cuenta el número de reclamaciones pendientes para mostrar indicadores.
-   *
-   * @public
-   * @returns Total de reclamaciones en estado pendiente.
+   * Cuenta reclamaciones pendientes
+   * @returns Total de reclamaciones pendientes
    */
   async getPendingCount() {
     return this.claimRepo.count({ where: { status: ClaimStatus.PENDING } });
   }
 
   /**
-   * Lista las reclamaciones asociadas a un alumno concreto.
-   *
-   * @public
-   * @param studentId - Identificador del estudiante autenticado.
-   * @returns Historial de reclamaciones del alumno.
+   * Lista reclamaciones de un estudiante
+   * @param studentId - ID del estudiante
+   * @returns Historial de reclamaciones
    */
   async listMine(studentId: string) {
     const rows = await this.claimRepo.find({
@@ -245,13 +241,14 @@ export class ClaimsService {
     }));
   }
 
-  // ================== Decidir reclamación ==================
   /**
-   * Registra la decisión de un supervisor sobre una reclamación pendiente.
-   * Actualiza la pregunta, notifica al alumno y deja registro del revisor.
-   *
-   * @public
-   * @param params - Datos de la resolución emitida por el supervisor.
+   * Resuelve una reclamación (aprobar o rechazar)
+   * Actualiza la pregunta y notifica al estudiante
+   * 
+   * @param params - Decisión del supervisor
+   * @throws {HttpError} 403 si el reviewer no es supervisor
+   * @throws {HttpError} 404 si la reclamación no existe
+   * @throws {HttpError} 409 si la reclamación ya fue resuelta
    */
   async decideClaim(params: {
     claimId: string;
@@ -273,7 +270,6 @@ export class ClaimsService {
         throw createHttpError(409, 'La reclamación ya fue resuelta');
       }
 
-      // Carga pregunta con opciones si existe (para recalcular índice por texto)
       const q = claim.question
         ? await m.getRepository(Question).findOne({
             where: { id: claim.question.id },
@@ -306,14 +302,13 @@ export class ClaimsService {
       } else {
         claim.status = ClaimStatus.REJECTED;
         if (q) {
-          q.status = ReviewStatus.APPROVED; // sale de pending igualmente
+          q.status = ReviewStatus.APPROVED;
           await m.save(q);
         }
       }
 
       await m.save(claim);
 
-      // Email al alumno con la resolución
       const correctIndexNow =
         claim.status === ClaimStatus.APPROVED
           ? claim.chosenIndex
@@ -337,8 +332,7 @@ export class ClaimsService {
     };
   }
 
-  // ================== Emails ==================
-
+  /** Notifica a supervisores sobre nueva reclamación */
   private async notifySupervisorsNewClaim(claim: Claim) {
     const fixed = env.SUPERVISOR_NOTIFY_EMAIL;
     let recipients: string[] = [];
@@ -415,6 +409,7 @@ export class ClaimsService {
     });
   }
 
+  /** Notifica al estudiante sobre la decisión de su reclamación */
   private async notifyStudentDecision(args: {
     to: string;
     status: ClaimStatus;

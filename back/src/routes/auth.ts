@@ -1,19 +1,21 @@
-// ================================
-// src/routes/auth.routes.ts
-// Rutas de autenticación
-// ================================
+/**
+ * Módulo de rutas de autenticación
+ * Define endpoints para login, logout, refresh token y recuperación de contraseña
+ * @module routes/auth
+ */
+
 import { Router, Request, Response, NextFunction } from 'express';
 import { body } from 'express-validator';
 import validateDto from '../middlewares/validateDto';
 import * as authController from '../controllers/auth';
-import { authenticate } from '../middlewares/authenticate'; 
+import { authenticate } from '../middlewares/authenticate';
 
 const router = Router();
 
 /**
- * @route POST /api/auth/login
- * @desc Authenticate user and return access & refresh tokens
- * @access Public
+ * POST /api/auth/login
+ * Autentica usuario y retorna tokens de acceso y refresco
+ * @access Público
  */
 router.post(
   '/login',
@@ -29,9 +31,9 @@ router.post(
 );
 
 /**
- * @route POST /api/auth/logout
- * @desc Invalidate refresh token
- * @access Private
+ * POST /api/auth/logout
+ * Invalida el refresh token del usuario
+ * @access Privado (requiere autenticación)
  */
 router.post(
   '/logout',
@@ -41,9 +43,9 @@ router.post(
 );
 
 /**
- * @route POST /api/auth/refresh
- * @desc Refresh access token using refresh token
- * @access Public
+ * POST /api/auth/refresh
+ * Renueva el access token usando un refresh token válido
+ * @access Público
  */
 router.post(
   '/refresh',
@@ -57,11 +59,10 @@ router.post(
 );
 
 /**
- * @route POST /api/auth/forgot-password
- * @desc Send password reset email
- * @access Public
+ * POST /api/auth/forgot-password
+ * Envía email de recuperación de contraseña
+ * @access Público
  */
-
 router.post(
   '/forgot-password',
   validateDto([
@@ -72,9 +73,9 @@ router.post(
 );
 
 /**
- * @route POST /api/auth/reset-password
- * @desc Reset user password
- * @access Public
+ * POST /api/auth/reset-password
+ * Restablece la contraseña del usuario con token válido
+ * @access Público
  */
 router.post(
   '/reset-password',

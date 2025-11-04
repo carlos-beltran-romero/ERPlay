@@ -1,9 +1,11 @@
 /**
+ * Módulo del controlador de preguntas
+ * Gestiona las peticiones relacionadas con la creación y verificación de preguntas
  * @module controllers/questions
  */
+
 import { Request, Response } from 'express';
 import { z } from 'zod';
-
 import { env } from '../config/env';
 import { createHttpError } from '../core/errors/HttpError';
 import { AppDataSource } from '../data-source';
@@ -12,6 +14,9 @@ import { UserRole } from '../models/User';
 import { QuestionsService } from '../services/questions';
 import { asyncHandler } from '../utils/asyncHandler';
 
+/**
+ * Esquemas de validación para preguntas
+ */
 const CreateSchema = z.object({
   diagramId: z.string().uuid(),
   prompt: z.string().min(1, 'El enunciado es obligatorio'),
@@ -27,11 +32,13 @@ const VerifySchema = z.object({
 
 const questionsService = new QuestionsService();
 
+/**
+ * Funciones auxiliares de autenticación y URL
+ */
 const ensureAuthenticated = (req: Request) => {
   if (!req.user?.id) {
     throw createHttpError(401, 'No autenticado');
   }
-
   return req.user;
 };
 
@@ -41,6 +48,11 @@ const getPublicBase = (req: Request) => {
   return env.PUBLIC_API_BASE_URL ?? `${proto}://${host}`;
 };
 
+/**
+ * Crea una nueva pregunta para un diagrama
+ * @param req Objeto Request de Express con datos de la pregunta
+ * @param res Objeto Response de Express
+ */
 export const createQuestion = asyncHandler(async (req: Request, res: Response) => {
   const user = ensureAuthenticated(req);
   const payload = CreateSchema.parse(req.body);
@@ -57,16 +69,32 @@ export const createQuestion = asyncHandler(async (req: Request, res: Response) =
   res.status(201).json(result);
 });
 
+/**
+ * Obtiene el número de preguntas pendientes de revisión
+ * @param req Objeto Request de Express
+ * @param res Objeto Response de Express
+ */
 export const getPendingCount = asyncHandler(async (_req: Request, res: Response) => {
   const count = await questionsService.getPendingCount();
   res.json({ count });
 });
 
+/**
+ * Lista todas las preguntas pendientes de revisión
+ * @param req Objeto Request de Express
+ * @param res Objeto Response de Express
+ */
 export const listPending = asyncHandler(async (_req: Request, res: Response) => {
   const rows = await questionsService.listPending();
   res.json(rows);
 });
 
+/**
+ * Verifica una pregunta pendiente
+ * @param req Objeto Request de Express con decisión y comentarios
+ * @param res Objeto Response de Express
+ * @requires Role.SUPERVISOR
+ */
 export const verifyQuestion = asyncHandler(async (req: Request, res: Response) => {
   const user = ensureAuthenticated(req);
   if (user.role !== UserRole.SUPERVISOR) {
@@ -85,6 +113,11 @@ export const verifyQuestion = asyncHandler(async (req: Request, res: Response) =
   res.json({ message: 'Revisión aplicada' });
 });
 
+/**
+ * Lista las preguntas creadas por el usuario actual
+ * @param req Objeto Request de Express autenticado
+ * @param res Objeto Response de Express
+ */
 export const listMine = asyncHandler(async (req: Request, res: Response) => {
   const user = ensureAuthenticated(req);
   const base = getPublicBase(req);

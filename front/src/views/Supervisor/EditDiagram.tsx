@@ -1,4 +1,4 @@
-// src/views/EditDiagram.tsx
+
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageWithHeader from '../../components/layout/PageWithHeader';
@@ -26,14 +26,14 @@ const EditDiagram: React.FC = () => {
 
   const [questions, setQuestions] = useState<QuestionForm[]>([]);
 
-  // snapshot para detectar cambios
+  
   const initialSnapRef = useRef<string>('');
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
 
-  // ref del formulario para invocar submit desde la barra flotante
+  
   const formRef = useRef<HTMLFormElement | null>(null);
 
-  // Cargar datos
+  
   useEffect(() => {
     (async () => {
       try {
@@ -68,7 +68,7 @@ const EditDiagram: React.FC = () => {
   );
   const isDirty = currentSnap !== initialSnapRef.current;
 
-  // Handlers imagen
+  
   const onPickImage = (file: File | null) => {
     if (!file) return;
     setImageFile(file);
@@ -76,7 +76,7 @@ const EditDiagram: React.FC = () => {
     setImagePreview(url);
   };
 
-  // Helpers preguntas/opciones
+  
   const addQuestion = () => {
     setQuestions(prev => [
       ...prev,
@@ -86,8 +86,8 @@ const EditDiagram: React.FC = () => {
 
   const removeQuestion = (qi: number) => {
     setQuestions(prev => prev.filter((_, i) => i !== qi));
-    // (opcional) feedback para que el usuario vea que hay cambios pendientes
-    // toast.info('Pregunta eliminada. Pulsa Guardar para aplicar los cambios.');
+    
+    
   };
 
   const setQuestionField = (qi: number, field: keyof QuestionForm, value: any) => {
@@ -136,7 +136,7 @@ const EditDiagram: React.FC = () => {
     );
   };
 
-  // Validación
+  
   const validation = useMemo(() => {
     const errs: string[] = [];
     if (!title.trim()) errs.push('El título es obligatorio.');
@@ -155,7 +155,7 @@ const EditDiagram: React.FC = () => {
     return { ok: errs.length === 0, errs };
   }, [title, questions]);
 
-  // Navegación con confirmación modal
+  
   const goBack = () => {
     if (isDirty) {
       setConfirmLeaveOpen(true);
@@ -194,7 +194,7 @@ const EditDiagram: React.FC = () => {
 
       await updateDiagram(id, fd);
 
-      // Actualiza snapshot: ya no hay cambios pendientes
+      
       initialSnapRef.current = JSON.stringify({
         title: title.trim(),
         questions: questions.map(q => ({

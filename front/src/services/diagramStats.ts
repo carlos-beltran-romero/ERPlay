@@ -1,110 +1,108 @@
+/**
+ * Módulo de servicios de estadísticas de diagramas
+ * Proporciona métricas pedagógicas y psicométricas para análisis de tests
+ * @module services/diagramStats
+ */
+
 import { apiJson } from './http';
 
-/**
- * ===============================
- *  Tipos base ya existentes
- * ===============================
- */
+/** KPIs principales del diagrama */
 export type DiagramKpis = {
-  examScoreAvg10: number;              // 0..10
-  learningAccuracyPct: number;         // 0..100
-  masteryRatePct: number;              // >=8/10
-  atRiskRatePct: number;               // <=5/10
-  practiceToExamDeltaPts: number;      // puntos (0..10 vs 0..10 => dif en pts)
+  examScoreAvg10: number;
+  learningAccuracyPct: number;
+  masteryRatePct: number;
+  atRiskRatePct: number;
+  practiceToExamDeltaPts: number;
   medianTimePerQuestionExamSec: number;
   hintUsagePct: number;
-  errorConcentrationTop5Pct?: number;  // opcional
+  errorConcentrationTop5Pct?: number;
 };
 
+/** Punto de serie temporal para gráficas de tendencia */
 export type TrendPoint = {
-  date: string;                        // YYYY-MM-DD
-  examScorePct?: number | null;        // 0..100
-  learningAccuracyPct?: number | null; // 0..100
+  date: string;
+  examScorePct?: number | null;
+  learningAccuracyPct?: number | null;
 };
 
-export type HistogramBucket = { label: string; count: number }; // p.e. "0-1", "1-2", ..., "9-10"
+/** Bucket de histograma de notas (ej: "8-9", "9-10") */
+export type HistogramBucket = { label: string; count: number };
 
+/** Punto de scatter plot velocidad vs precisión */
 export type ScatterPoint = {
   studentId?: string;
   name?: string | null;
-  accuracyPct: number;                 // 0..100 (learning o global)
-  timeSecPerQuestion: number;          // mediana por alumno (examen)
+  accuracyPct: number;
+  timeSecPerQuestion: number;
 };
 
+/** Pregunta problemática (alto % de error) */
 export type HotspotItem = {
   questionId: string;
   title: string;
-  errorRatePct: number;                // 0..100
+  errorRatePct: number;
   medianTimeSec?: number | null;
   commonWrongText?: string | null;
   attempts?: number;
 };
 
+/** Estudiante en riesgo (nota baja en último examen) */
 export type RiskStudentItem = {
   studentId: string;
   name?: string | null;
-  lastName?: string | null;            // 👈 añadido
+  lastName?: string | null;
   lastExamScore10: number;
   attempts: number;
-  lastAttemptAt?: string;              // ISO
+  lastAttemptAt?: string;
 };
 
-/**
- * ===============================
- *  Nuevos tipos (compatibles)
- * ===============================
- * - Pensados para comprensión de un profesor de programación:
- *   Dificultad = % acierto (más alto = más fácil)
- *   Discriminación = qué bien separa a quien domina del que no (-1..1)
- *   KR-20 = fiabilidad del test (0..1)
- */
+/** Calidad psicométrica de pregunta (TCT) */
 export type ItemQuality = {
   questionId: string;
   title: string;
-  pCorrectPct: number;                 // 0..100 (dificultad)
-  discrPointBiserial: number;          // -1..1
+  pCorrectPct: number;
+  discrPointBiserial: number;
   medianTimeSec: number | null;
   attempts: number;
-  claimRatePct: number;                // % de intentos con reclamación
-  claimApprovalRatePct: number | null; // % de reclamaciones aprobadas
-  avgRating: number | null;            // 1..5
+  claimRatePct: number;
+  claimApprovalRatePct: number | null;
+  avgRating: number | null;
 };
 
+/** Análisis de distractores por pregunta */
 export type DistractorBreakdown = {
   questionId: string;
-  optionText: string;                  // texto de la opción
-  chosenPct: number;                   // 0..100 (popularidad global)
-  chosenPctLowQuartile?: number;       // 0..100 (alumnos con peores notas)
-  chosenPctHighQuartile?: number;      // 0..100 (alumnos con mejores notas)
+  optionText: string;
+  chosenPct: number;
+  chosenPctLowQuartile?: number;
+  chosenPctHighQuartile?: number;
 };
 
+/** Métricas de curvas de aprendizaje */
 export type LearningCurves = {
-  attemptsToMasteryP50: number | null; // mediana de intentos hasta ≥ 8/10
-  deltaPracticeToExamAvgPts: number;   // media (examen - práctica) en puntos sobre 10
+  attemptsToMasteryP50: number | null;
+  deltaPracticeToExamAvgPts: number;
 };
 
-export type Reliability = { kr20: number | null }; // 0..1
+/** Fiabilidad del test (Kuder-Richardson 20) */
+export type Reliability = { kr20: number | null };
 
+/** Drift temporal de dificultad de pregunta */
 export type DriftItem = {
   questionId: string;
   title?: string;
-  deltaPCorrectPct: number;            // cambio de % acierto (mitad2 - mitad1)
-  deltaMedianTimeSec: number | null;   // cambio de tiempo mediano
+  deltaPCorrectPct: number;
+  deltaMedianTimeSec: number | null;
 };
 
-/**
- * Respuesta principal del endpoint de estadísticas.
- * Los nuevos bloques son opcionales para mantener compatibilidad.
- */
+/** Respuesta completa del endpoint de estadísticas */
 export type DiagramStatsResponse = {
   kpis: DiagramKpis;
-  trends: TrendPoint[];                  // últimos 30 días por defecto (o rango)
+  trends: TrendPoint[];
   histogramExam10: HistogramBucket[];
   scatterSpeedVsAccuracy: ScatterPoint[];
   hotspots: HotspotItem[];
   riskStudents: RiskStudentItem[];
-
-  // ====== NUEVOS (opcionales) ======
   itemQuality?: ItemQuality[];
   distractors?: DistractorBreakdown[];
   learningCurves?: LearningCurves;
@@ -113,12 +111,24 @@ export type DiagramStatsResponse = {
 };
 
 /**
- * Carga las estadísticas del diagrama con normalización defensiva.
- * Si el backend todavía no envía algún bloque nuevo, el campo vendrá undefined.
+ * Obtiene estadísticas avanzadas de un diagrama
+ * Calcula métricas pedagógicas y psicométricas para análisis docente
+ * 
+ * @param diagramId - ID del diagrama a analizar
+ * @param params - Rango de fechas opcional para filtrar datos
+ * @returns Estadísticas completas con KPIs, gráficas y análisis
+ * @throws {Error} 404 si el diagrama no existe
+ * @remarks
+ * - KPIs obligatorios: siempre presentes
+ * - Bloques avanzados (itemQuality, distractors, etc.): opcionales (backend debe soportarlos)
+ * - pCorrectPct: % de acierto (0-100, mayor = más fácil)
+ * - discrPointBiserial: Discriminación (-1..1, positivo = buena pregunta)
+ * - kr20: Fiabilidad (0..1, >0.7 = aceptable)
+ * - from/to: Filtro temporal (YYYY-MM-DD), default = últimos 30 días
  */
 export async function getDiagramStats(diagramId: string, params?: {
-  from?: string; // YYYY-MM-DD
-  to?: string;   // YYYY-MM-DD
+  from?: string;
+  to?: string;
 }): Promise<DiagramStatsResponse> {
   const qs = new URLSearchParams();
   if (params?.from) qs.set('from', params.from);
@@ -130,7 +140,6 @@ export async function getDiagramStats(diagramId: string, params?: {
     fallbackError: 'No se pudieron cargar las estadísticas',
   });
 
-  // ----- KPIs (obligatorios) -----
   const kpis: DiagramKpis = {
     examScoreAvg10: Number(data?.kpis?.examScoreAvg10 ?? 0),
     learningAccuracyPct: Number(data?.kpis?.learningAccuracyPct ?? 0),
@@ -143,7 +152,6 @@ export async function getDiagramStats(diagramId: string, params?: {
       ? Number(data.kpis.errorConcentrationTop5Pct) : undefined,
   };
 
-  // ----- Series / gráficas base -----
   const trends: TrendPoint[] = Array.isArray(data?.trends) ? data.trends.map((t: any) => ({
     date: String(t.date ?? ''),
     examScorePct: t.examScorePct != null ? Number(t.examScorePct) : null,
@@ -177,14 +185,13 @@ export async function getDiagramStats(diagramId: string, params?: {
     ? data.riskStudents.map((r: any) => ({
         studentId: String(r.studentId ?? ''),
         name: r.name ?? null,
-        lastName: r.lastName ?? null, // 👈 recogemos apellidos si vienen
+        lastName: r.lastName ?? null,
         lastExamScore10: Number(r.lastExamScore10 ?? 0),
         attempts: Number(r.attempts ?? 0),
         lastAttemptAt: r.lastAttemptAt ?? undefined,
       }))
     : [];
 
-  // ----- NUEVOS BLOQUES (opcionales) -----
   const itemQuality: ItemQuality[] | undefined = Array.isArray(data?.itemQuality)
     ? data.itemQuality.map((q: any) => ({
         questionId: String(q?.questionId ?? ''),
@@ -231,7 +238,6 @@ export async function getDiagramStats(diagramId: string, params?: {
       }))
     : undefined;
 
-  // Ensamblado final (compatibilidad mantenida)
   return {
     kpis,
     trends,

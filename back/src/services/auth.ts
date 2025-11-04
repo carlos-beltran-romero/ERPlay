@@ -1,6 +1,9 @@
 /**
+ * Módulo de servicio de autenticación
+ * Gestiona login, logout, tokens y recuperación de contraseña
  * @module services/auth
  */
+
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
@@ -16,10 +19,21 @@ const ACCESS_TOKEN_TTL = '15m';
 const REFRESH_TOKEN_TTL = '7d';
 const RESET_TOKEN_TTL = '1h';
 
+/**
+ * Servicio de autenticación
+ * Gestiona el ciclo completo de autenticación, tokens y recuperación de contraseña
+ */
 export class AuthService {
   private readonly userRepository = AppDataSource.getRepository(User);
   private readonly refreshTokenRepository = AppDataSource.getRepository(RefreshToken);
 
+  /**
+   * Autentica usuario y genera tokens de acceso
+   * @param email - Email del usuario
+   * @param password - Contraseña en texto plano
+   * @returns Tokens de acceso y refresco
+   * @throws {HttpError} 401 si las credenciales son inválidas
+   */
   async login(email: string, password: string) {
     const user = await this.userRepository.findOneBy({ email });
     if (!user) throw createHttpError(401, 'Credenciales incorrectas');
@@ -41,6 +55,11 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
+  /**
+   * Invalida el refresh token del usuario
+   * @param userId - ID del usuario
+   * @param refreshToken - Token a invalidar
+   */
   async logout(userId: string, refreshToken: string) {
     const token = await this.refreshTokenRepository.findOne({
       where: { token: refreshToken, user: { id: userId } },
@@ -51,6 +70,12 @@ export class AuthService {
     }
   }
 
+  /**
+   * Renueva el access token usando un refresh token válido
+   * @param token - Refresh token actual
+   * @returns Nuevos tokens de acceso y refresco
+   * @throws {HttpError} 401 si el token es inválido o expirado
+   */
   async refreshToken(token: string) {
     try {
       const decoded = jwt.verify(token, env.JWT_REFRESH_SECRET) as { id: string };
@@ -81,6 +106,11 @@ export class AuthService {
     }
   }
 
+  /**
+   * Envía email de recuperación de contraseña
+   * @param email - Email del usuario
+   * @remarks No lanza error si el usuario no existe (seguridad)
+   */
   async forgotPassword(email: string): Promise<void> {
     const user = await this.userRepository.findOneBy({ email });
     if (!user) return;
@@ -118,6 +148,13 @@ export class AuthService {
     });
   }
 
+  /**
+   * Restablece la contraseña del usuario con token válido
+   * @param token - Token de recuperación
+   * @param newPassword - Nueva contraseña en texto plano
+   * @throws {HttpError} 404 si el usuario no existe
+   * @throws {HttpError} 401 si el token es inválido o expirado
+   */
   async resetPassword(token: string, newPassword: string): Promise<void> {
     try {
       const payload = jwt.verify(token, env.JWT_RESET_SECRET) as { id: string };

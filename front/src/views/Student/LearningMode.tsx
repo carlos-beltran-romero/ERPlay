@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PageWithHeader from '../../components/layout/PageWithHeader';
 import { toast } from 'react-toastify';
-// ⬇️ usamos el servicio de test-sessions
+
 import {
   startTestSession,
   patchResult as patchTestResult,
@@ -29,8 +29,7 @@ type PracticeQuestion = {
   options: string[];
   correctIndex: number;
   hint?: string;
-  id?: string; // id real de pregunta si viene
-  // resultId interno para parchar ese resultado
+  id?: string; 
   __resultId: string;
 };
 
@@ -44,34 +43,27 @@ const N_QUESTIONS = 10;
 const LearningMode: React.FC = () => {
   const navigate = useNavigate();
 
-  // ===== Estado de sesión de test =====
   const [sessionId, setSessionId] = useState<string>('');
   const [finished, setFinished] = useState(false);
 
-  // control de tiempo
-  const [, setPerQSeconds] = useState<number[]>([]); // opcional, solo tracking UI
-  const lastTickRef = useRef<number | null>(null); // timestamp ms de entrada a pregunta actual
+  const [, setPerQSeconds] = useState<number[]>([]); 
+  const lastTickRef = useRef<number | null>(null); 
 
-  // ===== Estado de carga/payload =====
   const [loading, setLoading] = useState(true);
   const [payload, setPayload] = useState<PracticePayload | null>(null);
 
-  // ===== Estado por pregunta =====
   const [current, setCurrent] = useState(0);
   const [selected, setSelected] = useState<Array<number | null>>([]);
   const [revealed, setRevealed] = useState<boolean[]>([]);
   const [hintShown, setHintShown] = useState<boolean[]>([]);
   const [claimed, setClaimed] = useState<boolean[]>([]);
 
-  // pantalla de instrucciones
   const [started, setStarted] = useState(false);
 
-  // modal reclamación
   const [showClaim, setShowClaim] = useState(false);
   const [claimText, setClaimText] = useState('');
   const [submittingClaim, setSubmittingClaim] = useState(false);
 
-  // ===== Helpers de tiempo =====
   const computeDeltaAndReset = () => {
     const now = Date.now();
     if (lastTickRef.current == null) {
@@ -80,7 +72,6 @@ const LearningMode: React.FC = () => {
     }
     const deltaSec = Math.max(0, Math.floor((now - lastTickRef.current) / 1000));
     lastTickRef.current = now;
-    // tracking opcional por pregunta
     setPerQSeconds((prev) => {
       const next = prev.slice();
       next[current] = (next[current] || 0) + deltaSec;
@@ -102,9 +93,9 @@ const LearningMode: React.FC = () => {
     }
   };
 
-  // ===== Carga de práctica (nuevo test-session) =====
+  
   const loadPractice = async () => {
-    // si hay sesión previa, intenta finalizarla antes de iniciar otra
+    
     try {
       if (sessionId && !finished) {
         await flushCurrentTime();
@@ -122,13 +113,13 @@ const LearningMode: React.FC = () => {
     try {
       const data: StartedSession = await startTestSession({ mode: 'learning', limit: N_QUESTIONS });
 
-      // mapear a nuestro payload con resultId incrustado
+      
       const mapped: PracticePayload = {
         diagram: data.diagram,
         questions: data.questions.map((q) => ({
           prompt: q.prompt,
           options: q.options,
-          correctIndex: q.correctIndex!, // en learning viene
+          correctIndex: q.correctIndex!, 
           hint: q.hint,
           id: q.questionId,
           __resultId: q.resultId,
@@ -169,18 +160,18 @@ const LearningMode: React.FC = () => {
         } catch {}
       })();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, []);
 
-  // al pulsar "Comenzar práctica"
+  
   const onStart = async () => {
     setStarted(true);
-    // arranca timing y evento
+    
     lastTickRef.current = Date.now();
     try {
       if (sessionId) {
         await logTestEvent(sessionId, { type: 'start_session' });
-        // también logeamos que empieza viendo la primera pregunta
+        
         if (payload?.questions[0]?.__resultId) {
           await logTestEvent(sessionId, {
             type: 'view_question',
@@ -194,11 +185,11 @@ const LearningMode: React.FC = () => {
     }
   };
 
-  // cuando cambia de pregunta, log de vista + reset de tick
+  
   useEffect(() => {
     (async () => {
       if (!started || !payload || !sessionId) return;
-      // ya hemos hecho flush en los handlers prev/next; aquí solo marcamos nueva vista
+      
       lastTickRef.current = Date.now();
       try {
         const rid = payload.questions[current].__resultId;
@@ -207,19 +198,19 @@ const LearningMode: React.FC = () => {
         /* ignore */
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [current, started]);
 
   const qCount = payload?.questions.length ?? 0;
   const answeredCount = useMemo(() => selected.filter((v) => v !== null).length, [selected]);
 
-  // seleccionar respuesta (guarda selección + tiempo + revela)
+  
   const choose = async (idx: number, opt: number) => {
     if (!payload || !sessionId) return;
-    // no permitir reintentos en learning (como tenías)
+    
     if (selected[idx] !== null) return;
 
-    // delta de tiempo en esta pregunta
+    
     const delta = computeDeltaAndReset();
     const rid = payload.questions[idx].__resultId;
 
@@ -235,10 +226,10 @@ const LearningMode: React.FC = () => {
         payload: { selectedIndex: opt },
       });
     } catch {
-      // si falla el guardado, no bloquees la UX, sigue
+      
     }
 
-    // feedback inmediato en UI
+    
     setSelected((prev) => {
       const next = prev.slice();
       next[idx] = opt;
@@ -251,7 +242,7 @@ const LearningMode: React.FC = () => {
       return next;
     });
 
-    // reinicia contador para seguir midiendo si se queda en esta pregunta
+    
     lastTickRef.current = Date.now();
   };
 
@@ -272,7 +263,7 @@ const LearningMode: React.FC = () => {
       return next;
     });
 
-    // si pasa a mostrarse la pista por primera vez => marcar usedHint
+    
     const willShow = !hintShown[idx];
     if (willShow) {
       try {
@@ -285,7 +276,7 @@ const LearningMode: React.FC = () => {
     }
   };
 
-  // navegación
+  
   const prevQ = async () => {
     if (!payload) return;
     await flushCurrentTime();
@@ -297,13 +288,13 @@ const LearningMode: React.FC = () => {
     setCurrent((c) => Math.min(qCount - 1, c + 1));
   };
 
-  // resumen
+  
   const correctCount = useMemo(() => {
     if (!payload) return 0;
     return payload.questions.reduce((acc, q, i) => acc + (selected[i] === q.correctIndex ? 1 : 0), 0);
   }, [payload, selected]);
 
-  // finalizar sesión y volver
+  
   const finishAndBack = async () => {
     try {
       if (sessionId && !finished) {
@@ -318,7 +309,7 @@ const LearningMode: React.FC = () => {
     }
   };
 
-  // ======= UI =======
+  
   if (loading) {
     return (
       <PageWithHeader>
@@ -395,8 +386,8 @@ const LearningMode: React.FC = () => {
     try {
       setSubmittingClaim(true);
       await createClaim({
-        testResultId: payload.questions[current].__resultId, // ⬅️ NUEVO
-        questionId: q.id, // opcional
+        testResultId: payload.questions[current].__resultId, 
+        questionId: q.id, 
         diagramId: payload.diagram.id,
         prompt: q.prompt,
         options: q.options,

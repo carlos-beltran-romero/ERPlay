@@ -35,24 +35,19 @@ const formatTime = (secs: number) => {
 const ExamMode: React.FC = () => {
   const navigate = useNavigate();
 
-  // ===== Estado sesión/test =====
   const sessionIdRef = useRef<string>('');
   const [payload, setPayload] = useState<ExamPayload | null>(null);
 
-  // ===== Estado de UI =====
-  const [started, setStarted] = useState(false); // hasta que el alumno pulse "Comenzar"
+  const [started, setStarted] = useState(false); 
   const [finished, setFinished] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // ===== Respuestas / navegación =====
   const [answers, setAnswers] = useState<Array<number | null>>([]);
   const [current, setCurrent] = useState(0);
 
-  // ===== Tiempo =====
   const [timeLeft, setTimeLeft] = useState(EXAM_SECONDS);
   const tickerRef = useRef<number | null>(null);
 
-  // ===== Tiempo por pregunta =====
   const lastTickRef = useRef<number | null>(null);
 
   const computeDeltaAndReset = () => {
@@ -77,7 +72,6 @@ const ExamMode: React.FC = () => {
     }
   }, [payload, current]);
 
-  // ===== Finalización segura =====
   const finalizedRef = useRef(false);
   const finalizeExam = useCallback(
     async (reason: 'submit' | 'timeout' | 'all-answered' | 'unload') => {
@@ -95,7 +89,6 @@ const ExamMode: React.FC = () => {
     [flushCurrentTime, navigate]
   );
 
-  // ===== Temporizador global (solo cuando empezó) =====
   useEffect(() => {
     if (!started || finished) return;
     if (tickerRef.current) window.clearInterval(tickerRef.current);
@@ -116,7 +109,6 @@ const ExamMode: React.FC = () => {
     };
   }, [started, finished, finalizeExam]);
 
-  // ===== Cerrar pestaña/refresh => finalizar =====
   useEffect(() => {
     const onUnload = () => { void finalizeExam('unload'); };
     window.addEventListener('beforeunload', onUnload);
@@ -136,7 +128,6 @@ const ExamMode: React.FC = () => {
     }
   }, [allAnswered, started, finished, finalizeExam]);
 
-  // ===== Iniciar (CREA la sesión aquí) =====
   const startExamNow = async () => {
     setLoading(true);
     try {
@@ -171,7 +162,6 @@ const ExamMode: React.FC = () => {
     }
   };
 
-  // ===== Elegir respuesta =====
   const chooseAnswer = async (idx: number, opt: number) => {
     if (!payload || !sessionIdRef.current) return;
     setAnswers(prev => {
@@ -200,7 +190,6 @@ const ExamMode: React.FC = () => {
     lastTickRef.current = Date.now();
   };
 
-  // ===== Siguiente =====
   const goNext = async () => {
     if (answers[current] === null) {
       toast.warning('Debes seleccionar una respuesta antes de continuar.');
@@ -225,7 +214,6 @@ const ExamMode: React.FC = () => {
     await finalizeExam('submit');
   };
 
-  // ===== UI =====
   if (!started) {
     return (
       <PageWithHeader>

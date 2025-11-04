@@ -1,26 +1,42 @@
-// back/src/controllers/progress.controller.ts
+/**
+ * Módulo del controlador de progreso
+ * Gestiona las peticiones relacionadas con el seguimiento del progreso del usuario
+ * @module controllers/progress
+ */
+
 import { z } from 'zod';
 import * as svc from '../services/progress';
 import { Request, Response } from 'express';
 import { listWeeklyProgress } from '../services/weeklyGoal';
-import { getWeeklyProgressRow } from '../services/progress'; // importa esta ya la tienes hecha
-
-
+import { getWeeklyProgressRow } from '../services/progress';
 
 type AuthedReq = Request & { user?: { id: string } };
 
+/**
+ * Esquemas de validación para progreso
+ */
 const TrendsQ = z.object({
-  from: z.string().date().optional(), // YYYY-MM-DD
+  from: z.string().date().optional(),
   to: z.string().date().optional(),
   bucket: z.enum(['day','week']).optional()
 });
 
+/**
+ * Obtiene el resumen general del progreso del usuario
+ * @param req Objeto Request de Express con ID de usuario
+ * @param res Objeto Response de Express
+ */
 export async function getOverview(req: Request, res: Response) {
   const userId = req.user!.id;
   const data = await svc.getOverview(userId);
   res.json(data);
 }
 
+/**
+ * Obtiene las tendencias de progreso del usuario
+ * @param req Objeto Request de Express con parámetros de fecha y agrupación
+ * @param res Objeto Response de Express
+ */
 export async function getTrends(req: Request, res: Response) {
   const userId = req.user!.id;
   const { from, to, bucket } = TrendsQ.parse(req.query);
@@ -28,6 +44,11 @@ export async function getTrends(req: Request, res: Response) {
   res.json(items);
 }
 
+/**
+ * Obtiene los errores más frecuentes del usuario
+ * @param req Objeto Request de Express con límite de resultados
+ * @param res Objeto Response de Express
+ */
 export async function getErrors(req: Request, res: Response) {
   const userId = req.user!.id;
   const limit = Math.min(50, Math.max(1, Number(req.query.limit ?? 5)));
@@ -35,19 +56,33 @@ export async function getErrors(req: Request, res: Response) {
   res.json(items);
 }
 
+/**
+ * Obtiene los hábitos de estudio del usuario
+ * @param req Objeto Request de Express con ID de usuario
+ * @param res Objeto Response de Express
+ */
 export async function getHabits(req: Request, res: Response) {
   const userId = req.user!.id;
   const data = await svc.getHabits(userId);
   res.json(data);
 }
 
+/**
+ * Obtiene estadísticas de reclamaciones del usuario
+ * @param req Objeto Request de Express con ID de usuario
+ * @param res Objeto Response de Express
+ */
 export async function getClaimsStats(req: Request, res: Response) {
   const userId = req.user!.id;
   const data = await svc.getClaimsStats(userId);
   res.json(data);
 }
 
-/** GET /api/progress/badges  -> insignias del usuario autenticado */
+/**
+ * Obtiene las insignias del usuario autenticado
+ * @param req Objeto Request de Express autenticado
+ * @param res Objeto Response de Express
+ */
 export async function getMyBadges(req: AuthedReq, res: Response) {
   try {
     const userId = req.user!.id;
@@ -57,13 +92,18 @@ export async function getMyBadges(req: AuthedReq, res: Response) {
     res.status(400).json({ error: e?.message || 'No se pudieron listar las insignias' });
   }
 }
+
+/**
+ * Obtiene el progreso semanal del usuario actual
+ * @param req Objeto Request de Express autenticado
+ * @param res Objeto Response de Express
+ */
 export async function getMyWeeklyProgress(req: AuthedReq, res: Response) {
   try {
     const userId = req.user!.id;
-    const row = await getWeeklyProgressRow(userId); // calcula sólo para el usuario actual (semana activa)
-    res.json(row); // objeto o null
+    const row = await getWeeklyProgressRow(userId);
+    res.json(row);
   } catch (e: any) {
     res.status(400).json({ error: e?.message || 'No disponible' });
   }
 }
-

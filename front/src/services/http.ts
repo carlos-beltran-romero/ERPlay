@@ -1,3 +1,9 @@
+/**
+ * Módulo de cliente HTTP
+ * Gestiona autenticación JWT, refresh tokens y manejo de errores centralizado
+ * @module services/http
+ */
+
 import { env } from '../config/env';
 
 const ACCESS_TOKEN_KEY = 'accessToken';
@@ -5,6 +11,10 @@ const REFRESH_TOKEN_KEY = 'refreshToken';
 
 export const API_URL = env.API_URL;
 
+/**
+ * Error de API con contexto HTTP
+ * Incluye status code y respuesta del servidor
+ */
 export class ApiError extends Error {
   readonly status: number;
   readonly body: unknown;
@@ -17,12 +27,10 @@ export class ApiError extends Error {
   }
 }
 
+/** Opciones extendidas de fetch con helpers de autenticación */
 export type ApiRequestInit = RequestInit & {
-  /** Indica si debe enviarse Authorization automáticamente. */
   auth?: boolean;
-  /** Permite serializar automáticamente payloads JSON. */
   json?: unknown;
-  /** Mensaje genérico usado si la API no devuelve `error`. */
   fallbackError?: string;
 };
 
@@ -36,22 +44,42 @@ export function getRefreshToken(): string | null {
   return localStorage.getItem(REFRESH_TOKEN_KEY);
 }
 
+/**
+ * Almacena tokens JWT en localStorage
+ * @param access - Access token (JWT con TTL corto, típicamente 15m)
+ * @param refresh - Refresh token opcional (TTL largo, típicamente 7d)
+ */
 export function setTokens(access: string, refresh?: string) {
   localStorage.setItem(ACCESS_TOKEN_KEY, access);
   if (refresh) localStorage.setItem(REFRESH_TOKEN_KEY, refresh);
 }
 
+/**
+ * Limpia tokens de localStorage
+ * Usado en logout y cuando refresh falla
+ */
 export function clearTokens() {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
 }
 
+/**
+ * Resuelve path relativo a URL absoluta
+ * @param path - Path de API (ej: '/api/auth/login')
+ * @returns URL completa con API_URL configurado
+ */
 function resolveUrl(path: string): string {
   if (/^https?:\/\//i.test(path)) return path;
   if (!path.startsWith('/')) return `${API_URL}/${path}`;
   return `${API_URL}${path}`;
 }
 
+/**
+ * Añade header Authorization con Bearer token
+ * @param init - RequestInit base
+ * @param explicitToken - Token opcional (default: usa getAccessToken())
+ * @returns RequestInit con header Authorization
+ */
 function withAuth(init: RequestInit, explicitToken?: string): RequestInit {
   const headers = new Headers(init.headers ?? {});
   const token = explicitToken ?? getAccessToken();
@@ -59,6 +87,11 @@ function withAuth(init: RequestInit, explicitToken?: string): RequestInit {
   return { ...init, headers };
 }
 
+/**
+ * Parsea JSON de respuesta con manejo defensivo
+ * @param res - Response de fetch
+ * @returns Objeto parseado o undefined si no es JSON válido
+ */
 async function safeParseJson(res: Response): Promise<unknown> {
   const text = await res.text();
   if (!text) return undefined;
@@ -69,6 +102,15 @@ async function safeParseJson(res: Response): Promise<unknown> {
   }
 }
 
+/**
+ * Renueva access token usando refresh token
+ * Automáticamente limpia tokens si el refresh falla
+ * 
+ * @returns Nuevo access token o null si el refresh expiró
+ * @remarks
+ * - Llamado automáticamente por apiRequest ante 401/403
+ * - Usa promise singleton para evitar múltiples refreshes concurrentes
+ */
 async function refreshAccessToken(): Promise<string | null> {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return null;
@@ -92,6 +134,12 @@ async function refreshAccessToken(): Promise<string | null> {
   return access;
 }
 
+/**
+ * Gestiona refresh de token con singleton pattern
+ * Evita race conditions con múltiples llamadas concurrentes
+ * 
+ * @returns Promise del access token renovado
+ */
 async function ensureFreshToken(): Promise<string | null> {
   if (!refreshingPromise) {
     refreshingPromise = refreshAccessToken().finally(() => {
@@ -101,6 +149,18 @@ async function ensureFreshToken(): Promise<string | null> {
   return refreshingPromise;
 }
 
+/**
+ * Cliente HTTP con auto-refresh de tokens
+ * Reintenta automáticamente si detecta 401/403 y tiene refresh token
+ * 
+ * @param path - Path de la API
+ * @param init - Opciones extendidas (auth, json, fallbackError)
+ * @returns Response crudo (usar apiJson para parseado automático)
+ * @remarks
+ * - auth=true: Añade header Authorization automáticamente
+ * - json: Serializa body y añade Content-Type: application/json
+ * - Ante 401/403: Intenta refresh + reintento con nuevo token
+ */
 export async function apiRequest(path: string, init: ApiRequestInit = {}): Promise<Response> {
   const { auth = false, json, fallbackError, ...rest } = init;
   const url = resolveUrl(path);
@@ -137,6 +197,18 @@ export async function apiRequest(path: string, init: ApiRequestInit = {}): Promi
   return second;
 }
 
+/**
+ * Cliente HTTP con parsing automático de JSON
+ * Lanza ApiError si el servidor devuelve error
+ * 
+ * @param path - Path de la API
+ * @param init - Opciones extendidas
+ * @returns Body parseado como tipo T
+ * @throws {ApiError} Si res.ok = false, con mensaje del servidor o fallback
+ * @remarks
+ * - Extrae campo 'error' del body como mensaje preferencial
+ * - fallbackError: Usado si el servidor no envía 'error'
+ */
 export async function apiJson<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
   const res = await apiRequest(path, init);
   const body = await safeParseJson(res);
@@ -150,6 +222,10 @@ export async function apiJson<T>(path: string, init: ApiRequestInit = {}): Promi
   return body as T;
 }
 
+/**
+ * Alias de apiRequest con auth=true por defecto
+ * @deprecated Usar apiRequest({ auth: true }) directamente
+ */
 export async function fetchAuth(path: string, init?: RequestInit): Promise<Response> {
   return apiRequest(path, { ...(init ?? {}), auth: true });
 }

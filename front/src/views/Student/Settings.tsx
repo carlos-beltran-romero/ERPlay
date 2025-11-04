@@ -1,4 +1,4 @@
-// src/views/Student/Settings.tsx
+
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PageWithHeader from '../../components/layout/PageWithHeader';
 import { useNavigate } from 'react-router-dom';
@@ -17,13 +17,13 @@ const Settings: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
-  // Perfil
+  
   const [me, setMe] = useState<UserProfile | null>(null);
   const [name, setName] = useState('');
-  const [lastName, setLastName] = useState(''); // apellidos
+  const [lastName, setLastName] = useState(''); 
   const [email, setEmail] = useState('');
 
-  // Seguridad
+  
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newPassword2, setNewPassword2] = useState('');
@@ -31,7 +31,7 @@ const Settings: React.FC = () => {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPwd, setSavingPwd] = useState(false);
 
-  // Confirmación de salida sin guardar
+  
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
   const initialSnapRef = useRef<string>('');
 
@@ -41,11 +41,11 @@ const Settings: React.FC = () => {
         const u = await getProfile();
         setMe(u);
         setName(u.name || '');
-        // cubrir ambos casos: lastName o surname
+        
         setLastName((u as any).lastName ?? (u as any).surname ?? '');
         setEmail(u.email || '');
 
-        // snapshot inicial basado en los datos cargados + contraseñas vacías
+        
         initialSnapRef.current = JSON.stringify({
           name: u.name || '',
           lastName: (u as any).lastName ?? (u as any).surname ?? '',
@@ -89,14 +89,14 @@ const Settings: React.FC = () => {
         lastName: lastName.trim(),
         email: email.trim(),
       });
-      // actualiza estado base y campos visibles
+      
       setMe(updated);
       setName(updated.name || '');
-      setLastName(lastName.trim()); // el backend puede no devolver lastName, preservamos el actual
+      setLastName(lastName.trim()); 
       setEmail(updated.email || '');
       toast.success('Perfil actualizado');
 
-      // actualiza snapshot a lo que hay ahora mismo (contraseñas siguen vacías)
+      
       initialSnapRef.current = JSON.stringify({
         name: updated.name || '',
         lastName: lastName.trim(),
@@ -133,7 +133,7 @@ const Settings: React.FC = () => {
       setNewPassword('');
       setNewPassword2('');
 
-      // resetea snapshot para reflejar que ya no hay cambios pendientes en seguridad
+      
       initialSnapRef.current = JSON.stringify({
         name,
         lastName,
@@ -149,7 +149,7 @@ const Settings: React.FC = () => {
     }
   };
 
-  // --- Detección de cambios global (perfil + contraseñas) ---
+  
   const currentSnap = useMemo(
     () =>
       JSON.stringify({

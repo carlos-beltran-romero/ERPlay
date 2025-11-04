@@ -1,6 +1,7 @@
 /**
+ * Módulo de servicio de objetivos semanales
+ * Gestiona la creación, consulta y notificación de metas de tests por semana
  * @module services/weeklyGoal
- * Gestión de objetivos semanales y notificaciones a estudiantes.
  */
 
 import { env } from '../config/env';
@@ -12,37 +13,41 @@ import { User, UserRole } from '../models/User';
 import { WeeklyGoal } from '../models/WeeklyGoal';
 import { escapeHtml, renderCardEmail } from './shared/emailTemplates';
 
-/* ===================== Helpers de fecha ===================== */
-
 /**
- * Calcula el lunes (00:00 UTC) de la semana ISO del día indicado.
- * @internal
+ * Calcula el lunes (00:00 UTC) de la semana ISO del día indicado
+ * @param d - Fecha de referencia
+ * @returns Lunes de la semana ISO en UTC
+ * @remarks
+ * - Usa convención ISO 8601: semana comienza el lunes
+ * - getUTCDay() devuelve 0 (domingo) o 1..6, se normaliza a 1..7
  */
 function startOfISOWeek(d: Date) {
   const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-  const day = x.getUTCDay() || 7; // 1..7 (lunes..domingo)
+  const day = x.getUTCDay() || 7;
   if (day > 1) x.setUTCDate(x.getUTCDate() - (day - 1));
-  return x; // lunes 00:00 UTC
+  return x;
 }
+
 /**
- * Calcula el domingo correspondiente a la semana ISO.
- * @internal
+ * Calcula el domingo correspondiente a la semana ISO
+ * @param d - Fecha de referencia
+ * @returns Domingo de la semana ISO (lunes + 6 días)
  */
 function endOfISOWeek(d: Date) {
   const s = startOfISOWeek(d);
   const e = new Date(s);
   e.setUTCDate(e.getUTCDate() + 6);
-  return e; // domingo (solo usamos YYYY-MM-DD)
+  return e;
 }
+
 /**
- * Normaliza una fecha a formato YYYY-MM-DD.
- * @internal
+ * Normaliza una fecha a formato YYYY-MM-DD
+ * @param d - Fecha a normalizar
+ * @returns String en formato ISO date
  */
 function toISODate(d: Date) {
   return d.toISOString().slice(0, 10);
 }
-
-/* ===================== Email (transporter + plantilla) ===================== */
 
 const transporter = createMailer({
   pool: true,
@@ -53,8 +58,12 @@ const transporter = createMailer({
 });
 
 /**
- * Envía la notificación del nuevo objetivo a todos los estudiantes.
- * @internal
+ * Envía notificación de nuevo objetivo a todos los estudiantes
+ * @param args - Datos del objetivo semanal
+ * @remarks
+ * - Destinatarios en BCC para preservar privacidad
+ * - Ejecuta en segundo plano vía setImmediate
+ * - Email incluye CTA a /student/progress si FRONTEND_URL está configurado
  */
 async function notifyAllStudentsNewGoal(args: { weekStart: string; weekEnd: string; targetTests: number }) {
   const students = await AppDataSource.getRepository(User).find({
@@ -103,25 +112,25 @@ async function notifyAllStudentsNewGoal(args: { weekStart: string; weekEnd: stri
   await transporter.sendMail({
     from: env.SMTP_FROM || '"ERPlay" <no-reply@erplay.com>',
     to: env.SMTP_FROM || 'no-reply@erplay.com',
-    bcc: recipients.join(','),                           // alumnos en BCC (privacidad)
+    bcc: recipients.join(','),
     subject: 'Nuevo objetivo semanal',
     html,
   });
 }
 
-/* ===================== Servicios públicos ===================== */
-
 /**
- * Recupera el objetivo semanal activo cuyo rango incluye la fecha actual.
- *
- * @public
- * @returns Objetivo vigente o `null` si no existe.
+ * Recupera el objetivo semanal activo
+ * Busca objetivo cuyo rango incluye la fecha actual
+ * 
+ * @returns Objetivo vigente o null si no existe
+ * @remarks
+ * - Compara weekStart <= hoy <= weekEnd
+ * - Si hay múltiples coincidencias, toma el más reciente
  */
 export async function getCurrentWeeklyGoal() {
   const repo = AppDataSource.getRepository(WeeklyGoal);
   const today = toISODate(new Date());
 
-  // Objetivo activo cuyo rango incluye hoy
   const current = await repo
     .createQueryBuilder('g')
     .where('g.weekStart <= :today', { today })
@@ -133,17 +142,24 @@ export async function getCurrentWeeklyGoal() {
 }
 
 /**
- * Crea o actualiza el objetivo semanal y, opcionalmente, notifica a los alumnos.
- *
- * @public
- * @param params - Datos del objetivo y banderas de notificación.
+ * Crea o actualiza el objetivo semanal
+ * Opcionalmente notifica a todos los estudiantes por email
+ * 
+ * @param params - Configuración del objetivo y opciones de notificación
+ * @returns Objetivo creado/actualizado
+ * @throws {HttpError} 400 si targetTests no es válido
+ * @remarks
+ * - Si weekStart/weekEnd no se especifican, usa la semana ISO actual
+ * - Si ya existe objetivo para esa semana, actualiza targetTests
+ * - notify=true (default): envía emails en background
+ * - Email se ejecuta con setImmediate para no bloquear respuesta HTTP
  */
 export async function setWeeklyGoal(params: {
   adminId: string;
   targetTests: number;
-  weekStart?: string; // YYYY-MM-DD
-  weekEnd?: string;   // YYYY-MM-DD
-  notify?: boolean;   // por defecto true
+  weekStart?: string;
+  weekEnd?: string;
+  notify?: boolean;
 }) {
   const { adminId, targetTests } = params;
 
@@ -151,10 +167,8 @@ export async function setWeeklyGoal(params: {
     throw createHttpError(400, 'El objetivo debe ser un número mayor que 0');
   }
 
-  // valida admin
   await AppDataSource.getRepository(User).findOneByOrFail({ id: adminId });
 
-  // rango de semana
   let s: string, e: string;
   if (params.weekStart && params.weekEnd) {
     s = params.weekStart;
@@ -167,7 +181,6 @@ export async function setWeeklyGoal(params: {
 
   const repo = AppDataSource.getRepository(WeeklyGoal);
 
-  // si ya existe esa semana, actualiza; si no, crea
   let goal = await repo
     .createQueryBuilder('g')
     .where('g.weekStart = :s AND g.weekEnd = :e', { s, e })
@@ -181,13 +194,10 @@ export async function setWeeklyGoal(params: {
       weekStart: s,
       weekEnd: e,
       targetTests: Math.round(targetTests),
-      // createdBy opcional (relación), puedes asignarla si cargas el admin:
-      // createdBy: admin,
     });
     await repo.save(goal);
   }
 
-  // notificar en segundo plano para no bloquear la respuesta
   if (params.notify !== false) {
     const payload = { weekStart: goal.weekStart, weekEnd: goal.weekEnd, targetTests: goal.targetTests };
     setImmediate(() => {
@@ -199,11 +209,17 @@ export async function setWeeklyGoal(params: {
 }
 
 /**
- * Obtiene el progreso semanal de todos los estudiantes para un rango dado.
- *
- * @public
- * @param weekStart - Límite inferior en formato ISO.
- * @param weekEnd - Límite superior en formato ISO.
+ * Obtiene el progreso semanal de todos los estudiantes
+ * Calcula tests completados vs objetivo para un rango dado
+ * 
+ * @param weekStart - Fecha inicio (YYYY-MM-DD), opcional
+ * @param weekEnd - Fecha fin (YYYY-MM-DD), opcional
+ * @returns Array de progreso por estudiante ordenado alfabéticamente
+ * @remarks
+ * - Si no se especifica rango, usa el objetivo actual (getCurrentWeeklyGoal)
+ * - done: Cuenta sesiones con completedAt dentro del rango
+ * - pct: Porcentaje de completitud, máximo 100
+ * - completed: true si done >= target
  */
 export async function listWeeklyProgress(weekStart?: string, weekEnd?: string) {
   const repo = AppDataSource.getRepository(WeeklyGoal);
@@ -223,7 +239,6 @@ export async function listWeeklyProgress(weekStart?: string, weekEnd?: string) {
   });
   if (!students.length) return [];
 
-  // sesiones completadas dentro de la semana por alumno
   const rows = await AppDataSource.getRepository(TestSession)
     .createQueryBuilder('s')
     .innerJoin('s.user', 'u')
@@ -238,7 +253,6 @@ export async function listWeeklyProgress(weekStart?: string, weekEnd?: string) {
   const doneByUser: Record<string, number> = {};
   for (const r of rows) doneByUser[r.userId] = Number(r.done || 0);
 
-  // target de la semana
   const g = await repo
     .createQueryBuilder('g')
     .where('g.weekStart = :s AND g.weekEnd = :e', { s, e })

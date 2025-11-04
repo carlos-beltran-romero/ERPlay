@@ -24,7 +24,7 @@ import {
 } from "../../services/supervisor";
 import { toast } from "react-toastify";
 
-// ahora acepta badgeCount opcional
+
 const ActionCard = ({ title, subtitle, onClick, Icon, badgeCount }: any) => (
   <button
     onClick={onClick}
@@ -68,16 +68,16 @@ const SupervisorDashboard: React.FC = () => {
 
   const [pendingCount, setPendingCount] = useState<number>(0);
 
-  // Objetivo semanal
+  
   const [goal, setGoal] = useState<WeeklyGoalDTO | null>(null);
   const [targetInput, setTargetInput] = useState<number | "">("");
   const [notify, setNotify] = useState(true);
 
-  // Edición y guardado
+  
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Progreso (desplegable)
+  
   const [openProgress, setOpenProgress] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(false);
   const [progressRows, setProgressRows] = useState<WeeklyProgressRow[]>([]);
@@ -91,7 +91,7 @@ const SupervisorDashboard: React.FC = () => {
     })();
   }, []);
 
-  // cargar contador de preguntas pendientes
+  
   useEffect(() => {
     (async () => {
       const n = await getPendingStudentQuestionsCount();
@@ -99,7 +99,7 @@ const SupervisorDashboard: React.FC = () => {
     })();
   }, []);
 
-  // Cargar objetivo actual
+  
   useEffect(() => {
     (async () => {
       try {
@@ -128,9 +128,9 @@ const SupervisorDashboard: React.FC = () => {
       });
       setGoal(updated);
       toast.success("Objetivo semanal guardado");
-      setEditing(false); // ya no deja guardar otra vez sin pulsar "Modificar objetivo"
+      setEditing(false); 
 
-      // refrescamos progreso si está abierto
+      
       if (openProgress) {
         setLoadingProgress(true);
         setProgressRows(await supGetWeeklyProgress().catch(() => []));

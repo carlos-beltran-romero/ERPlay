@@ -20,10 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 
-/**
- * Longitud mínima para ofrecer el modo expandible.
- * @internal
- */
+
 const MIN_HALF_TOGGLE = 120;
 
 interface ExpandableTextProps {
@@ -32,11 +29,7 @@ interface ExpandableTextProps {
   className?: string;
 }
 
-/**
- * Segmenta un texto largo y permite alternar su visualización.
- * @param props - Propiedades del componente.
- * @internal
- */
+
 const ExpandableText: React.FC<ExpandableTextProps> = ({
   text = "",
   minToHalf = MIN_HALF_TOGGLE,
@@ -73,11 +66,7 @@ interface ActionCardProps {
   accent?: "indigo" | "emerald" | "amber" | "rose";
 }
 
-/**
- * Tarjeta de acción que dirige a una sección del alumno.
- * @param props - Propiedades del componente.
- * @internal
- */
+
 const ActionCard: React.FC<ActionCardProps> = ({
   title,
   subtitle,
@@ -117,11 +106,7 @@ interface ChipProps {
   children: React.ReactNode;
 }
 
-/**
- * Etiqueta compacta para datos resumidos.
- * @param props - Propiedades del componente.
- * @internal
- */
+
 const Chip: React.FC<ChipProps> = ({ className, children }) => (
   <span
     className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs ${
@@ -132,14 +117,8 @@ const Chip: React.FC<ChipProps> = ({ className, children }) => (
   </span>
 );
 
-// — Traducciones —
 
-/**
- * Traduce el estado de una pregunta creada por el alumno.
- * @param s - Estado interno recibido del backend.
- * @returns Etiqueta en español.
- * @internal
- */
+
 function tQuestionStatus(s: "pending" | "approved" | "rejected") {
   return s === "approved"
     ? "Aprobada"
@@ -148,12 +127,7 @@ function tQuestionStatus(s: "pending" | "approved" | "rejected") {
     : "Pendiente";
 }
 
-/**
- * Traduce el estado de una reclamación.
- * @param s - Código de estado del backend.
- * @returns Etiqueta normalizada.
- * @internal
- */
+
 function tClaimStatus(s: "PENDING" | "APPROVED" | "REJECTED") {
   return s === "APPROVED"
     ? "Aprobada"
@@ -162,11 +136,7 @@ function tClaimStatus(s: "PENDING" | "APPROVED" | "REJECTED") {
     : "Pendiente";
 }
 
-/**
- * Resumen principal para el alumno con accesos directos y actividad.
- * @returns Vista de panel personal.
- * @public
- */
+
 const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [me, setMe] = useState<UserProfile | null>(null);
@@ -183,7 +153,7 @@ const StudentDashboard: React.FC = () => {
         const u = await getProfile();
         setMe(u);
       } catch {
-        // Se ignora porque el perfil se recarga en peticiones posteriores.
+
       }
     })();
   }, []);
@@ -218,7 +188,6 @@ const StudentDashboard: React.FC = () => {
 
   useEffect(() => {
     fetchMore(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const renderItem = (it: RecentActivityItem) => {

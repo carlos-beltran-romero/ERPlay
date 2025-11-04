@@ -1,4 +1,4 @@
-// src/views/SupervisorTests.tsx
+
 import React, { useEffect, useMemo, useState } from 'react';
 import PageWithHeader from '../../components/layout/PageWithHeader';
 import { listDiagrams, deleteDiagram, type DiagramSummary } from '../../services/diagrams';
@@ -19,10 +19,10 @@ const SupervisorTests: React.FC = () => {
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Modal de imagen
+  
   const [previewImg, setPreviewImg] = useState<{ src: string; title: string } | null>(null);
 
-  // Paginación (cliente)
+  
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const loadMore = () => setVisibleCount((v) => v + PAGE_SIZE);
 
@@ -45,7 +45,7 @@ const SupervisorTests: React.FC = () => {
     return items.filter(i => normalize(i.title).includes(q));
   }, [items, query]);
 
-  // Reset del paginado al cambiar filtros/datos
+  
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
   }, [query, items]);

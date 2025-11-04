@@ -1,4 +1,4 @@
-// src/views/Admin/DiagramStats.tsx
+
 import React, { useEffect, useState } from 'react';
 import PageWithHeader from '../../components/layout/PageWithHeader';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -14,31 +14,31 @@ import {
 type ItemQuality = {
   questionId: string;
   title: string;
-  pCorrectPct: number;          // % de acierto (más alto = más fácil)
-  discrPointBiserial: number;   // Diferencia niveles: −1..1 (más alto = mejor)
+  pCorrectPct: number;          
+  discrPointBiserial: number;   
   medianTimeSec: number | null;
   attempts: number;
   claimRatePct: number;
   claimApprovalRatePct: number | null;
-  avgRating: number | null;     // no se muestra en la tabla (compat)
+  avgRating: number | null;     
 };
 type DistractorBreakdown = {
   questionId: string;
   optionText: string;
-  chosenPct: number;            // 0..100
+  chosenPct: number;            
   chosenPctLowQuartile?: number;
   chosenPctHighQuartile?: number;
 };
 type LearningCurves = {
-  attemptsToMasteryP50: number | null;   // intentos hasta ≥8/10 (mediana)
-  deltaPracticeToExamAvgPts: number;     // (examen - práctica) en puntos sobre 10
+  attemptsToMasteryP50: number | null;   
+  deltaPracticeToExamAvgPts: number;     
 };
-type Reliability = { kr20: number | null }; // 0..1 (más alto = más consistente)
+type Reliability = { kr20: number | null }; 
 type DriftItem = {
   questionId: string;
   title?: string;
-  deltaPCorrectPct: number;              // cambio de % acierto (mitad 2 - mitad 1)
-  deltaMedianTimeSec: number | null;     // (no se muestra)
+  deltaPCorrectPct: number;              
+  deltaMedianTimeSec: number | null;     
 };
 type ExtendedStats = DiagramStatsResponse & {
   itemQuality?: ItemQuality[];
@@ -120,7 +120,7 @@ const SectionInfoButton: React.FC<{ onClick: () => void; open: boolean; title?: 
   </button>
 );
 
-// Versión compacta para cabeceras de tabla
+
 const SectionInfoButtonSmall: React.FC<{ onClick: () => void; open: boolean; title?: string }> = ({ onClick, open, title = 'Información' }) => (
   <button
     onClick={onClick}
@@ -164,12 +164,12 @@ const DiagramStats: React.FC = () => {
   const navigate = useNavigate();
 
   const [title, setTitle] = useState<string>('');
-  const [from, setFrom] = useState<string>(''); // YYYY-MM-DD
-  const [to, setTo] = useState<string>('');     // YYYY-MM-DD
+  const [from, setFrom] = useState<string>(''); 
+  const [to, setTo] = useState<string>('');     
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<ExtendedStats | null>(null);
 
-  // Info toggles
+  
   const [openReliabilityInfo, setOpenReliabilityInfo] = useState(false);
   const [openDiscrInfo, setOpenDiscrInfo] = useState(false);
   const [openDistractorsInfo, setOpenDistractorsInfo] = useState(false);
@@ -177,7 +177,7 @@ const DiagramStats: React.FC = () => {
   const [openRiskInfo, setOpenRiskInfo] = useState(false);
 
 
-  // Paginación local para "Deriva"
+  
   const DRIFT_PAGE = 10;
   const [driftVisible, setDriftVisible] = useState(DRIFT_PAGE);
   useEffect(() => { setDriftVisible(DRIFT_PAGE); }, [id, from, to, stats?.drift?.length]);
@@ -490,7 +490,7 @@ const DiagramStats: React.FC = () => {
         {fmt10(stats.learningCurves.deltaPracticeToExamAvgPts)} pts
       </div>
     ) : (
-      // Fallback si el backend aún no envía learningCurves: usa el KPI base
+      
       <div className="flex items-center gap-2 text-2xl font-semibold">
         {(k.practiceToExamDeltaPts ?? 0) >= 0
           ? <TrendingUp className="h-6 w-6 text-green-600" />

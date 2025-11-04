@@ -1,4 +1,9 @@
-// src/routes/diagrams.ts
+/**
+ * Módulo de rutas de diagramas
+ * Define endpoints CRUD para gestión de diagramas ER
+ * @module routes/diagrams
+ */
+
 import { Router } from 'express';
 import { authenticate } from '../middlewares/authenticate';
 import authorize from '../middlewares/authorize';
@@ -15,20 +20,23 @@ import {
 const router = Router();
 
 /**
- * IMPORTANTE: las rutas específicas primero
- * /public debe ir antes que /:id
+ * GET /api/diagrams/public
+ * Lista diagramas disponibles para estudiantes
+ * @access Privado (alumno, supervisor)
+ * @note Debe ir antes de /:id para evitar conflictos de rutas
  */
-
-// Listado "público" (autenticado) para alumno/supervisor
 router.get(
   '/public',
   authenticate,
   authorize('alumno', 'supervisor'),
-  // usa el handler específico si lo tienes; si no, podrías reutilizar listDiagrams
   listPublicDiagrams
 );
 
-// Lista completa (solo supervisor)
+/**
+ * GET /api/diagrams
+ * Lista todos los diagramas del sistema
+ * @access Privado (supervisor)
+ */
 router.get(
   '/',
   authenticate,
@@ -36,7 +44,11 @@ router.get(
   listDiagrams
 );
 
-// Detalle por id (solo supervisor)
+/**
+ * GET /api/diagrams/:id
+ * Obtiene detalles de un diagrama específico
+ * @access Privado (supervisor)
+ */
 router.get(
   '/:id',
   authenticate,
@@ -44,25 +56,37 @@ router.get(
   getDiagram
 );
 
-// Crear (solo supervisor)
+/**
+ * POST /api/diagrams
+ * Crea un nuevo diagrama con imagen
+ * @access Privado (supervisor)
+ */
 router.post(
   '/',
   authenticate,
   authorize('supervisor'),
-  uploadDiagramImage,   // campo 'image'
+  uploadDiagramImage,
   createDiagram
 );
 
-// Actualizar (solo supervisor)
+/**
+ * PUT /api/diagrams/:id
+ * Actualiza un diagrama existente (imagen opcional)
+ * @access Privado (supervisor)
+ */
 router.put(
   '/:id',
   authenticate,
   authorize('supervisor'),
-  uploadDiagramImage,   // opcional
+  uploadDiagramImage,
   updateDiagram
 );
 
-// Eliminar (solo supervisor)
+/**
+ * DELETE /api/diagrams/:id
+ * Elimina un diagrama del sistema
+ * @access Privado (supervisor)
+ */
 router.delete(
   '/:id',
   authenticate,

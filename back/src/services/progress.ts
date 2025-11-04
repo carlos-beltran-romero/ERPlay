@@ -1,29 +1,42 @@
-// back/src/services/progress.service.ts
+/**
+ * Módulo de servicio de progreso del estudiante
+ * Proporciona métricas de rendimiento, tendencias temporales y análisis de hábitos
+ * @module services/progress
+ */
+
 import { AppDataSource } from '../data-source';
 import { TestSession } from '../models/TestSession';
 import { TestResult } from '../models/TestResult';
 import { Claim, ClaimStatus } from '../models/Claim';
-import { UserBadge } from '../models/UserBadge';
-import { Question } from '../models/Question';
 import { WeeklyGoal } from '../models/WeeklyGoal';
 
-
-
 /**
- * Resumen de progreso
+ * Resumen general de progreso del estudiante
+ * Calcula KPIs principales de rendimiento académico
+ * 
+ * @param userId - ID del estudiante
+ * @returns Objeto con métricas agregadas
+ * @remarks
+ * - accuracyLearningPct: Precisión en modo práctica (0-100%)
+ * - examScoreAvg: Nota media en exámenes (0-10)
+ * - answeredCount: Total de preguntas respondidas (excluye omitidas)
+ * - avgTimePerQuestionSec: Tiempo promedio por pregunta en segundos
+ * - sessionsCompleted: Sesiones finalizadas con completedAt != NULL
+ * - deltaExamVsLearningPts: Diferencia entre precisión en examen y práctica
+ * - bestStreakDays: Racha más larga de días consecutivos con actividad
  */
 export async function getOverview(userId: string) {
   const rRepo = AppDataSource.getRepository(TestResult);
   const sRepo = AppDataSource.getRepository(TestSession);
 
-  // Base: resultados del usuario (join por relación)
+  // QueryBuilder base: resultados del usuario con joins optimizados
   const baseQB = rRepo
     .createQueryBuilder('r')
     .innerJoin('r.session', 's')
     .innerJoin('s.user', 'u')
     .where('u.id = :userId', { userId });
 
-  // Acierto en learning (%)
+  // Precisión en modo aprendizaje (learning)
   const accRow =
     (await baseQB
       .clone()
@@ -34,7 +47,7 @@ export async function getOverview(userId: string) {
 
   const accuracyLearningPct = Number(accRow.tot) ? (Number(accRow.ok) / Number(accRow.tot)) * 100 : 0;
 
-  // Nota media en exam (0..10)
+  // Nota media en modo examen (0-10)
   const examRow =
     (await baseQB
       .clone()
@@ -46,14 +59,14 @@ export async function getOverview(userId: string) {
   const examPct = Number(examRow.tot) ? (Number(examRow.ok) / Number(examRow.tot)) * 100 : 0;
   const examScoreAvg = Number(examRow.tot) ? (Number(examRow.ok) / Number(examRow.tot)) * 10 : 0;
 
-  // Tiempo medio por pregunta (segundos)
+  // Tiempo medio por pregunta (todas las sesiones)
   const avgRow =
     (await baseQB
       .clone()
       .select('AVG(r.timeSpentSeconds)', 'avg')
       .getRawOne<{ avg: string }>()) ?? { avg: '0' };
 
-  // Sesiones completadas
+  // Sesiones completadas (con completedAt != NULL)
   const compRow =
     (await sRepo
       .createQueryBuilder('s')
@@ -63,15 +76,16 @@ export async function getOverview(userId: string) {
       .select('COUNT(*)', 'cnt')
       .getRawOne<{ cnt: string }>()) ?? { cnt: '0' };
 
-// Total respondidas (SOLO las que tienen respuesta)
-const totRow =
-  (await baseQB
-    .clone()
-    .andWhere('r.selectedIndex IS NOT NULL')   // ⬅️ FILTRAR respondidas
-    .select('COUNT(*)', 'cnt')
-    .getRawOne<{ cnt: string }>()) ?? { cnt: '0' };
+  // Total de preguntas respondidas (excluye omitidas)
+  // CRÍTICO: Solo cuenta preguntas con selectedIndex != NULL
+  const totRow =
+    (await baseQB
+      .clone()
+      .andWhere('r.selectedIndex IS NOT NULL')
+      .select('COUNT(*)', 'cnt')
+      .getRawOne<{ cnt: string }>()) ?? { cnt: '0' };
 
-  // Mejor racha (días consecutivos con actividad)
+  // Mejor racha de días consecutivos con actividad
   const streakRows = await baseQB
     .clone()
     .select('DATE(r.createdAt)', 'd')
@@ -83,30 +97,44 @@ const totRow =
   const bestStreakDays = calcBestStreak(streakRows.map((r) => r.d));
 
   return {
-    accuracyLearningPct,
-    examScoreAvg,
+    accuracyLearningPct: Math.round(accuracyLearningPct * 10) / 10,
+    examScoreAvg: Math.round(examScoreAvg * 100) / 100,
     answeredCount: Number(totRow.cnt ?? 0),
-    avgTimePerQuestionSec: Number(avgRow.avg ?? 0),
+    avgTimePerQuestionSec: Math.round(Number(avgRow.avg ?? 0) * 100) / 100,
     sessionsCompleted: Number(compRow.cnt ?? 0),
-    deltaExamVsLearningPts: examPct - accuracyLearningPct,
+    deltaExamVsLearningPts: Math.round((examPct - accuracyLearningPct) * 10) / 10,
     bestStreakDays,
   };
 }
 
 /**
- * Tendencias por día/semana
+ * Tendencias temporales de rendimiento
+ * Agrupa métricas por día o semana según el bucket especificado
+ * 
+ * @param params - Parámetros de consulta
+ * @param params.userId - ID del estudiante
+ * @param params.from - Fecha inicio (YYYY-MM-DD) opcional
+ * @param params.to - Fecha fin (YYYY-MM-DD) opcional
+ * @param params.bucket - Granularidad temporal: 'day' o 'week'
+ * @returns Array de puntos temporales con métricas
+ * @remarks
+ * - Bucket 'week' agrupa por semanas ISO (lunes como inicio)
+ * - Todas las fechas se devuelven en formato YYYY-MM-DD
+ * - accuracyLearningPct: % acierto en modo learning
+ * - examScorePct: % acierto en modo exam (0-100, no 0-10)
+ * - correctCount/incorrectCount: Contadores absolutos
  */
 export async function getTrends(params: { userId: string; from?: string; to?: string; bucket: 'day' | 'week' }) {
   const { userId, from, to, bucket } = params;
   const rRepo = AppDataSource.getRepository(TestResult);
 
-  // Expresión base de fecha
+  // Expresión SQL para agrupar por día o semana
   const baseDateExpr =
     bucket === 'week'
-      ? "STR_TO_DATE(CONCAT(YEARWEEK(r.createdAt, 3),' Monday'), '%X%V %W')" // lunes ISO
+      ? "STR_TO_DATE(CONCAT(YEARWEEK(r.createdAt, 3),' Monday'), '%X%V %W')" // Semana ISO (modo 3)
       : 'DATE(r.createdAt)';
 
-  // Forzamos string YYYY-MM-DD para evitar r.bucket como Date
+  // Forzar formato YYYY-MM-DD para consistencia
   const dateExpr = `DATE_FORMAT(${baseDateExpr}, '%Y-%m-%d')`;
 
   const qb = rRepo
@@ -115,6 +143,7 @@ export async function getTrends(params: { userId: string; from?: string; to?: st
     .innerJoin('s.user', 'u')
     .where('u.id = :userId', { userId });
 
+  // Filtros opcionales de rango temporal
   if (from) qb.andWhere('r.createdAt >= :from', { from: `${from} 00:00:00` });
   if (to) qb.andWhere('r.createdAt <= :to', { to: `${to} 23:59:59` });
 
@@ -129,7 +158,7 @@ export async function getTrends(params: { userId: string; from?: string; to?: st
     .groupBy('bucket')
     .orderBy('bucket', 'ASC')
     .getRawMany<{
-      bucket: string; // ahora garantizado string 'YYYY-MM-DD'
+      bucket: string;
       okLearn: string;
       totLearn: string;
       okExam: string;
@@ -139,16 +168,28 @@ export async function getTrends(params: { userId: string; from?: string; to?: st
     }>();
 
   return rows.map((r) => ({
-    date: r.bucket, // ya es 'YYYY-MM-DD'
-    accuracyLearningPct: Number(r.totLearn) ? (Number(r.okLearn) / Number(r.totLearn)) * 100 : null,
-    examScorePct: Number(r.totExam) ? (Number(r.okExam) / Number(r.totExam)) * 100 : null,
+    date: r.bucket,
+    accuracyLearningPct: Number(r.totLearn) ? Math.round((Number(r.okLearn) / Number(r.totLearn)) * 1000) / 10 : null,
+    examScorePct: Number(r.totExam) ? Math.round((Number(r.okExam) / Number(r.totExam)) * 1000) / 10 : null,
     correctCount: Number(r.okAll),
     incorrectCount: Math.max(0, Number(r.totAll) - Number(r.okAll)),
   }));
 }
 
 /**
- * Top errores por pregunta
+ * Análisis de errores frecuentes por pregunta
+ * Identifica preguntas problemáticas y distractores comunes
+ * 
+ * @param params - Parámetros de consulta
+ * @param params.userId - ID del estudiante
+ * @param params.limit - Número máximo de preguntas a retornar
+ * @param params.minAttempts - Intentos mínimos requeridos para incluir la pregunta
+ * @returns Array de preguntas ordenadas por tasa de error descendente
+ * @remarks
+ * - Filtra preguntas con >= minAttempts intentos
+ * - errorRatePct: Porcentaje de respuestas incorrectas
+ * - commonChosenIndex: Índice del distractor más elegido (entre errores)
+ * - title: Primeros 60 caracteres del enunciado
  */
 export async function getErrors(params: { userId: string; limit: number; minAttempts: number }) {
   const { userId, limit, minAttempts } = params;
@@ -166,16 +207,12 @@ export async function getErrors(params: { userId: string; limit: number; minAtte
     .addSelect('SUM(CASE WHEN r.isCorrect = 0 THEN 1 ELSE 0 END)', 'ko')
     .groupBy('q.id')
     .having('COUNT(*) >= :minAttempts', { minAttempts })
-    // Ordenar por tasa de error (expresión completa, no alias)
-    .orderBy(
-      'SUM(CASE WHEN r.isCorrect = 0 THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0)',
-      'DESC'
-    )
+    .orderBy('SUM(CASE WHEN r.isCorrect = 0 THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0)', 'DESC')
     .addOrderBy('COUNT(*)', 'DESC')
     .limit(limit)
     .getRawMany<{ id: string; title: string; tot: string; ko: string }>();
 
-  // Índice más elegido (entre respuestas incorrectas), por pregunta
+  // Análisis de distractores: índice más elegido entre respuestas incorrectas
   const ids = rows.map((r) => r.id).filter(Boolean);
   let commonIndexByQ: Record<string, number | undefined> = {};
 
@@ -197,6 +234,7 @@ export async function getErrors(params: { userId: string; limit: number; minAtte
       .addOrderBy('cnt', 'DESC')
       .getRawMany<{ qid: string; idx: string; cnt: string }>();
 
+    // Tomar solo el primer resultado (más frecuente) por pregunta
     for (const row of freqRows) {
       if (commonIndexByQ[row.qid] == null) commonIndexByQ[row.qid] = Number(row.idx);
     }
@@ -205,16 +243,24 @@ export async function getErrors(params: { userId: string; limit: number; minAtte
   return rows.map((r) => ({
     id: r.id,
     title: r.title,
-    errorRatePct: Number(r.tot) ? (Number(r.ko) / Number(r.tot)) * 100 : 0,
+    errorRatePct: Math.round((Number(r.ko) / Number(r.tot)) * 1000) / 10,
     commonChosenIndex: commonIndexByQ[r.id],
   }));
 }
 
 /**
- * Hábitos (por hora del día, duración media de sesión, hints)
+ * Análisis de hábitos de estudio
+ * Identifica patrones temporales y uso de recursos de ayuda
+ * 
+ * @param userId - ID del estudiante
+ * @returns Objeto con distribución horaria, duración promedio y uso de pistas
+ * @remarks
+ * - byHour: Array de 24 elementos (0-23h) con contador de preguntas por hora
+ * - avgSessionDurationSec: Duración media de sesiones completadas
+ * - hintsPerQuestionPct: % de preguntas en las que se usó pista (solo mode=learning)
  */
 export async function getHabits(userId: string) {
-  // Distribución por hora del día
+  // Distribución de actividad por hora del día (0-23)
   const rows = await AppDataSource.getRepository(TestResult)
     .createQueryBuilder('r')
     .innerJoin('r.session', 's')
@@ -226,12 +272,13 @@ export async function getHabits(userId: string) {
     .orderBy('hour', 'ASC')
     .getRawMany<{ hour: string; answered: string }>();
 
+  // Rellenar array de 24 posiciones (incluye horas sin actividad)
   const byHour = Array.from({ length: 24 }, (_, h) => {
     const f = rows.find((r) => Number(r.hour) === h);
     return { hour: h, answered: Number(f?.answered ?? 0) };
   });
 
-  // Duración media por sesión (usa s.durationSeconds)
+  // Duración media de sesiones (usa campo precalculado durationSeconds)
   const avgSessionRow =
     (await AppDataSource.getRepository(TestSession)
       .createQueryBuilder('s')
@@ -242,7 +289,7 @@ export async function getHabits(userId: string) {
       .select('AVG(s.durationSeconds)', 'avg')
       .getRawOne<{ avg: string }>()) ?? { avg: '0' };
 
-  // Porcentaje de uso de pistas en learning
+  // Tasa de uso de pistas en modo aprendizaje
   const hintRow =
     (await AppDataSource.getRepository(TestResult)
       .createQueryBuilder('r')
@@ -256,13 +303,16 @@ export async function getHabits(userId: string) {
 
   return {
     byHour,
-    avgSessionDurationSec: Number(avgSessionRow.avg ?? 0),
-    hintsPerQuestionPct: Number(hintRow.tot) ? (Number(hintRow.hints) / Number(hintRow.tot)) * 100 : 0,
+    avgSessionDurationSec: Math.round(Number(avgSessionRow.avg ?? 0)),
+    hintsPerQuestionPct: Number(hintRow.tot) ? Math.round((Number(hintRow.hints) / Number(hintRow.tot)) * 1000) / 10 : 0,
   };
 }
 
 /**
- * Reclamaciones (enviadas / aprobadas)
+ * Estadísticas de reclamaciones del estudiante
+ * 
+ * @param userId - ID del estudiante
+ * @returns Contadores de reclamaciones enviadas y aprobadas
  */
 export async function getClaimsStats(userId: string) {
   const cRepo = AppDataSource.getRepository(Claim);
@@ -287,11 +337,21 @@ export async function getClaimsStats(userId: string) {
   return { submitted: Number(submittedRow.cnt ?? 0), approved: Number(approvedRow.cnt ?? 0) };
 }
 
-// Devuelve el progreso semanal del usuario actual, mismo shape que usa supervisor
+/**
+ * Progreso hacia el objetivo semanal
+ * 
+ * @param userId - ID del estudiante
+ * @returns Progreso de la semana actual o null si no hay objetivo activo
+ * @remarks
+ * - target: Sesiones objetivo de la semana
+ * - done: Sesiones completadas en el rango
+ * - pct: Porcentaje de completitud (0-100+)
+ * - completed: true si done >= target
+ */
 export async function getWeeklyProgressRow(userId: string) {
   const goalRepo = AppDataSource.getRepository(WeeklyGoal);
 
-  // Objetivo activo de la semana (ajusta si tu lógica es distinta)
+  // Buscar objetivo activo (weekStart <= hoy <= weekEnd)
   const g = await goalRepo
     .createQueryBuilder('g')
     .where('DATE(g.weekStart) <= CURRENT_DATE()')
@@ -326,63 +386,25 @@ export async function getWeeklyProgressRow(userId: string) {
   };
 }
 
-
-// ---- helpers ----
-function calcBestStreak(datesISO: string[]): number {
-  if (!datesISO.length) return 0;
-  const set = new Set(datesISO);
-  let best = 1;
-  for (const d of set) {
-    const prev = new Date(d);
-    prev.setUTCDate(prev.getUTCDate() - 1);
-    const prevISO = prev.toISOString().slice(0, 10);
-    if (!set.has(prevISO)) {
-      // inicio de racha
-      let len = 1;
-      let cur = new Date(d);
-      while (true) {
-        cur.setUTCDate(cur.getUTCDate() + 1);
-        const iso = cur.toISOString().slice(0, 10);
-        if (set.has(iso)) len++;
-        else break;
-      }
-      best = Math.max(best, len);
-    }
-  }
-  return best;
-}
-
-async function calcCurrentStreak(userId: string): Promise<number> {
-  const rows = await AppDataSource.getRepository(TestResult)
-    .createQueryBuilder('r')
-    .innerJoin('r.session', 's')
-    .innerJoin('s.user', 'u')
-    .where('u.id = :userId', { userId })
-    .select('DATE(r.createdAt)', 'd')
-    .groupBy('d')
-    .orderBy('d', 'DESC')
-    .getRawMany<{ d: string }>();
-
-  if (!rows.length) return 0;
-  const set = new Set(rows.map((r) => r.d));
-  let streak = 0;
-  let cur = new Date(); // hoy
-  while (true) {
-    const iso = cur.toISOString().slice(0, 10);
-    if (set.has(iso)) streak++;
-    else break;
-    cur.setUTCDate(cur.getUTCDate() - 1);
-  }
-  return streak;
-}
-
-export async function getBadges(userId: string): Promise<Array<{
-  id: string;
-  label: string;
-  weekStart: string;
-  weekEnd: string;
-  earnedAt: string | null;
-}>> {
+/**
+ * Insignias (badges) obtenidas por el estudiante
+ * Basadas en objetivos semanales completados
+ * 
+ * @param userId - ID del estudiante
+ * @returns Array de insignias ganadas, ordenadas cronológicamente
+ * @remarks
+ * - Se genera una insignia por cada semana donde se cumplió el objetivo
+ * - earnedAt se establece como el último día de la semana
+ */
+export async function getBadges(userId: string): Promise<
+  Array<{
+    id: string;
+    label: string;
+    weekStart: string;
+    weekEnd: string;
+    earnedAt: string | null;
+  }>
+> {
   const goalRepo = AppDataSource.getRepository(WeeklyGoal);
   const goals = await goalRepo.find({ order: { weekStart: 'ASC' } });
   if (!goals.length) return [];
@@ -396,7 +418,7 @@ export async function getBadges(userId: string): Promise<Array<{
   }> = [];
 
   for (const g of goals) {
-    // nº de sesiones completadas por el usuario en la semana (inclusive)
+    // Contar sesiones completadas en el rango de la semana
     const { count } = await AppDataSource.getRepository(TestSession)
       .createQueryBuilder('s')
       .select('COUNT(*)', 'count')
@@ -414,10 +436,84 @@ export async function getBadges(userId: string): Promise<Array<{
         label: `Semana ${g.weekStart} — ${g.weekEnd}`,
         weekStart: g.weekStart,
         weekEnd: g.weekEnd,
-        earnedAt: g.weekEnd, // puedes cambiar a null si prefieres
+        earnedAt: g.weekEnd,
       });
     }
   }
 
   return out;
+}
+
+// ============ FUNCIONES AUXILIARES ============
+
+/**
+ * Calcula la racha más larga de días consecutivos con actividad
+ * 
+ * @param datesISO - Array de fechas en formato YYYY-MM-DD
+ * @returns Longitud máxima de racha encontrada
+ * @remarks
+ * - Algoritmo: Para cada fecha sin día anterior, cuenta días consecutivos hacia adelante
+ * - Complejidad: O(n²) en peor caso, pero eficiente para conjuntos pequeños
+ */
+function calcBestStreak(datesISO: string[]): number {
+  if (!datesISO.length) return 0;
+  const set = new Set(datesISO);
+  let best = 1;
+
+  for (const d of set) {
+    const prev = new Date(d);
+    prev.setUTCDate(prev.getUTCDate() - 1);
+    const prevISO = prev.toISOString().slice(0, 10);
+
+    // Solo procesar si es inicio de racha (no tiene día previo)
+    if (!set.has(prevISO)) {
+      let len = 1;
+      let cur = new Date(d);
+
+      while (true) {
+        cur.setUTCDate(cur.getUTCDate() + 1);
+        const iso = cur.toISOString().slice(0, 10);
+        if (set.has(iso)) len++;
+        else break;
+      }
+
+      best = Math.max(best, len);
+    }
+  }
+
+  return best;
+}
+
+/**
+ * Calcula la racha actual de días consecutivos (hasta hoy)
+ * NOTA: Función no utilizada actualmente, mantenida para extensiones futuras
+ * 
+ * @param userId - ID del estudiante
+ * @returns Longitud de racha actual
+ */
+async function calcCurrentStreak(userId: string): Promise<number> {
+  const rows = await AppDataSource.getRepository(TestResult)
+    .createQueryBuilder('r')
+    .innerJoin('r.session', 's')
+    .innerJoin('s.user', 'u')
+    .where('u.id = :userId', { userId })
+    .select('DATE(r.createdAt)', 'd')
+    .groupBy('d')
+    .orderBy('d', 'DESC')
+    .getRawMany<{ d: string }>();
+
+  if (!rows.length) return 0;
+
+  const set = new Set(rows.map((r) => r.d));
+  let streak = 0;
+  let cur = new Date();
+
+  while (true) {
+    const iso = cur.toISOString().slice(0, 10);
+    if (set.has(iso)) streak++;
+    else break;
+    cur.setUTCDate(cur.getUTCDate() - 1);
+  }
+
+  return streak;
 }

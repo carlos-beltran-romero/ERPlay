@@ -4,10 +4,7 @@ import { toast } from "react-toastify";
 import badgeCompleted from "../../assets/completed.png";
 import { useNavigate } from "react-router-dom";
 
-/**
- * Vista con métricas personales del alumno.
- * @module views/Student/MyProgress
- */
+
 
 import {
   getOverview,
@@ -40,38 +37,23 @@ import {
   ArrowLeft,
 } from "lucide-react";
 
-// — Formateadores —
 
-/**
- * Convierte un porcentaje en texto amigable.
- * @param n - Porcentaje recibido del backend.
- * @returns Representación corta o guion cuando falta dato.
- * @internal
- */
+
+
 const fmtPct = (n?: number | null) =>
   typeof n === "number" ? `${Math.round(n)}%` : "—";
 
-/**
- * Formatea segundos a texto con una cifra decimal.
- * @param sec - Tiempo medio de respuesta.
- * @returns Cadena en segundos o guion.
- * @internal
- */
+
 const fmtSec1 = (sec?: number | null) =>
   sec == null ? "—" : `${Math.max(0, sec).toFixed(1)} s`;
 
-// — Componentes base —
+
 
 interface CardProps {
   children: React.ReactNode;
   className?: string;
 }
 
-/**
- * Contenedor con borde y sombra suave.
- * @param props - Propiedades del componente.
- * @internal
- */
 const Card: React.FC<CardProps> = ({ children, className }) => (
   <div
     className={`rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow transition ${
@@ -87,11 +69,7 @@ interface CardBodyProps {
   className?: string;
 }
 
-/**
- * Sección interior estándar para tarjetas.
- * @param props - Propiedades del componente.
- * @internal
- */
+
 const CardBody: React.FC<CardBodyProps> = ({ children, className }) => (
   <div className={`p-5 ${className || ""}`}>{children}</div>
 );
@@ -102,11 +80,7 @@ interface KPIProps {
   value: React.ReactNode;
 }
 
-/**
- * Indicador numérico con icono y leyenda.
- * @param props - Propiedades del componente.
- * @internal
- */
+
 const KPI: React.FC<KPIProps> = ({ icon, label, value }) => (
   <Card>
     <CardBody className="flex items-center gap-3">
@@ -121,7 +95,7 @@ const KPI: React.FC<KPIProps> = ({ icon, label, value }) => (
   </Card>
 );
 
-// — Mini gráficas —
+
 
 const COLOR_A = "#10b981";
 const COLOR_B = "#3b82f6";
@@ -130,11 +104,7 @@ interface DualLineChartProps {
   data: { a?: number | null; b?: number | null }[];
 }
 
-/**
- * Gráfica de líneas con precisión y nota.
- * @param props - Datos normalizados por periodo.
- * @internal
- */
+
 const DualLineChart: React.FC<DualLineChartProps> = ({ data }) => {
   const W = 640,
     H = 220,
@@ -233,11 +203,7 @@ interface ScrollableGroupedBarsProps {
   data: { label: string; ok: number; ko: number }[];
 }
 
-/**
- * Histograma desplazable con aciertos y fallos por día.
- * @param props - Datos agregados por periodo.
- * @internal
- */
+
 const ScrollableGroupedBars: React.FC<ScrollableGroupedBarsProps> = ({
   data,
 }) => {
@@ -380,11 +346,7 @@ interface DonutProps {
   value: number;
 }
 
-/**
- * Indicador circular para porcentajes.
- * @param props - Valor numérico a representar.
- * @internal
- */
+
 const Donut: React.FC<DonutProps> = ({ value }) => {
   const size = 56,
     stroke = 8,
@@ -427,11 +389,7 @@ const Donut: React.FC<DonutProps> = ({ value }) => {
   );
 };
 
-/**
- * Vista con evolución, objetivos e insignias del alumno.
- * @returns Contenido principal de progreso personal.
- * @public
- */
+
 const MyProgress: React.FC = () => {
   const navigate = useNavigate();
 
@@ -444,7 +402,7 @@ const MyProgress: React.FC = () => {
   const [claims, setClaims] = useState<ClaimsStats | null>(null);
   const [myQuestions, setMyQuestions] = useState<MyQuestionItem[]>([]);
 
-  // — Progreso semanal e insignias —
+  
   const [prog, setProg] = useState<WeeklyProgressRow | null>(null);
   const [badges, setBadges] = useState<BadgeItem[]>([]);
   const [showBadges, setShowBadges] = useState(false);
@@ -478,7 +436,7 @@ const MyProgress: React.FC = () => {
     })();
   }, []);
 
-  // Derivados gráficos
+  
   const lineData = useMemo(
     () =>
       trends.map((t) => ({
@@ -497,7 +455,7 @@ const MyProgress: React.FC = () => {
     [trends]
   );
 
-  // Contadores de preguntas creadas
+  
   const qCounts = useMemo(() => {
     const c = { approved: 0, rejected: 0, pending: 0 };
     for (const q of myQuestions) {

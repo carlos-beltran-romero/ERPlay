@@ -10,7 +10,7 @@ if (!rawApiUrl) {
 }
 
 export const env = {
-  /** URL base del backend (sin barras finales redundantes). */
+  /** URL base del backend. */
   API_URL: rawApiUrl.replace(/\/+$/, ''),
 } as const;
 

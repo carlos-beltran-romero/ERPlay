@@ -1,4 +1,4 @@
-// src/views/PlayMenu.tsx
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageWithHeader from '../../components/layout/PageWithHeader';

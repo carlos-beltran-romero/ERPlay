@@ -1,9 +1,15 @@
-// back/src/services/dashboard.service.ts
+/**
+ * Módulo de servicio de dashboard
+ * Proporciona feed de actividad reciente del estudiante
+ * @module services/dashboard
+ */
+
 import { AppDataSource } from '../data-source';
 import { TestSession } from '../models/TestSession';
 import { Question } from '../models/Question';
 import { Claim } from '../models/Claim';
 
+/** Tipo de item en el feed de actividad */
 type FeedItem =
   | {
       kind: 'session';
@@ -32,11 +38,19 @@ type FeedItem =
       title: string;
     };
 
+/**
+ * Obtiene actividad reciente del estudiante
+ * Combina sesiones de test, preguntas creadas y reclamaciones
+ * 
+ * @param userId - ID del estudiante
+ * @param limit - Número máximo de items a retornar
+ * @param offset - Desplazamiento para paginación
+ * @returns Feed ordenado por fecha descendente
+ */
 export async function getRecentActivity(userId: string, limit = 8, offset = 0): Promise<FeedItem[]> {
-  // Traemos de sobra de cada tipo y luego hacemos merge-sort por fecha
   const takeEach = Math.max(limit + offset, 40);
 
-  // ---- Sesiones del usuario ----
+  // Sesiones del usuario
   const sessions = await AppDataSource.getRepository(TestSession)
     .createQueryBuilder('s')
     .innerJoin('s.user', 'u')
@@ -82,7 +96,7 @@ export async function getRecentActivity(userId: string, limit = 8, offset = 0): 
     durationSec: s.durationSec != null ? Number(s.durationSec) : null,
   }));
 
-  // ---- Preguntas creadas por el usuario (SIN TRUNCAR) ----
+  // Preguntas creadas por el usuario
   const questions = await AppDataSource.getRepository(Question)
     .createQueryBuilder('q')
     .leftJoin('q.creator', 'qc')
@@ -102,10 +116,10 @@ export async function getRecentActivity(userId: string, limit = 8, offset = 0): 
     id: String(q.id),
     createdAt: (q.createdAt instanceof Date ? q.createdAt : new Date(q.createdAt)).toISOString(),
     status: q.status,
-    title: String(q.prompt ?? ''), // ← antes: .slice(0, 120)
+    title: String(q.prompt ?? ''),
   }));
 
-  // ---- Reclamaciones creadas por el usuario (SIN TRUNCAR) ----
+  // Reclamaciones creadas por el usuario
   const claims = await AppDataSource.getRepository(Claim)
     .createQueryBuilder('c')
     .innerJoin('c.student', 'stu')
@@ -125,10 +139,10 @@ export async function getRecentActivity(userId: string, limit = 8, offset = 0): 
     id: String(c.id),
     createdAt: (c.createdAt instanceof Date ? c.createdAt : new Date(c.createdAt)).toISOString(),
     status: c.status,
-    title: String(c.promptSnapshot ?? ''), // ← antes: .slice(0, 120)
+    title: String(c.promptSnapshot ?? ''),
   }));
 
-  // ---- Merge y paginado global ----
+  // Merge y ordenamiento por fecha
   const all = [...sessionItems, ...questionItems, ...claimItems].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
