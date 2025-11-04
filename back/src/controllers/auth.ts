@@ -10,7 +10,11 @@ import { createHttpError } from '../core/errors/HttpError';
 import { asyncHandler } from '../utils/asyncHandler';
 import { AuthService } from '../services/auth';
 
-const authService = new AuthService();
+let authService = new AuthService();
+
+export function setAuthService(service: AuthService) {
+  authService = service;
+}
 
 /**
  * Esquemas de validación para autenticación
