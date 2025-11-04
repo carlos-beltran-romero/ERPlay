@@ -22,6 +22,7 @@ import MyTests from '../views/Student/MyTests';
 import MyProgress from '../views/Student/MyProgress';
 import StudentDetail from '../views/Supervisor/StudentDetail';
 import DiagramStats from '../views/Supervisor/DiagramSats';
+import { getCachedProfile, setCachedProfile, clearProfileCache } from '../services/authCache';
 
 /**
  * Valida que el usuario autenticado tenga un rol permitido.
@@ -31,11 +32,18 @@ import DiagramStats from '../views/Supervisor/DiagramSats';
  * @internal
  */
 async function requireRole(allowed: string[]) {
+  const cached = getCachedProfile();
+  if (cached && allowed.includes(cached.role)) {
+    return null;
+  }
+
   try {
     const me = await getProfile();
+    setCachedProfile(me);
     if (!allowed.includes(me.role)) throw new Error('Rol no autorizado');
     return null;
   } catch {
+    clearProfileCache();
     throw redirect('/login');
   }
 }

@@ -8,6 +8,9 @@ import bcrypt from 'bcrypt';
 import { createHttpError } from '../core/errors/HttpError';
 import { AppDataSource } from '../data-source';
 import { User, UserRole } from '../models/User';
+import { defaultMailer } from '../config/mailer';
+import { env } from '../config/env';
+import { escapeHtml, renderCardEmail } from './shared/emailTemplates';
 
 /** DTO para actualización de perfil de usuario */
 export interface UpdateUserDTO {
@@ -41,6 +44,13 @@ export interface SafeUser {
  */
 export class UsersService {
   private userRepo = AppDataSource.getRepository(User);
+  private mailer = defaultMailer;
+  private fromAddress = env.SMTP_FROM || '"ERPlay" <no-reply@erplay.com>';
+  private appBaseUrl = (env.FRONTEND_URL || env.APP_URL || '').replace(/\/+$/, '');
+
+  private getLoginUrl() {
+    return this.appBaseUrl ? `${this.appBaseUrl}/login` : '';
+  }
 
   /**
    * Crea múltiples estudiantes en lote
@@ -115,6 +125,15 @@ export class UsersService {
       role: u.role,
       createdAt: u.createdAt,
     }));
+
+    const createdByEmail = new Map(created.map(user => [user.email, user]));
+    await Promise.all(
+      toCreate.map(async original => {
+        const user = createdByEmail.get(original.email);
+        if (!user) return;
+        await this.sendWelcomeCredentialsEmail(user, original.password);
+      })
+    );
 
     return {
       created,
@@ -210,5 +229,87 @@ export class UsersService {
       throw createHttpError(403, 'Solo se pueden eliminar alumnos');
     }
     await this.userRepo.remove(user);
+  }
+
+  private async sendWelcomeCredentialsEmail(user: SafeUser, password: string) {
+    if (!user.email) return;
+
+    const loginUrl = this.getLoginUrl();
+    const body = `
+      <p style="margin:0 0 16px 0;">Hola ${escapeHtml(user.name || user.email)},</p>
+      <p style="margin:0 0 16px 0;">Tu cuenta en ERPlay ha sido creada por el administrador. Utiliza estas credenciales para ingresar:</p>
+      <table role="presentation" style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+        <tr>
+          <td style="padding:6px 0;width:140px;color:#6b7280;">Correo</td>
+          <td style="padding:6px 0;font-weight:600;">${escapeHtml(user.email)}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;width:140px;color:#6b7280;">Contraseña temporal</td>
+          <td style="padding:6px 0;font-weight:600;">${escapeHtml(password)}</td>
+        </tr>
+      </table>
+      <p style="margin:0 0 16px 0;">Por seguridad te recomendamos cambiarla desde el apartado “Configuración” después de tu primer acceso.</p>
+      ${loginUrl
+        ? `<div style="margin-top:16px;"><a href="${loginUrl}" style="display:inline-block;padding:12px 20px;border-radius:10px;background:#4f46e5;color:#fff;text-decoration:none;font-weight:600;">Ir a ERPlay</a></div>`
+        : ''}
+    `;
+
+    const html = renderCardEmail({
+      title: 'Tu acceso a ERPlay',
+      bodyHtml: body,
+      accent: '#E0E7FF',
+    });
+
+    try {
+      await this.mailer.sendMail({
+        from: this.fromAddress,
+        to: user.email,
+        subject: 'Tu cuenta de ERPlay',
+        html,
+      });
+    } catch (error) {
+      console.error(`No se pudo enviar el correo de credenciales a ${user.email}:`, error);
+    }
+  }
+
+  async sendPasswordUpdatedEmail(user: SafeUser, password: string) {
+    if (!user.email) return;
+
+    const loginUrl = this.getLoginUrl();
+    const body = `
+      <p style="margin:0 0 16px 0;">Hola ${escapeHtml(user.name || user.email)},</p>
+      <p style="margin:0 0 16px 0;">Un administrador ha actualizado la contraseña de tu cuenta. A partir de ahora deberás iniciar sesión con:</p>
+      <table role="presentation" style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+        <tr>
+          <td style="padding:6px 0;width:140px;color:#6b7280;">Correo</td>
+          <td style="padding:6px 0;font-weight:600;">${escapeHtml(user.email)}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;width:140px;color:#6b7280;">Nueva contraseña</td>
+          <td style="padding:6px 0;font-weight:600;">${escapeHtml(password)}</td>
+        </tr>
+      </table>
+      <p style="margin:0 0 16px 0;">Si no solicitaste este cambio contacta con tu supervisor para validar la acción.</p>
+      ${loginUrl
+        ? `<div style="margin-top:16px;"><a href="${loginUrl}" style="display:inline-block;padding:12px 20px;border-radius:10px;background:#4f46e5;color:#fff;text-decoration:none;font-weight:600;">Iniciar sesión</a></div>`
+        : ''}
+    `;
+
+    const html = renderCardEmail({
+      title: 'Tu contraseña fue actualizada',
+      bodyHtml: body,
+      accent: '#DBEAFE',
+    });
+
+    try {
+      await this.mailer.sendMail({
+        from: this.fromAddress,
+        to: user.email,
+        subject: 'Se actualizó tu contraseña de ERPlay',
+        html,
+      });
+    } catch (error) {
+      console.error(`No se pudo enviar el correo de actualización a ${user.email}:`, error);
+    }
   }
 }

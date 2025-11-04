@@ -10,14 +10,15 @@ import {
   changeMyPassword,
 } from '../../services/users';
 import { User, Mail, Save, Lock, ShieldCheck, Undo2, ArrowLeft } from 'lucide-react';
+import { useAuth } from '../../app/AuthContext';
 
 const MIN_PW = 6;
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
+  const { setProfile } = useAuth();
   const [loading, setLoading] = useState(true);
 
-  
   const [me, setMe] = useState<UserProfile | null>(null);
   const [name, setName] = useState('');
   const [lastName, setLastName] = useState(''); 
@@ -40,6 +41,7 @@ const Settings: React.FC = () => {
       try {
         const u = await getProfile();
         setMe(u);
+        setProfile(u);
         setName(u.name || '');
         
         setLastName((u as any).lastName ?? (u as any).surname ?? '');
@@ -60,7 +62,7 @@ const Settings: React.FC = () => {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [setProfile]);
 
   const dirtyProfile = useMemo(() => {
     if (!me) return false;
@@ -89,8 +91,9 @@ const Settings: React.FC = () => {
         lastName: lastName.trim(),
         email: email.trim(),
       });
-      
+
       setMe(updated);
+      setProfile(updated);
       setName(updated.name || '');
       setLastName(lastName.trim()); 
       setEmail(updated.email || '');

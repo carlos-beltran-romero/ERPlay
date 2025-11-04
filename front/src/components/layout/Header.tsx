@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getProfile, type UserProfile } from '../../services/users';
 import { logout } from '../../services/auth';
 import {
   LogOut,
@@ -12,35 +11,16 @@ import {
   Users,
   Layers,
 } from 'lucide-react';
+import { useAuth } from '../../app/AuthContext';
 
 /**
  * Cabecera principal con navegación contextual y menú de usuario.
  */
 const Header: React.FC = () => {
-  const [me, setMe] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { profile, loading, setProfile } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
   const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    (async () => {
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
-        setLoading(false);
-        setMe(null);
-        return;
-      }
-      try {
-        const profile = await getProfile();
-        setMe(profile);
-      } catch {
-        setMe(null);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
 
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
@@ -61,6 +41,7 @@ const Header: React.FC = () => {
 
   const handleLogout = async () => {
     await logout();
+    setProfile(null);
     navigate('/login', { replace: true });
   };
 
@@ -81,7 +62,7 @@ const Header: React.FC = () => {
     );
   }
 
-  if (!me) return null;
+  if (!profile) return null;
 
   const go = (path: string) => {
     navigate(path);
@@ -89,13 +70,13 @@ const Header: React.FC = () => {
   };
 
   const goDashboard = () => {
-    if (me.role === 'supervisor') navigate('/supervisor/dashboard');
+    if (profile.role === 'supervisor') navigate('/supervisor/dashboard');
     else navigate('/student/dashboard');
   };
 
-  const isSupervisor = me.role === 'supervisor';
-  const displayName = (me.name?.trim() || me.email || '').trim();
-  const initial = (displayName[0]?.toUpperCase() || me.email?.[0]?.toUpperCase() || 'U');
+  const isSupervisor = profile.role === 'supervisor';
+  const displayName = (profile.name?.trim() || profile.email || '').trim();
+  const initial = displayName[0]?.toUpperCase() || profile.email?.[0]?.toUpperCase() || 'U';
 
   return (
     <header className="sticky top-0 z-40 backdrop-blur bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950 text-white border-b border-white/10">
@@ -140,7 +121,7 @@ const Header: React.FC = () => {
 
               <div className="hidden md:flex md:flex-col md:items-start leading-tight">
                 <span className="max-w-[12rem] truncate">{displayName}</span>
-                <span className="text-[10px] text-white/60 capitalize">{me.role}</span>
+                <span className="text-[10px] text-white/60 capitalize">{profile.role}</span>
               </div>
 
               <ChevronDown size={16} className={`hidden sm:block transition ${menuOpen ? 'rotate-180' : ''}`} />
