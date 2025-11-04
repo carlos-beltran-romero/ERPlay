@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PageWithHeader from "../../components/layout/PageWithHeader";
+import { useDelayedFlag } from "../../shared/hooks/useDelayedFlag";
 import { toast } from "react-toastify";
 import badgeCompleted from "../../assets/completed.png";
 import {
@@ -470,6 +471,7 @@ const StudentDetail: React.FC = () => {
   const [myQuestions, setMyQuestions] = useState<SupQuestionItem[]>([]);
   const [tests, setTests] = useState<SupSessionSummary[]>([]);
   const [claims, setClaims] = useState<SupClaimItem[]>([]);
+  const showLoading = useDelayedFlag(loading);
 
   
   const [progRows, setProgRows] = useState<WeeklyProgressRow[]>([]);
@@ -681,7 +683,7 @@ const StudentDetail: React.FC = () => {
     return found || progRows[0];
   }, [progRows, studentId]);
 
-  if (loading) {
+  if (showLoading) {
     return (
       <PageWithHeader>
         <div className="mx-auto w-full max-w-6xl p-6">Cargando…</div>

@@ -9,6 +9,7 @@ import {
   ArrowLeft, Activity, Trophy, AlertTriangle,
   Lightbulb, Target, Sigma, BarChart3, TrendingUp, TrendingDown, Info
 } from 'lucide-react';
+import { useDelayedFlag } from '../../shared/hooks/useDelayedFlag';
 
 /* ---------- Tipos opcionales (el back puede rellenarlos) ---------- */
 type ItemQuality = {
@@ -182,6 +183,8 @@ const DiagramStats: React.FC = () => {
   const [driftVisible, setDriftVisible] = useState(DRIFT_PAGE);
   useEffect(() => { setDriftVisible(DRIFT_PAGE); }, [id, from, to, stats?.drift?.length]);
 
+  const showLoading = useDelayedFlag(loading);
+
   useEffect(() => {
     (async () => {
       try {
@@ -215,7 +218,7 @@ const DiagramStats: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (showLoading) {
     return (
       <PageWithHeader>
         <div className="p-6">Cargando…</div>

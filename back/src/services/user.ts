@@ -235,22 +235,27 @@ export class UsersService {
     if (!user.email) return;
 
     const loginUrl = this.getLoginUrl();
+    const safeEmail = escapeHtml(user.email);
+    const safePassword = escapeHtml(password);
+    const passwordBlock = `
+      <div
+        style="margin:12px 0;padding:14px 16px;border-radius:12px;background:#111827;color:#fff;font-size:16px;
+               letter-spacing:0.6px;text-align:center;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;">
+        ${safePassword}
+      </div>
+    `;
     const body = `
       <p style="margin:0 0 16px 0;">Hola ${escapeHtml(user.name || user.email)},</p>
-      <p style="margin:0 0 16px 0;">Tu cuenta en ERPlay ha sido creada por el administrador. Utiliza estas credenciales para ingresar:</p>
-      <table role="presentation" style="width:100%;border-collapse:collapse;margin-bottom:16px;">
-        <tr>
-          <td style="padding:6px 0;width:140px;color:#6b7280;">Correo</td>
-          <td style="padding:6px 0;font-weight:600;">${escapeHtml(user.email)}</td>
-        </tr>
-        <tr>
-          <td style="padding:6px 0;width:140px;color:#6b7280;">Contraseña temporal</td>
-          <td style="padding:6px 0;font-weight:600;">${escapeHtml(password)}</td>
-        </tr>
-      </table>
-      <p style="margin:0 0 16px 0;">Por seguridad te recomendamos cambiarla desde el apartado “Configuración” después de tu primer acceso.</p>
+      <p style="margin:0 0 16px 0;">Tu cuenta en ERPlay ha sido creada por tu supervisor. Estos son tus datos de acceso:</p>
+      <div style="margin:0 0 12px 0;padding:0;">
+        <div style="color:#6b7280;font-size:13px;margin-bottom:4px;">Correo</div>
+        <div style="font-weight:600;font-size:15px;word-break:break-all;">${safeEmail}</div>
+        <div style="color:#6b7280;font-size:13px;margin:16px 0 4px;">Contraseña temporal</div>
+        ${passwordBlock}
+      </div>
+      <p style="margin:0 0 16px 0;">Te recomendamos cambiar la contraseña desde “Configuración” después de iniciar sesión.</p>
       ${loginUrl
-        ? `<div style="margin-top:16px;"><a href="${loginUrl}" style="display:inline-block;padding:12px 20px;border-radius:10px;background:#4f46e5;color:#fff;text-decoration:none;font-weight:600;">Ir a ERPlay</a></div>`
+        ? `<div style="margin-top:16px;"><a href="${loginUrl}" style="display:inline-block;padding:12px 20px;border-radius:10px;background:#4f46e5;color:#fff;text-decoration:none;font-weight:600;">Acceder a ERPlay</a></div>`
         : ''}
     `;
 
@@ -260,12 +265,24 @@ export class UsersService {
       accent: '#E0E7FF',
     });
 
+    const text = [
+      `Hola ${user.name || user.email},`,
+      'Tu cuenta en ERPlay ha sido creada por tu supervisor.',
+      `Correo: ${user.email}`,
+      `Contraseña temporal: ${password}`,
+      loginUrl ? `Accede a ERPlay: ${loginUrl}` : null,
+      'Cambia la contraseña desde Configuración después del primer acceso.',
+    ]
+      .filter(Boolean)
+      .join('\n');
+
     try {
       await this.mailer.sendMail({
         from: this.fromAddress,
         to: user.email,
         subject: 'Tu cuenta de ERPlay',
         html,
+        text,
       });
     } catch (error) {
       console.error(`No se pudo enviar el correo de credenciales a ${user.email}:`, error);
@@ -276,20 +293,25 @@ export class UsersService {
     if (!user.email) return;
 
     const loginUrl = this.getLoginUrl();
+    const safeEmail = escapeHtml(user.email);
+    const safePassword = escapeHtml(password);
+    const passwordBlock = `
+      <div
+        style="margin:12px 0;padding:14px 16px;border-radius:12px;background:#111827;color:#fff;font-size:16px;
+               letter-spacing:0.6px;text-align:center;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;">
+        ${safePassword}
+      </div>
+    `;
     const body = `
       <p style="margin:0 0 16px 0;">Hola ${escapeHtml(user.name || user.email)},</p>
-      <p style="margin:0 0 16px 0;">Un administrador ha actualizado la contraseña de tu cuenta. A partir de ahora deberás iniciar sesión con:</p>
-      <table role="presentation" style="width:100%;border-collapse:collapse;margin-bottom:16px;">
-        <tr>
-          <td style="padding:6px 0;width:140px;color:#6b7280;">Correo</td>
-          <td style="padding:6px 0;font-weight:600;">${escapeHtml(user.email)}</td>
-        </tr>
-        <tr>
-          <td style="padding:6px 0;width:140px;color:#6b7280;">Nueva contraseña</td>
-          <td style="padding:6px 0;font-weight:600;">${escapeHtml(password)}</td>
-        </tr>
-      </table>
-      <p style="margin:0 0 16px 0;">Si no solicitaste este cambio contacta con tu supervisor para validar la acción.</p>
+      <p style="margin:0 0 16px 0;">Un administrador actualizó la contraseña de tu cuenta. Usa estos datos desde ahora:</p>
+      <div style="margin:0 0 12px 0;padding:0;">
+        <div style="color:#6b7280;font-size:13px;margin-bottom:4px;">Correo</div>
+        <div style="font-weight:600;font-size:15px;word-break:break-all;">${safeEmail}</div>
+        <div style="color:#6b7280;font-size:13px;margin:16px 0 4px;">Nueva contraseña</div>
+        ${passwordBlock}
+      </div>
+      <p style="margin:0 0 16px 0;">Si no reconoces este cambio, contacta con tu supervisor inmediatamente.</p>
       ${loginUrl
         ? `<div style="margin-top:16px;"><a href="${loginUrl}" style="display:inline-block;padding:12px 20px;border-radius:10px;background:#4f46e5;color:#fff;text-decoration:none;font-weight:600;">Iniciar sesión</a></div>`
         : ''}
@@ -301,12 +323,24 @@ export class UsersService {
       accent: '#DBEAFE',
     });
 
+    const text = [
+      `Hola ${user.name || user.email},`,
+      'Un administrador actualizó la contraseña de tu cuenta.',
+      `Correo: ${user.email}`,
+      `Nueva contraseña: ${password}`,
+      loginUrl ? `Inicia sesión en ERPlay: ${loginUrl}` : null,
+      'Si no reconoces este cambio contacta con tu supervisor.',
+    ]
+      .filter(Boolean)
+      .join('\n');
+
     try {
       await this.mailer.sendMail({
         from: this.fromAddress,
         to: user.email,
         subject: 'Se actualizó tu contraseña de ERPlay',
         html,
+        text,
       });
     } catch (error) {
       console.error(`No se pudo enviar el correo de actualización a ${user.email}:`, error);
