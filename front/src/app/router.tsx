@@ -23,6 +23,13 @@ import MyProgress from '../views/Student/MyProgress';
 import StudentDetail from '../views/Supervisor/StudentDetail';
 import DiagramStats from '../views/Supervisor/DiagramSats';
 
+/**
+ * Valida que el usuario autenticado tenga un rol permitido.
+ * @param allowed - Lista de roles autorizados.
+ * @returns Promesa resuelta cuando la ruta es accesible.
+ * @throws Redirección a login cuando el rol no es válido.
+ * @internal
+ */
 async function requireRole(allowed: string[]) {
   try {
     const me = await getProfile();
@@ -33,7 +40,19 @@ async function requireRole(allowed: string[]) {
   }
 }
 
-function protect(route: { path: string; element: ReactElement; roles: string[] }) {
+interface ProtectedRoute {
+  path: string;
+  element: ReactElement;
+  roles: string[];
+}
+
+/**
+ * Agrega protección por rol a una ruta.
+ * @param route - Configuración de ruta y roles.
+ * @returns Entrada lista para el router.
+ * @internal
+ */
+function protect(route: ProtectedRoute) {
   return {
     path: route.path,
     element: route.element,
@@ -41,6 +60,10 @@ function protect(route: { path: string; element: ReactElement; roles: string[] }
   };
 }
 
+/**
+ * Router principal con rutas públicas y protegidas.
+ * @public
+ */
 export const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
   { path: '/forgot-password', element: <ForgotPassword /> },

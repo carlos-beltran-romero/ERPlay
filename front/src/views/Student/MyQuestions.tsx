@@ -1,9 +1,13 @@
-// src/views/Student/MyQuestionsView.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import PageWithHeader from "../../components/layout/PageWithHeader";
 import { toast } from "react-toastify";
 import { listMyQuestions } from "../../services/questions";
 import { useNavigate } from "react-router-dom";
+
+/**
+ * Gestión de preguntas y reclamaciones creadas por el alumno.
+ * @module views/Student/MyQuestions
+ */
 import {
   Plus,
   Search,
@@ -17,7 +21,10 @@ import {
   ArrowLeft,
 } from "lucide-react";
 
-/* ---------- Tipos ---------- */
+/**
+ * Pregunta enviada por el alumno para revisión.
+ * @public
+ */
 type MyQuestion = {
   id: string;
   prompt: string;
@@ -30,6 +37,10 @@ type MyQuestion = {
   correctIndex?: number;
 };
 
+/**
+ * Reclamación registrada por el alumno sobre una pregunta.
+ * @public
+ */
 type MyClaim = {
   id: string;
   status: "PENDING" | "APPROVED" | "REJECTED";
@@ -43,30 +54,66 @@ type MyClaim = {
   options?: string[];
 };
 
-/* ---------- Constantes ---------- */
-const PAGE_SIZE = 15; // ítems por “página” en cada pestaña
-const MIN_HALF_TOGGLE = 120; // umbral “cortar por la mitad” en enunciados
-const MIN_HALF_TOGGLE_OPT = 80; // umbral “cortar por la mitad” en opciones
+/**
+ * Número de elementos mostrados inicialmente por pestaña.
+ * @internal
+ */
+const PAGE_SIZE = 15;
+/**
+ * Longitud mínima para contraer enunciados.
+ * @internal
+ */
+const MIN_HALF_TOGGLE = 120;
+/**
+ * Longitud mínima para contraer opciones.
+ * @internal
+ */
+const MIN_HALF_TOGGLE_OPT = 80;
 
-/* ---------- Utilidades ---------- */
+/**
+ * Etiquetas traducidas para cada estado.
+ * @internal
+ */
 const STATUS_LABEL = {
   PENDING: "Pendiente",
   APPROVED: "Aprobada",
   REJECTED: "Rechazada",
 } as const;
 
+/**
+ * Devuelve la letra asociada a una opción.
+ * @param i - Índice de la opción.
+ * @returns Letra en mayúscula o guion.
+ * @internal
+ */
 const letter = (i?: number) =>
   typeof i === "number" && i >= 0 ? String.fromCharCode(65 + i) : "—";
 
+/**
+ * Convierte una fecha ISO a representación local.
+ * @param iso - Fecha en formato ISO.
+ * @returns Fecha corta o cadena vacía.
+ * @internal
+ */
 const fmtDate = (iso?: string) =>
   iso ? new Date(iso).toLocaleDateString() : "";
 
-/* Texto expandible: si es largo, muestra la mitad y “Ver más / Ver menos” */
-const ExpandableText: React.FC<{
+interface ExpandableTextProps {
   text: string;
   minToHalf?: number;
   className?: string;
-}> = ({ text, minToHalf = MIN_HALF_TOGGLE, className }) => {
+}
+
+/**
+ * Corta textos extensos y permite alternar su visualización.
+ * @param props - Propiedades del componente.
+ * @internal
+ */
+const ExpandableText: React.FC<ExpandableTextProps> = ({
+  text,
+  minToHalf = MIN_HALF_TOGGLE,
+  className,
+}) => {
   const needsToggle = (text || "").length > minToHalf;
   const halfIndex = Math.ceil((text || "").length / 2);
   const [expanded, setExpanded] = useState(false);
@@ -90,9 +137,16 @@ const ExpandableText: React.FC<{
   );
 };
 
-const StatusBadge: React.FC<{
+interface StatusBadgeProps {
   status: MyQuestion["status"] | MyClaim["status"];
-}> = ({ status }) => {
+}
+
+/**
+ * Chip con el estado visual de una pregunta o reclamación.
+ * @param props - Propiedades del componente.
+ * @internal
+ */
+const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   const common =
     "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium";
   if (status === "PENDING") {
@@ -122,21 +176,22 @@ const StatusBadge: React.FC<{
   );
 };
 
-/* ---------- Vista principal ---------- */
+/**
+ * Vista con listados de preguntas creadas y reclamaciones.
+ * @returns Contenido principal de la sección Mis preguntas.
+ * @public
+ */
 const MyQuestionsView: React.FC = () => {
   const navigate = useNavigate();
 
-  // Tabs
   const [tab, setTab] = useState<"questions" | "claims">("questions");
 
-  // Estado común
   const [loading, setLoading] = useState(true);
   const [previewImg, setPreviewImg] = useState<{
     src: string;
     title: string;
   } | null>(null);
 
-  // Preguntas del alumno
   const [items, setItems] = useState<MyQuestion[]>([]);
   const [queryQ, setQueryQ] = useState("");
   const [statusFilterQ, setStatusFilterQ] = useState<
@@ -144,7 +199,6 @@ const MyQuestionsView: React.FC = () => {
   >("ALL");
   const [visibleQ, setVisibleQ] = useState(PAGE_SIZE);
 
-  // Reclamaciones del alumno
   const [claims, setClaims] = useState<MyClaim[]>([]);
   const [queryC, setQueryC] = useState("");
   const [statusFilterC, setStatusFilterC] = useState<"ALL" | MyClaim["status"]>(
@@ -156,11 +210,9 @@ const MyQuestionsView: React.FC = () => {
     (async () => {
       setLoading(true);
       try {
-        // 1) Tus preguntas creadas
         const rows = await listMyQuestions();
         setItems(rows);
 
-        // 2) Tus reclamaciones
         const { listMyClaims } = await import("../../services/claims");
         const myClaims = await listMyClaims().catch(() => []);
         setClaims(myClaims as MyClaim[]);
@@ -172,7 +224,6 @@ const MyQuestionsView: React.FC = () => {
     })();
   }, []);
 
-  // Filtrado preguntas
   const filteredQ = useMemo(() => {
     const q = queryQ.trim().toLowerCase();
     return items.filter((item) => {
@@ -186,7 +237,6 @@ const MyQuestionsView: React.FC = () => {
     });
   }, [items, queryQ, statusFilterQ]);
 
-  // Filtrado reclamaciones
   const filteredC = useMemo(() => {
     const q = queryC.trim().toLowerCase();
     return claims.filter((c) => {
@@ -200,7 +250,6 @@ const MyQuestionsView: React.FC = () => {
     });
   }, [claims, queryC, statusFilterC]);
 
-  // Reset paginación al cambiar filtros/búsquedas
   useEffect(() => {
     setVisibleQ(PAGE_SIZE);
   }, [queryQ, statusFilterQ, items]);
@@ -209,11 +258,9 @@ const MyQuestionsView: React.FC = () => {
     setVisibleC(PAGE_SIZE);
   }, [queryC, statusFilterC, claims]);
 
-  /* ----------- Render ----------- */
   return (
     <PageWithHeader>
       <div className="mx-auto w-full max-w-6xl p-6">
-        {/* Header con back + Tabs */}
         <div className="mb-4 flex items-start justify-between">
           <div className="flex items-start gap-3">
             <button
@@ -256,10 +303,8 @@ const MyQuestionsView: React.FC = () => {
           </button>
         </div>
 
-        {/* ===== TAB: PREGUNTAS ===== */}
         {tab === "questions" && (
           <>
-            {/* Filtros + CTA */}
             <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-3">
                 <div className="relative w-64">
@@ -298,9 +343,7 @@ const MyQuestionsView: React.FC = () => {
               </div>
             </div>
 
-            {/* Listado preguntas */}
             <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
-              {/* Cabecera solo desktop */}
               <div className="hidden md:grid grid-cols-12 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700">
                 <div className="col-span-1">Diagrama</div>
                 <div className="col-span-6">Enunciado</div>
@@ -319,9 +362,7 @@ const MyQuestionsView: React.FC = () => {
                   <div className="divide-y">
                     {filteredQ.slice(0, visibleQ).map((q) => (
                       <div key={q.id} className="px-4 py-3">
-                        {/* Desktop (tabla) */}
                         <div className="hidden md:grid grid-cols-12 gap-3 items-start">
-                          {/* Diagrama */}
                           <div className="col-span-1">
                             {q.diagram?.path ? (
                               <img
@@ -343,7 +384,6 @@ const MyQuestionsView: React.FC = () => {
                             )}
                           </div>
 
-                          {/* Enunciado + meta */}
                           <div className="col-span-6 min-w-0">
                             <ExpandableText
                               text={q.prompt || ""}
@@ -357,7 +397,6 @@ const MyQuestionsView: React.FC = () => {
                               ) : null}
                             </div>
 
-                            {/* Opciones (con bordes suaves) */}
                             {Array.isArray(q.options) &&
                               q.options.length > 0 && (
                                 <div className="mt-2 space-y-1">
@@ -397,12 +436,10 @@ const MyQuestionsView: React.FC = () => {
                               )}
                           </div>
 
-                          {/* Estado */}
                           <div className="col-span-2">
                             <StatusBadge status={q.status} />
                           </div>
 
-                          {/* Resolución (bordes suaves) */}
                           <div className="col-span-3">
                             {q.status === "REJECTED" &&
                             q.reviewComment?.trim() ? (
@@ -416,13 +453,10 @@ const MyQuestionsView: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Mobile (tarjeta) */}
                         <div className="md:hidden">
-                          {/* Imagen grande arriba (16:9) */}
                           <div className="mb-3 rounded-xl border bg-white overflow-hidden">
                             <div className="relative w-full pt-[56.25%]">
                               {" "}
-                              {/* 16:9 = 9/16 * 100 */}
                               {q.diagram?.path ? (
                                 <img
                                   src={q.diagram.path}
@@ -444,7 +478,6 @@ const MyQuestionsView: React.FC = () => {
                             </div>
                           </div>
 
-                          {/* Enunciado y meta */}
                           <ExpandableText
                             text={q.prompt || ""}
                             className="font-medium"
@@ -457,7 +490,6 @@ const MyQuestionsView: React.FC = () => {
                             ) : null}
                           </div>
 
-                          {/* Opciones (apiladas) */}
                           {Array.isArray(q.options) && q.options.length > 0 && (
                             <div className="mt-2 space-y-1">
                               {q.options.map((opt, idx) => {
@@ -495,7 +527,6 @@ const MyQuestionsView: React.FC = () => {
                             </div>
                           )}
 
-                          {/* Estado + Resolución en línea */}
                           <div className="mt-2 flex items-start justify-between gap-3">
                             <StatusBadge status={q.status} />
                             {q.status === "REJECTED" &&
@@ -513,7 +544,6 @@ const MyQuestionsView: React.FC = () => {
                     ))}
                   </div>
 
-                  {/* Footer paginación preguntas */}
                   <div className="flex items-center justify-between px-4 py-3">
                     <span className="text-xs text-gray-500">
                       Mostrando {Math.min(visibleQ, filteredQ.length)} de{" "}
@@ -534,10 +564,8 @@ const MyQuestionsView: React.FC = () => {
           </>
         )}
 
-        {/* ===== TAB: RECLAMACIONES ===== */}
         {tab === "claims" && (
           <>
-            {/* Filtros (reclamaciones) */}
             <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-3">
                 <div className="relative w-64">
@@ -566,9 +594,7 @@ const MyQuestionsView: React.FC = () => {
               </div>
             </div>
 
-            {/* Listado reclamaciones */}
             <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
-              {/* Cabecera solo desktop */}
               <div className="hidden md:grid grid-cols-12 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700">
                 <div className="col-span-1">Diagrama</div>
                 <div className="col-span-5">Enunciado</div>
@@ -604,9 +630,7 @@ const MyQuestionsView: React.FC = () => {
 
                       return (
                         <div key={c.id} className="px-4 py-3">
-                          {/* Desktop (tabla) */}
                           <div className="hidden md:grid grid-cols-12 gap-3 items-start">
-                            {/* Diagrama */}
                             <div className="col-span-1">
                               {c.diagram?.path ? (
                                 <img
@@ -628,7 +652,6 @@ const MyQuestionsView: React.FC = () => {
                               )}
                             </div>
 
-                            {/* Enunciado + diagrama */}
                             <div className="col-span-5 min-w-0">
                               <ExpandableText
                                 text={c.question?.prompt || "—"}
@@ -643,7 +666,6 @@ const MyQuestionsView: React.FC = () => {
                               </div>
                             </div>
 
-                            {/* Comparativa */}
                             <div className="col-span-3">
                               <div className="text-xs text-gray-500">
                                 Tu respuesta
@@ -667,12 +689,10 @@ const MyQuestionsView: React.FC = () => {
                               </div>
                             </div>
 
-                            {/* Estado */}
                             <div className="col-span-1 flex items-center justify-center">
                               <StatusBadge status={c.status} />
                             </div>
 
-                            {/* Resolución */}
                             <div className="col-span-2 pl-6 md:pl-8">
                               {c.status === "REJECTED" &&
                               c.reviewerComment?.trim() ? (
@@ -686,9 +706,7 @@ const MyQuestionsView: React.FC = () => {
                             </div>
                           </div>
 
-                          {/* Mobile (tarjeta) */}
                           <div className="md:hidden">
-                            {/* Imagen grande arriba */}
                             <div className="mb-2">
                               {c.diagram?.path ? (
                                 <img
@@ -710,7 +728,6 @@ const MyQuestionsView: React.FC = () => {
                               )}
                             </div>
 
-                            {/* Enunciado y meta */}
                             <ExpandableText
                               text={c.question?.prompt || "—"}
                               className="font-medium"
@@ -723,7 +740,6 @@ const MyQuestionsView: React.FC = () => {
                               ) : null}
                             </div>
 
-                            {/* Comparativa apilada */}
                             <div className="mt-2 space-y-2">
                               <div>
                                 <div className="text-[11px] text-gray-500">
@@ -763,7 +779,6 @@ const MyQuestionsView: React.FC = () => {
                               </div>
                             </div>
 
-                            {/* Estado + Resolución */}
                             <div className="mt-2 flex items-start justify-between gap-3">
                               <StatusBadge status={c.status} />
                               {c.status === "REJECTED" &&
@@ -782,7 +797,6 @@ const MyQuestionsView: React.FC = () => {
                     })}
                   </div>
 
-                  {/* Footer paginación reclamaciones */}
                   <div className="flex items-center justify-between px-4 py-3">
                     <span className="text-xs text-gray-500">
                       Mostrando {Math.min(visibleC, filteredC.length)} de{" "}
@@ -803,7 +817,6 @@ const MyQuestionsView: React.FC = () => {
           </>
         )}
 
-        {/* Modal imagen */}
         {previewImg && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"

@@ -1,6 +1,10 @@
 import { apiJson } from './http';
 import { resolveAssetUrl } from '../shared/utils/url';
 
+/**
+ * Reclamación registrada por el alumno.
+ * @public
+ */
 export type MyClaim = {
   id: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -16,11 +20,15 @@ export type MyClaim = {
   options?: string[];
 };
 
+/**
+ * Reclamación pendiente para revisión.
+ * @public
+ */
 export type PendingClaim = {
   id: string;
   diagram?: { id: string; title: string; path?: string };
   question?: { id?: string; prompt: string };
-  questionId?: string | null; // para filtrar en la vista del profe
+  questionId?: string | null;
   options?: string[];
   correctIndex?: number;
   chosenIndex?: number;
@@ -30,9 +38,12 @@ export type PendingClaim = {
   reviewedAt?: string | null;
 };
 
-// ↓↓↓ BORRA la función auth() anterior y deja de leer tokens a mano.
-
-// -------------------- Crear reclamación --------------------
+/**
+ * Registra una reclamación sobre una pregunta respondida.
+ * @param payload - Datos capturados en el formulario de reclamación.
+ * @returns Promesa resuelta cuando la operación finaliza.
+ * @public
+ */
 export async function createClaim(payload: {
   testResultId?: string;
   questionId?: string | null;
@@ -52,6 +63,11 @@ export async function createClaim(payload: {
   });
 }
 
+/**
+ * Obtiene las reclamaciones enviadas por el alumno autenticado.
+ * @returns Arreglo de reclamaciones normalizadas.
+ * @public
+ */
 export async function listMyClaims(): Promise<MyClaim[]> {
   const raw = await apiJson<any[]>('/api/claims/mine', {
     auth: true,
@@ -59,7 +75,6 @@ export async function listMyClaims(): Promise<MyClaim[]> {
   });
   const arr = Array.isArray(raw) ? raw : [];
   return arr.map((c: any) => {
-    // ... normalización igual que la tuya ...
     const options = normalizeOptions(c?.options);
     const status =
       c?.status === 'APPROVED' || c?.status === 'REJECTED' ? c.status : 'PENDING';
@@ -94,6 +109,11 @@ export async function listMyClaims(): Promise<MyClaim[]> {
   });
 }
 
+/**
+ * Lista las reclamaciones pendientes para revisión.
+ * @returns Reclamaciones con referencias normalizadas.
+ * @public
+ */
 export async function listPendingClaims(): Promise<PendingClaim[]> {
   const raw = await apiJson<any[]>('/api/claims/pending', {
     auth: true,
@@ -155,6 +175,11 @@ export async function listPendingClaims(): Promise<PendingClaim[]> {
   });
 }
 
+/**
+ * Cuenta las reclamaciones pendientes de revisión.
+ * @returns Número total pendiente.
+ * @public
+ */
 export async function getPendingClaimsCount(): Promise<number> {
   const data = await apiJson<any>('/api/claims/pending/count', {
     auth: true,
@@ -163,6 +188,14 @@ export async function getPendingClaimsCount(): Promise<number> {
   return Number(data?.count ?? 0);
 }
 
+/**
+ * Envía la resolución de una reclamación.
+ * @param id - Identificador de la reclamación.
+ * @param decision - Decisión aplicada.
+ * @param comment - Observaciones opcionales.
+ * @returns Promesa resuelta tras confirmar el cambio.
+ * @public
+ */
 export async function verifyClaim(
   id: string,
   decision: 'approve' | 'reject',
@@ -176,7 +209,12 @@ export async function verifyClaim(
   });
 }
 
-/* helpers */
+/**
+ * Normaliza las opciones recibidas desde el backend.
+ * @param raw - Opciones en formato heterogéneo.
+ * @returns Arreglo plano de textos.
+ * @internal
+ */
 function normalizeOptions(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
   if (raw.length === 0) return [];

@@ -3,6 +3,11 @@ import { router } from './router';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+/**
+ * Punto de entrada del frontend con router y notificaciones.
+ * @returns Jerarquía principal de la aplicación.
+ * @public
+ */
 export function App() {
   return (
     <>

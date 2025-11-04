@@ -1,4 +1,3 @@
-// src/views/Student/StudentDashboard.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageWithHeader from "../../components/layout/PageWithHeader";
@@ -21,14 +20,28 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 
-const MIN_HALF_TOGGLE = 120; // Umbral para mostrar “Ver más / Ver menos”
+/**
+ * Longitud mínima para ofrecer el modo expandible.
+ * @internal
+ */
+const MIN_HALF_TOGGLE = 120;
 
-// ---------- Texto expandible (corta por la mitad y permite alternar) ----------
-const ExpandableText: React.FC<{
+interface ExpandableTextProps {
   text?: string;
   minToHalf?: number;
   className?: string;
-}> = ({ text = "", minToHalf = MIN_HALF_TOGGLE, className }) => {
+}
+
+/**
+ * Segmenta un texto largo y permite alternar su visualización.
+ * @param props - Propiedades del componente.
+ * @internal
+ */
+const ExpandableText: React.FC<ExpandableTextProps> = ({
+  text = "",
+  minToHalf = MIN_HALF_TOGGLE,
+  className,
+}) => {
   const needsToggle = text.length > minToHalf;
   const halfIndex = Math.ceil(text.length / 2);
   const [expanded, setExpanded] = useState(false);
@@ -52,13 +65,26 @@ const ExpandableText: React.FC<{
   );
 };
 
-const ActionCard: React.FC<{
+interface ActionCardProps {
   title: string;
   subtitle: string;
   onClick: () => void;
   Icon: React.ComponentType<{ size?: number }>;
   accent?: "indigo" | "emerald" | "amber" | "rose";
-}> = ({ title, subtitle, onClick, Icon, accent = "indigo" }) => {
+}
+
+/**
+ * Tarjeta de acción que dirige a una sección del alumno.
+ * @param props - Propiedades del componente.
+ * @internal
+ */
+const ActionCard: React.FC<ActionCardProps> = ({
+  title,
+  subtitle,
+  onClick,
+  Icon,
+  accent = "indigo",
+}) => {
   const accents: Record<string, string> = {
     indigo: "bg-indigo-50 group-hover:bg-indigo-100",
     emerald: "bg-emerald-50 group-hover:bg-emerald-100",
@@ -86,10 +112,17 @@ const ActionCard: React.FC<{
   );
 };
 
-const Chip: React.FC<{ className?: string; children: React.ReactNode }> = ({
-  className,
-  children,
-}) => (
+interface ChipProps {
+  className?: string;
+  children: React.ReactNode;
+}
+
+/**
+ * Etiqueta compacta para datos resumidos.
+ * @param props - Propiedades del componente.
+ * @internal
+ */
+const Chip: React.FC<ChipProps> = ({ className, children }) => (
   <span
     className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs ${
       className || ""
@@ -99,7 +132,14 @@ const Chip: React.FC<{ className?: string; children: React.ReactNode }> = ({
   </span>
 );
 
-// Traducciones
+// — Traducciones —
+
+/**
+ * Traduce el estado de una pregunta creada por el alumno.
+ * @param s - Estado interno recibido del backend.
+ * @returns Etiqueta en español.
+ * @internal
+ */
 function tQuestionStatus(s: "pending" | "approved" | "rejected") {
   return s === "approved"
     ? "Aprobada"
@@ -107,6 +147,13 @@ function tQuestionStatus(s: "pending" | "approved" | "rejected") {
     ? "Cancelada"
     : "Pendiente";
 }
+
+/**
+ * Traduce el estado de una reclamación.
+ * @param s - Código de estado del backend.
+ * @returns Etiqueta normalizada.
+ * @internal
+ */
 function tClaimStatus(s: "PENDING" | "APPROVED" | "REJECTED") {
   return s === "APPROVED"
     ? "Aprobada"
@@ -115,6 +162,11 @@ function tClaimStatus(s: "PENDING" | "APPROVED" | "REJECTED") {
     : "Pendiente";
 }
 
+/**
+ * Resumen principal para el alumno con accesos directos y actividad.
+ * @returns Vista de panel personal.
+ * @public
+ */
 const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [me, setMe] = useState<UserProfile | null>(null);
@@ -131,7 +183,7 @@ const StudentDashboard: React.FC = () => {
         const u = await getProfile();
         setMe(u);
       } catch {
-        /* ignore */
+        // Se ignora porque el perfil se recarga en peticiones posteriores.
       }
     })();
   }, []);
@@ -245,7 +297,6 @@ const StudentDashboard: React.FC = () => {
       );
     }
 
-    // claim
     const statusClass =
       it.status === "APPROVED"
         ? "bg-emerald-50 text-emerald-700 border-emerald-200"
@@ -285,7 +336,6 @@ const StudentDashboard: React.FC = () => {
   return (
     <PageWithHeader>
       <div className="mx-auto w-full max-w-6xl p-6">
-        {/* Hero */}
         <div className="overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white">
           <div className="flex flex-col gap-4 p-7 md:flex-row md:items-center md:justify-between">
             <div>
@@ -311,7 +361,6 @@ const StudentDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Acciones rápidas */}
         <div className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
           <ActionCard
             title="Configuración"
@@ -343,7 +392,6 @@ const StudentDashboard: React.FC = () => {
           />
         </div>
 
-        {/* Actividad reciente */}
         <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-6">
           <div className="mb-4 flex items-center gap-2 text-gray-700">
             <History size={18} />

@@ -1,12 +1,13 @@
-// src/views/Student/MyProgress.tsx
-// Progreso del alumno = pestaña "Progreso" del admin (sin tabs).
-// Usa /api/progress/weekly-progress e /api/progress/badges y el estilo "antiguo" en Errores frecuentes.
-
 import React, { useEffect, useMemo, useState } from "react";
 import PageWithHeader from "../../components/layout/PageWithHeader";
 import { toast } from "react-toastify";
 import badgeCompleted from "../../assets/completed.png";
 import { useNavigate } from "react-router-dom";
+
+/**
+ * Vista con métricas personales del alumno.
+ * @module views/Student/MyProgress
+ */
 
 import {
   getOverview,
@@ -14,14 +15,14 @@ import {
   getErrors,
   getClaimsStats,
   getMyCreatedQuestions,
-  getMyWeeklyProgress, // ⬅️ nuevo (self)
-  getMyBadges, // ⬅️ ya existía pero faltaba endpoint en back
+  getMyWeeklyProgress,
+  getMyBadges,
   type Overview,
   type TrendPoint,
   type ErrorItem,
   type ClaimsStats,
   type MyQuestionItem,
-  type WeeklyProgressRow, // ⬅️ nuevo
+  type WeeklyProgressRow,
   type BadgeItem,
 } from "../../services/progress";
 
@@ -39,17 +40,39 @@ import {
   ArrowLeft,
 } from "lucide-react";
 
-/* ---------- Helpers ---------- */
+// — Formateadores —
+
+/**
+ * Convierte un porcentaje en texto amigable.
+ * @param n - Porcentaje recibido del backend.
+ * @returns Representación corta o guion cuando falta dato.
+ * @internal
+ */
 const fmtPct = (n?: number | null) =>
   typeof n === "number" ? `${Math.round(n)}%` : "—";
+
+/**
+ * Formatea segundos a texto con una cifra decimal.
+ * @param sec - Tiempo medio de respuesta.
+ * @returns Cadena en segundos o guion.
+ * @internal
+ */
 const fmtSec1 = (sec?: number | null) =>
   sec == null ? "—" : `${Math.max(0, sec).toFixed(1)} s`;
 
-/* ---------- UI shells ---------- */
-const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({
-  children,
-  className,
-}) => (
+// — Componentes base —
+
+interface CardProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+/**
+ * Contenedor con borde y sombra suave.
+ * @param props - Propiedades del componente.
+ * @internal
+ */
+const Card: React.FC<CardProps> = ({ children, className }) => (
   <div
     className={`rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow transition ${
       className || ""
@@ -58,15 +81,33 @@ const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({
     {children}
   </div>
 );
-const CardBody: React.FC<{ children: React.ReactNode; className?: string }> = ({
-  children,
-  className,
-}) => <div className={`p-5 ${className || ""}`}>{children}</div>;
-const KPI: React.FC<{
+
+interface CardBodyProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+/**
+ * Sección interior estándar para tarjetas.
+ * @param props - Propiedades del componente.
+ * @internal
+ */
+const CardBody: React.FC<CardBodyProps> = ({ children, className }) => (
+  <div className={`p-5 ${className || ""}`}>{children}</div>
+);
+
+interface KPIProps {
   icon: React.ReactNode;
   label: string;
   value: React.ReactNode;
-}> = ({ icon, label, value }) => (
+}
+
+/**
+ * Indicador numérico con icono y leyenda.
+ * @param props - Propiedades del componente.
+ * @internal
+ */
+const KPI: React.FC<KPIProps> = ({ icon, label, value }) => (
   <Card>
     <CardBody className="flex items-center gap-3">
       <div className="p-2.5 rounded-xl bg-gray-50 text-gray-700">{icon}</div>
@@ -80,13 +121,21 @@ const KPI: React.FC<{
   </Card>
 );
 
-/* ---------- Mini-charts ---------- */
-// justo encima de DualLineChart
-const COLOR_A = "#10b981"; // Acierto (learning)
-const COLOR_B = "#3b82f6"; // Nota (examen)
-const DualLineChart: React.FC<{
+// — Mini gráficas —
+
+const COLOR_A = "#10b981";
+const COLOR_B = "#3b82f6";
+
+interface DualLineChartProps {
   data: { a?: number | null; b?: number | null }[];
-}> = ({ data }) => {
+}
+
+/**
+ * Gráfica de líneas con precisión y nota.
+ * @param props - Datos normalizados por periodo.
+ * @internal
+ */
+const DualLineChart: React.FC<DualLineChartProps> = ({ data }) => {
   const W = 640,
     H = 220,
     P = 28;
@@ -160,7 +209,6 @@ const DualLineChart: React.FC<{
         )}
       </svg>
 
-      {/* Leyenda */}
       <div className="mt-2 flex items-center gap-4 text-xs text-gray-600">
         <div className="inline-flex items-center gap-1.5">
           <span
@@ -181,35 +229,38 @@ const DualLineChart: React.FC<{
   );
 };
 
-// Sustituye TODO el componente ScrollableGroupedBars por este
-const ScrollableGroupedBars: React.FC<{
+interface ScrollableGroupedBarsProps {
   data: { label: string; ok: number; ko: number }[];
-}> = ({ data }) => {
+}
+
+/**
+ * Histograma desplazable con aciertos y fallos por día.
+ * @param props - Datos agregados por periodo.
+ * @internal
+ */
+const ScrollableGroupedBars: React.FC<ScrollableGroupedBarsProps> = ({
+  data,
+}) => {
   const [hover, setHover] = React.useState<number | null>(null);
 
-  // Margenes más amplios abajo para etiquetas rotadas
   const Pleft = 36,
     Pright = 16,
     Ptop = 16,
     Pbot = 48;
   const H = 240;
-  const step = 34; // ancho asignado por día
+  const step = 34;
   const W = Pleft + Pright + data.length * step;
 
   const max = Math.max(1, ...data.map((d) => d.ok + d.ko));
   const y = (v: number) => H - Pbot - (v * (H - Ptop - Pbot)) / max;
   const barW = Math.max(6, (step - 10) / 2);
 
-  // Mostrar etiqueta cada N días si hay muchos
   const labelEvery = data.length <= 20 ? 1 : data.length <= 40 ? 2 : 3;
 
   return (
     <div className="relative overflow-x-auto pb-2">
       <svg width={W} height={H} role="img" aria-label="Preguntas por día">
-        {/* Fondo */}
         <rect x={0} y={0} width={W} height={H} fill="white" />
-
-        {/* Líneas y etiquetas del eje Y */}
         {[0, 0.25, 0.5, 0.75, 1].map((g, idx) => (
           <g key={idx}>
             <line
@@ -225,7 +276,6 @@ const ScrollableGroupedBars: React.FC<{
             </text>
           </g>
         ))}
-        {/* Eje X */}
         <line
           x1={Pleft}
           x2={W - Pright}
@@ -235,7 +285,6 @@ const ScrollableGroupedBars: React.FC<{
           strokeWidth={1}
         />
 
-        {/* Barras por día */}
         {data.map((d, i) => {
           const x0 = Pleft + i * step;
           const yOk = y(d.ok),
@@ -247,7 +296,6 @@ const ScrollableGroupedBars: React.FC<{
               onMouseEnter={() => setHover(i)}
               onMouseLeave={() => setHover(null)}
             >
-              {/* Guía vertical al pasar el ratón */}
               {hover === i && (
                 <line
                   x1={x0 + step / 2}
@@ -260,7 +308,6 @@ const ScrollableGroupedBars: React.FC<{
                 />
               )}
 
-              {/* Aciertos (verde) */}
               <rect
                 x={x0 + 2}
                 y={yOk}
@@ -269,7 +316,6 @@ const ScrollableGroupedBars: React.FC<{
                 fill="#10b981"
                 rx={4}
               />
-              {/* Fallos (rojo) */}
               <rect
                 x={x0 + 2 + barW + 4}
                 y={yKo}
@@ -278,8 +324,6 @@ const ScrollableGroupedBars: React.FC<{
                 fill="#f43f5e"
                 rx={4}
               />
-
-              {/* Etiqueta de día (rotada) */}
               {(i % labelEvery === 0 || i === data.length - 1) && (
                 <g
                   transform={`translate(${x0 + step / 2}, ${
@@ -296,7 +340,6 @@ const ScrollableGroupedBars: React.FC<{
         })}
       </svg>
 
-      {/* Tooltip (día + valores) */}
       {hover != null && data[hover] && (
         <div
           className="absolute z-10 pointer-events-none rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 shadow-sm"
@@ -313,7 +356,6 @@ const ScrollableGroupedBars: React.FC<{
         </div>
       )}
 
-      {/* Leyenda colores */}
       <div className="mt-2 flex items-center gap-4 text-xs text-gray-600">
         <div className="inline-flex items-center gap-1.5">
           <span
@@ -334,7 +376,16 @@ const ScrollableGroupedBars: React.FC<{
   );
 };
 
-const Donut: React.FC<{ value: number }> = ({ value }) => {
+interface DonutProps {
+  value: number;
+}
+
+/**
+ * Indicador circular para porcentajes.
+ * @param props - Valor numérico a representar.
+ * @internal
+ */
+const Donut: React.FC<DonutProps> = ({ value }) => {
   const size = 56,
     stroke = 8,
     r = (size - stroke) / 2,
@@ -376,7 +427,11 @@ const Donut: React.FC<{ value: number }> = ({ value }) => {
   );
 };
 
-/* ---------- Componente (solo PROGRESO) ---------- */
+/**
+ * Vista con evolución, objetivos e insignias del alumno.
+ * @returns Contenido principal de progreso personal.
+ * @public
+ */
 const MyProgress: React.FC = () => {
   const navigate = useNavigate();
 
@@ -389,7 +444,7 @@ const MyProgress: React.FC = () => {
   const [claims, setClaims] = useState<ClaimsStats | null>(null);
   const [myQuestions, setMyQuestions] = useState<MyQuestionItem[]>([]);
 
-  // Progreso semanal + insignias (igual que supervisor, pero self)
+  // — Progreso semanal e insignias —
   const [prog, setProg] = useState<WeeklyProgressRow | null>(null);
   const [badges, setBadges] = useState<BadgeItem[]>([]);
   const [showBadges, setShowBadges] = useState(false);
@@ -403,8 +458,8 @@ const MyProgress: React.FC = () => {
           getErrors(5),
           getClaimsStats(),
           getMyCreatedQuestions({ limit: 200 }),
-          getMyWeeklyProgress().catch(() => null), // ⬅️ weekly-progress (self)
-          getMyBadges().catch(() => []), // ⬅️ badges (self)
+          getMyWeeklyProgress().catch(() => null),
+          getMyBadges().catch(() => []),
         ]);
         setOverview(ov);
         setTrends(tr);
@@ -472,7 +527,6 @@ const MyProgress: React.FC = () => {
   return (
     <PageWithHeader>
       <div className="mx-auto w-full max-w-6xl p-6 space-y-8">
-        {/* Header con back */}
         <div className="mb-2 flex items-start justify-between">
           <div className="flex items-start gap-3">
             <button
@@ -492,7 +546,6 @@ const MyProgress: React.FC = () => {
           </div>
         </div>
 
-        {/* KPIs (como supervisor; "Insignias" en la rejilla y abre modal) */}
         {overview && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <KPI
@@ -521,7 +574,6 @@ const MyProgress: React.FC = () => {
               value={overview.sessionsCompleted}
             />
 
-            {/* KPI Insignias (clic abre modal) */}
             <Card>
               <button
                 type="button"
@@ -551,7 +603,6 @@ const MyProgress: React.FC = () => {
           </div>
         )}
 
-        {/* Objetivo semanal (igual estilo que supervisor) */}
         <div className="grid grid-cols-1 lg:grid-cols-1 gap-4">
           <Card>
             <CardBody>
@@ -612,7 +663,6 @@ const MyProgress: React.FC = () => {
           </Card>
         </div>
 
-        {/* Evolución (línea dual + barras por día) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card>
             <CardBody>
@@ -632,7 +682,6 @@ const MyProgress: React.FC = () => {
           </Card>
         </div>
 
-        {/* Reclamaciones + Preguntas creadas */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card>
             <CardBody>
@@ -693,9 +742,7 @@ const MyProgress: React.FC = () => {
                 Preguntas creadas
               </div>
 
-              {/* Responsive: 1 col (móvil), 2 col (sm), 3 col (lg) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {/* Aprobadas */}
                 <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50/50">
                   <div className="shrink-0 p-2.5 rounded-xl bg-emerald-50 text-emerald-700">
                     <CheckCircle className="h-5 w-5" />
@@ -710,7 +757,6 @@ const MyProgress: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Rechazadas */}
                 <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50/50">
                   <div className="shrink-0 p-2.5 rounded-xl bg-rose-50 text-rose-700">
                     <XCircle className="h-5 w-5" />
@@ -725,7 +771,6 @@ const MyProgress: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Tasa de aprobación */}
                 <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50/50 sm:col-span-2 lg:col-span-1">
                   <Donut
                     value={
@@ -750,7 +795,6 @@ const MyProgress: React.FC = () => {
           </Card>
         </div>
 
-        {/* Errores frecuentes – estilo "antiguo" (icono + barra roja) */}
         {!!errorsTop.length && (
           <div className="space-y-3">
             <div className="text-lg font-semibold">Errores frecuentes</div>
@@ -794,7 +838,6 @@ const MyProgress: React.FC = () => {
           </div>
         )}
 
-        {/* Modal de Insignias (igual que supervisor) */}
         {showBadges && (
           <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
             <div className="w-full max-w-3xl rounded-2xl bg-white border border-gray-200 shadow-xl overflow-hidden">
