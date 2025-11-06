@@ -9,7 +9,6 @@ import { AppDataSource } from '../data-source';
 import { TestSession } from '../models/TestSession';
 import { TestResult } from '../models/TestResult';
 import { Claim, ClaimStatus } from '../models/Claim';
-import { Rating } from '../models/Rating';
 
 /** KPIs principales del diagrama */
 export type DiagramKpis = {
@@ -48,7 +47,6 @@ export type ItemQuality = {
   attempts: number;
   claimRatePct: number;
   claimApprovalRatePct: number | null;
-  avgRating: number | null;
 };
 
 /** Análisis de distractores por cuartiles */
@@ -318,18 +316,6 @@ export async function getDiagramStatsService(diagramId: string, range?: Range): 
     claimsApprovedByQ[qid] = Number(row.approved || 0);
   }
 
-  // Ratings
-  const ratingRows = await AppDataSource.getRepository(Rating)
-    .createQueryBuilder('r')
-    .leftJoin('r.question', 'q')
-    .leftJoin('q.diagram', 'd')
-    .where('d.id = :diagramId', { diagramId })
-    .select(['q.id AS qid', 'AVG(r.rating) AS avgRating'])
-    .groupBy('q.id')
-    .getRawMany<{ qid: string; avgRating: string | number }>();
-  const ratingByQ: Record<string, number> = {};
-  for (const row of ratingRows) ratingByQ[String(row.qid)] = Number(row.avgRating || 0);
-
   const itemQuality: ItemQuality[] = Object.keys({ ...attemptsByQ, ...discData })
     .map(qid => {
       const attempts = attemptsByQ[qid] ?? 0;
@@ -342,7 +328,6 @@ export async function getDiagramStatsService(diagramId: string, range?: Range): 
       const claimsApproved = claimsApprovedByQ[qid] ?? 0;
       const claimRatePct = pctNum(claimsTotal, Math.max(1, attempts));
       const claimApprovalRatePct = claimsTotal ? pctNum(claimsApproved, claimsTotal) : null;
-      const avgRating = ratingByQ[qid] ?? null;
       return {
         questionId: qid,
         title: titleByQ[qid] ?? `Pregunta ${qid}`,
@@ -352,7 +337,6 @@ export async function getDiagramStatsService(diagramId: string, range?: Range): 
         attempts,
         claimRatePct: round1(claimRatePct),
         claimApprovalRatePct: claimApprovalRatePct != null ? round1(claimApprovalRatePct) : null,
-        avgRating: avgRating != null ? round2(avgRating) : null,
       };
     })
     .sort((a, b) => a.pCorrectPct - b.pCorrectPct);

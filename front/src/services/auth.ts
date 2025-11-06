@@ -5,6 +5,7 @@
  */
 
 import { apiJson, apiRequest, clearTokens, setTokens } from './http';
+import { clearProfileCache } from './authCache';
 
 /** Respuesta del servidor tras login/refresh exitoso */
 export interface LoginResponse {
@@ -98,6 +99,7 @@ export async function logout(): Promise<void> {
     // Ignorar errores (logout siempre debe completarse)
   } finally {
     clearTokens();
+    clearProfileCache();
   }
 }
 

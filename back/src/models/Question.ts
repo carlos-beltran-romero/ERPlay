@@ -12,7 +12,6 @@ import {
 import { Diagram } from './Diagram';
 import { User } from './User';
 import { Option } from './Option';
-import { Rating } from './Rating';
 
 export enum ReviewStatus {
   PENDING = 'pending',
@@ -42,9 +41,6 @@ export class Question extends BaseEntity {
 
   @OneToMany(() => Option, (option) => option.question, { cascade: true })
   options!: Option[];
-
-  @OneToMany(() => Rating, (rating) => rating.question)
-  ratings!: Rating[];
 
   // 🔥 Campos de revisión
   @Column({ type: 'enum', enum: ReviewStatus, default: ReviewStatus.PENDING })

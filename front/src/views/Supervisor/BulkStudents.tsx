@@ -107,7 +107,7 @@ const SupervisorBulkStudents: React.FC = () => {
         <div className="mb-6 flex items-start justify-between">
           <div className="flex items-start gap-3">
             <button
-              onClick={() => navigate("supervisor/dashboard")}
+              onClick={() => navigate('/supervisor/dashboard')}
               className="rounded-xl border border-gray-300 bg-white p-2 hover:bg-gray-50"
               aria-label="Volver"
             >

@@ -3,6 +3,7 @@ import PageWithHeader from "../../components/layout/PageWithHeader";
 import { toast } from "react-toastify";
 import badgeCompleted from "../../assets/completed.png";
 import { useNavigate } from "react-router-dom";
+import { useDelayedFlag } from "../../shared/hooks/useDelayedFlag";
 
 
 
@@ -395,6 +396,7 @@ const MyProgress: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const showLoading = useDelayedFlag(loading);
 
   const [overview, setOverview] = useState<Overview | null>(null);
   const [trends, setTrends] = useState<TrendPoint[]>([]);
@@ -467,7 +469,7 @@ const MyProgress: React.FC = () => {
     return c;
   }, [myQuestions]);
 
-  if (loading) {
+  if (showLoading) {
     return (
       <PageWithHeader>
         <div className="mx-auto w-full max-w-6xl p-6">Cargando…</div>
@@ -488,7 +490,7 @@ const MyProgress: React.FC = () => {
         <div className="mb-2 flex items-start justify-between">
           <div className="flex items-start gap-3">
             <button
-              onClick={() => navigate("student/dashboard")}
+              onClick={() => navigate("/student/dashboard")}
               className="rounded-xl border border-gray-300 bg-white p-2 hover:bg-gray-50"
               aria-label="Volver"
               title="Volver"
