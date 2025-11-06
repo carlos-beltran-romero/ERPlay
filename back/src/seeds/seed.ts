@@ -10,7 +10,6 @@ import { TestResult } from '../models/TestResult';
 import { TestEvent } from '../models/TestEvent';
 import { Claim, ClaimStatus } from '../models/Claim';
 import { WeeklyGoal } from '../models/WeeklyGoal';
-import { UserBadge } from '../models/UserBadge';
 
 async function seed() {
   try {
@@ -234,11 +233,6 @@ async function seed() {
         })
       );
 
-      const badgeRepo = manager.getRepository(UserBadge);
-      await badgeRepo.save([
-        badgeRepo.create({ user: studentAna, label: 'Primera semana completada', earnedAt: new Date() }),
-        badgeRepo.create({ user: studentLuis, label: 'Tres tests aprobados', earnedAt: new Date() }),
-      ]);
     });
 
     console.log('✅ Base de datos poblada con datos de ejemplo.');

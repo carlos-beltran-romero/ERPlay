@@ -70,8 +70,21 @@ async function notifyAllStudentsNewGoal(args: { weekStart: string; weekEnd: stri
     where: { role: UserRole.STUDENT },
   });
 
-  const recipients = students.map((s) => s.email).filter(Boolean);
-  if (!recipients.length) return;
+  const deduped: string[] = [];
+  const seen = new Set<string>();
+  const emails = students
+    .map((s) => s.email)
+    .filter((value): value is string => typeof value === 'string');
+
+  for (const rawEmail of emails) {
+    const email = rawEmail.trim();
+    if (!email) continue;
+    const key = email.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(email);
+  }
+  if (!deduped.length) return;
 
   const frontBase = (env.FRONTEND_URL ?? env.APP_URL ?? '').replace(/\/+$/, '');
   const ctaUrl = frontBase ? `${frontBase}/student/progress` : '';
@@ -112,7 +125,7 @@ async function notifyAllStudentsNewGoal(args: { weekStart: string; weekEnd: stri
   await transporter.sendMail({
     from: env.SMTP_FROM || '"ERPlay" <no-reply@erplay.com>',
     to: env.SMTP_FROM || 'no-reply@erplay.com',
-    bcc: recipients.join(','),
+    bcc: deduped.join(','),
     subject: 'Nuevo objetivo semanal',
     html,
   });
@@ -186,19 +199,25 @@ export async function setWeeklyGoal(params: {
     .where('g.weekStart = :s AND g.weekEnd = :e', { s, e })
     .getOne();
 
+  const nextTarget = Math.round(targetTests);
+  const existed = Boolean(goal);
+  const previousTarget = goal?.targetTests ?? null;
+
   if (goal) {
-    goal.targetTests = Math.round(targetTests);
+    goal.targetTests = nextTarget;
     await repo.save(goal);
   } else {
     goal = repo.create({
       weekStart: s,
       weekEnd: e,
-      targetTests: Math.round(targetTests),
+      targetTests: nextTarget,
     });
     await repo.save(goal);
   }
 
-  if (params.notify !== false) {
+  const targetChanged = !existed || previousTarget !== nextTarget;
+
+  if (params.notify !== false && targetChanged) {
     const payload = { weekStart: goal.weekStart, weekEnd: goal.weekEnd, targetTests: goal.targetTests };
     setImmediate(() => {
       notifyAllStudentsNewGoal(payload).catch((e) => console.error('Email error (weekly-goal):', e));
