@@ -15,7 +15,6 @@ import {
 import { Question } from './Question';
 import { Claim } from './Claim';
 import { RefreshToken } from './RefreshToken';
-import { Rating } from './Rating';
 
 /**
  * Roles de usuario en el sistema
@@ -66,10 +65,6 @@ export class User extends BaseEntity {
   /** Reclamaciones realizadas por el usuario */
   @OneToMany(() => Claim, (claim) => claim.student)
   claims!: Claim[];
-
-  /** Valoraciones realizadas por el usuario */
-  @OneToMany(() => Rating, (rating) => rating.user)
-  ratings!: Rating[];
 
   /** Tokens de refresco del usuario */
   @OneToMany(() => RefreshToken, (token) => token.user)

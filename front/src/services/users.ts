@@ -10,6 +10,7 @@ import { apiJson } from './http';
 export interface UserProfile {
   id: string;
   name: string;
+  lastName: string;
   email: string;
   role: 'alumno' | 'supervisor';
 }
@@ -53,6 +54,7 @@ export async function getProfile(): Promise<UserProfile> {
   return {
     id: String(data.id),
     name: String(data.name ?? ''),
+    lastName: String(data.lastName ?? data.surname ?? data.last_name ?? ''),
     email: String(data.email ?? ''),
     role: data.role === 'supervisor' ? 'supervisor' : 'alumno',
   };
@@ -85,6 +87,7 @@ export async function updateMyProfile(input: {
   return {
     id: String(data.id),
     name: String(data.name ?? ''),
+    lastName: String(data.lastName ?? data.surname ?? data.last_name ?? ''),
     email: String(data.email ?? ''),
     role: data.role === 'supervisor' ? 'supervisor' : 'alumno',
   };

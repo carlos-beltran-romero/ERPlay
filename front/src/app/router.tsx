@@ -22,6 +22,7 @@ import MyTests from '../views/Student/MyTests';
 import MyProgress from '../views/Student/MyProgress';
 import StudentDetail from '../views/Supervisor/StudentDetail';
 import DiagramStats from '../views/Supervisor/DiagramSats';
+import { getCachedProfile, setCachedProfile, clearProfileCache } from '../services/authCache';
 
 /**
  * Valida que el usuario autenticado tenga un rol permitido.
@@ -31,12 +32,35 @@ import DiagramStats from '../views/Supervisor/DiagramSats';
  * @internal
  */
 async function requireRole(allowed: string[]) {
+  const cached = getCachedProfile();
+  if (cached && allowed.includes(cached.role)) {
+    return null;
+  }
+
   try {
     const me = await getProfile();
+    setCachedProfile(me);
     if (!allowed.includes(me.role)) throw new Error('Rol no autorizado');
     return null;
   } catch {
+    clearProfileCache();
     throw redirect('/login');
+  }
+}
+
+async function redirectIfAuthenticated() {
+  const cached = getCachedProfile();
+  if (cached) {
+    return redirect(cached.role === 'supervisor' ? '/supervisor/dashboard' : '/student/dashboard');
+  }
+
+  try {
+    const me = await getProfile();
+    setCachedProfile(me);
+    return redirect(me.role === 'supervisor' ? '/supervisor/dashboard' : '/student/dashboard');
+  } catch {
+    clearProfileCache();
+    return null;
   }
 }
 
@@ -65,7 +89,7 @@ function protect(route: ProtectedRoute) {
  * @public
  */
 export const router = createBrowserRouter([
-  { path: '/login', element: <Login /> },
+  { path: '/login', element: <Login />, loader: redirectIfAuthenticated },
   { path: '/forgot-password', element: <ForgotPassword /> },
   { path: '/reset-password', element: <ResetPassword /> },
   protect({ path: '/student/dashboard', element: <StudentDashboard />, roles: ['alumno'] }),

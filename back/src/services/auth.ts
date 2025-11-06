@@ -10,6 +10,8 @@ import jwt from 'jsonwebtoken';
 import { defaultMailer } from '../config/mailer';
 import { env } from '../config/env';
 import { createHttpError, HttpError } from '../core/errors/HttpError';
+import { Repository } from 'typeorm';
+
 import { AppDataSource } from '../data-source';
 import { RefreshToken } from '../models/RefreshToken';
 import { User } from '../models/User';
@@ -18,14 +20,21 @@ const PASSWORD_SALT_ROUNDS = 10;
 const ACCESS_TOKEN_TTL = '15m';
 const REFRESH_TOKEN_TTL = '7d';
 const RESET_TOKEN_TTL = '1h';
+const REFRESH_TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * Servicio de autenticación
  * Gestiona el ciclo completo de autenticación, tokens y recuperación de contraseña
  */
 export class AuthService {
-  private readonly userRepository = AppDataSource.getRepository(User);
-  private readonly refreshTokenRepository = AppDataSource.getRepository(RefreshToken);
+  constructor(
+    private readonly userRepository: Repository<User> = AppDataSource.getRepository(User),
+    private readonly refreshTokenRepository: Repository<RefreshToken> = AppDataSource.getRepository(RefreshToken),
+  ) {}
+
+  private getRefreshTokenExpirationDate() {
+    return new Date(Date.now() + REFRESH_TOKEN_EXPIRY_MS);
+  }
 
   /**
    * Autentica usuario y genera tokens de acceso
@@ -49,7 +58,12 @@ export class AuthService {
       expiresIn: REFRESH_TOKEN_TTL,
     });
 
-    const tokenEntity = this.refreshTokenRepository.create({ token: refreshToken, user });
+    const tokenEntity = this.refreshTokenRepository.create({
+      token: refreshToken,
+      user,
+      expiresAt: this.getRefreshTokenExpirationDate(),
+      revoked: false,
+    });
     await this.refreshTokenRepository.save(tokenEntity);
 
     return { accessToken, refreshToken };
@@ -98,6 +112,8 @@ export class AuthService {
       });
 
       existing.token = newRefreshToken;
+      existing.expiresAt = this.getRefreshTokenExpirationDate();
+      existing.revoked = false;
       await this.refreshTokenRepository.save(existing);
 
       return { accessToken, refreshToken: newRefreshToken };

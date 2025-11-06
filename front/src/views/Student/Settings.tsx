@@ -10,14 +10,16 @@ import {
   changeMyPassword,
 } from '../../services/users';
 import { User, Mail, Save, Lock, ShieldCheck, Undo2, ArrowLeft } from 'lucide-react';
+import { useAuth } from '../../app/AuthContext';
+import { useDelayedFlag } from '../../shared/hooks/useDelayedFlag';
 
 const MIN_PW = 6;
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
+  const { setProfile } = useAuth();
   const [loading, setLoading] = useState(true);
 
-  
   const [me, setMe] = useState<UserProfile | null>(null);
   const [name, setName] = useState('');
   const [lastName, setLastName] = useState(''); 
@@ -40,15 +42,15 @@ const Settings: React.FC = () => {
       try {
         const u = await getProfile();
         setMe(u);
+        setProfile(u);
         setName(u.name || '');
-        
-        setLastName((u as any).lastName ?? (u as any).surname ?? '');
+        setLastName(u.lastName || '');
         setEmail(u.email || '');
 
-        
+
         initialSnapRef.current = JSON.stringify({
           name: u.name || '',
-          lastName: (u as any).lastName ?? (u as any).surname ?? '',
+          lastName: u.lastName || '',
           email: u.email || '',
           currentPassword: '',
           newPassword: '',
@@ -60,20 +62,22 @@ const Settings: React.FC = () => {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [setProfile]);
 
   const dirtyProfile = useMemo(() => {
     if (!me) return false;
-    const baseLast = (me as any).lastName ?? (me as any).surname ?? '';
-    return (name ?? '') !== (me.name ?? '') ||
-           (lastName ?? '') !== (baseLast ?? '') ||
-           (email ?? '') !== (me.email ?? '');
+    const baseLast = me.lastName ?? '';
+    return (
+      (name ?? '') !== (me.name ?? '') ||
+      (lastName ?? '') !== (baseLast ?? '') ||
+      (email ?? '') !== (me.email ?? '')
+    );
   }, [me, name, lastName, email]);
 
   const resetProfile = () => {
     if (!me) return;
     setName(me.name || '');
-    setLastName((me as any).lastName ?? (me as any).surname ?? '');
+    setLastName(me.lastName || '');
     setEmail(me.email || '');
   };
 
@@ -89,17 +93,18 @@ const Settings: React.FC = () => {
         lastName: lastName.trim(),
         email: email.trim(),
       });
-      
+
       setMe(updated);
+      setProfile(updated);
       setName(updated.name || '');
-      setLastName(lastName.trim()); 
+      setLastName(updated.lastName || '');
       setEmail(updated.email || '');
       toast.success('Perfil actualizado');
 
       
       initialSnapRef.current = JSON.stringify({
         name: updated.name || '',
-        lastName: lastName.trim(),
+        lastName: updated.lastName || '',
         email: updated.email || '',
         currentPassword: '',
         newPassword: '',
@@ -169,14 +174,16 @@ const Settings: React.FC = () => {
       setConfirmLeaveOpen(true);
       return;
     }
-    navigate("student/dashboard");
+    navigate('/student/dashboard');
   };
 
-  if (loading) {
+  const showLoading = useDelayedFlag(loading);
+
+  if (showLoading) {
     return (
       <PageWithHeader>
         <div className="p-6 text-gray-600">Cargando configuración…</div>
-     </PageWithHeader>
+      </PageWithHeader>
     );
   }
 
@@ -369,7 +376,7 @@ const Settings: React.FC = () => {
                   Seguir editando
                 </button>
                 <button
-                  onClick={() => navigate("student/dashboard")}
+                  onClick={() => navigate('/student/dashboard')}
                   className="rounded-xl px-5 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-500"
                 >
                   Salir sin guardar

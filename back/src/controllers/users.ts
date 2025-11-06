@@ -112,6 +112,10 @@ const usersController = {
   updateUser: asyncHandler(async (req: Request, res: Response) => {
     const { userId } = req.params;
     const requester = req.user!;
+    const requestedPassword =
+      typeof req.body.password === 'string' && req.body.password.length > 0
+        ? String(req.body.password)
+        : undefined;
 
     if (requester.role === UserRole.STUDENT && requester.id !== userId) {
       throw createHttpError(403, 'No autorizado');
@@ -121,8 +125,16 @@ const usersController = {
       name: req.body.name,
       lastName: req.body.lastName,
       email: req.body.email,
-      password: req.body.password,
+      password: requestedPassword,
     });
+
+    if (
+      requestedPassword &&
+      requester.role === UserRole.SUPERVISOR &&
+      requester.id !== userId
+    ) {
+      await usersService.sendPasswordUpdatedEmail(updated, requestedPassword);
+    }
 
     res.json(updated);
   }),

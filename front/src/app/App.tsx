@@ -2,6 +2,7 @@ import { RouterProvider } from 'react-router-dom';
 import { router } from './router';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { AuthProvider } from './AuthContext';
 
 /**
  * Punto de entrada del frontend con router y notificaciones.
@@ -10,7 +11,7 @@ import 'react-toastify/dist/ReactToastify.css';
  */
 export function App() {
   return (
-    <>
+    <AuthProvider>
       <RouterProvider router={router} />
       <ToastContainer
         position="top-right"
@@ -23,6 +24,6 @@ export function App() {
         theme="colored"
         limit={3}
       />
-    </>
+    </AuthProvider>
   );
 }

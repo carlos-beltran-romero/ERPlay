@@ -5,6 +5,7 @@ import PageWithHeader from '../../components/layout/PageWithHeader';
 import { toast } from 'react-toastify';
 import { getDiagram, updateDiagram } from '../../services/diagrams';
 import { Plus, Trash2, CheckCircle2, Image as ImageIcon, Save, ArrowLeft } from 'lucide-react';
+import { useDelayedFlag } from '../../shared/hooks/useDelayedFlag';
 
 type QuestionForm = {
   prompt: string;
@@ -156,6 +157,8 @@ const EditDiagram: React.FC = () => {
   }, [title, questions]);
 
   
+  const showLoading = useDelayedFlag(loading);
+
   const goBack = () => {
     if (isDirty) {
       setConfirmLeaveOpen(true);
@@ -215,7 +218,7 @@ const EditDiagram: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (showLoading) {
     return (
       <PageWithHeader>
         <div className="p-6 text-gray-600">Cargando…</div>

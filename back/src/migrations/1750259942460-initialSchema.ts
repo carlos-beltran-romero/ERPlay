@@ -5,7 +5,6 @@ export class InitialSchema1750259942460 implements MigrationInterface {
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE \`options\` (\`id\` varchar(36) NOT NULL, \`text\` text NOT NULL, \`orderIndex\` int NOT NULL, \`created_at\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`updated_at\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), \`questionId\` varchar(36) NOT NULL, PRIMARY KEY (\`id\`)) ENGINE=InnoDB`);
-        await queryRunner.query(`CREATE TABLE \`ratings\` (\`id\` varchar(36) NOT NULL, \`rating\` int NOT NULL, \`created_at\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`updated_at\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), \`userId\` varchar(36) NOT NULL, \`questionId\` varchar(36) NOT NULL, PRIMARY KEY (\`id\`)) ENGINE=InnoDB`);
         await queryRunner.query(`CREATE TABLE \`questions\` (\`id\` varchar(36) NOT NULL, \`text\` text NOT NULL, \`difficulty\` enum ('principiante', 'intermedio', 'difícil') NOT NULL DEFAULT 'principiante', \`correctOptionIndex\` int NOT NULL, \`created_at\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`updated_at\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), \`diagramId\` varchar(36) NOT NULL, \`creatorId\` varchar(36) NULL, PRIMARY KEY (\`id\`)) ENGINE=InnoDB`);
         await queryRunner.query(`CREATE TABLE \`diagrams\` (\`id\` varchar(36) NOT NULL, \`filename\` varchar(255) NOT NULL, \`path\` varchar(500) NOT NULL, \`created_at\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`updated_at\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), \`creatorId\` varchar(36) NOT NULL, PRIMARY KEY (\`id\`)) ENGINE=InnoDB`);
         await queryRunner.query(`CREATE TABLE \`test_answers\` (\`id\` varchar(36) NOT NULL, \`isCorrect\` tinyint NOT NULL, \`answered_at\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`updated_at\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), \`testSessionId\` varchar(36) NOT NULL, \`questionId\` varchar(36) NOT NULL, \`selectedOptionId\` varchar(36) NOT NULL, PRIMARY KEY (\`id\`)) ENGINE=InnoDB`);
@@ -14,8 +13,6 @@ export class InitialSchema1750259942460 implements MigrationInterface {
         await queryRunner.query(`CREATE TABLE \`refresh_tokens\` (\`id\` varchar(36) NOT NULL, \`token\` varchar(500) NOT NULL, \`expiresAt\` timestamp NOT NULL, \`revoked\` tinyint NOT NULL DEFAULT 0, \`created_at\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`userId\` varchar(36) NOT NULL, UNIQUE INDEX \`IDX_4542dd2f38a61354a040ba9fd5\` (\`token\`), PRIMARY KEY (\`id\`)) ENGINE=InnoDB`);
         await queryRunner.query(`CREATE TABLE \`users\` (\`id\` varchar(36) NOT NULL, \`email\` varchar(255) NOT NULL, \`passwordHash\` varchar(255) NOT NULL, \`role\` enum ('alumno', 'supervisor') NOT NULL DEFAULT 'alumno', \`created_at\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`updated_at\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), UNIQUE INDEX \`IDX_97672ac88f789774dd47f7c8be\` (\`email\`), PRIMARY KEY (\`id\`)) ENGINE=InnoDB`);
         await queryRunner.query(`ALTER TABLE \`options\` ADD CONSTRAINT \`FK_46b668c49a6c4154d4643d875a5\` FOREIGN KEY (\`questionId\`) REFERENCES \`questions\`(\`id\`) ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE \`ratings\` ADD CONSTRAINT \`FK_4d0b0e3a4c4af854d225154ba40\` FOREIGN KEY (\`userId\`) REFERENCES \`users\`(\`id\`) ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE \`ratings\` ADD CONSTRAINT \`FK_427b6cfbeeb3791d08c9e8b9de4\` FOREIGN KEY (\`questionId\`) REFERENCES \`questions\`(\`id\`) ON DELETE CASCADE ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE \`questions\` ADD CONSTRAINT \`FK_046a0e3f18c0cd51e8d61624072\` FOREIGN KEY (\`diagramId\`) REFERENCES \`diagrams\`(\`id\`) ON DELETE CASCADE ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE \`questions\` ADD CONSTRAINT \`FK_bdbe88eee023b14b483ad0d830f\` FOREIGN KEY (\`creatorId\`) REFERENCES \`users\`(\`id\`) ON DELETE SET NULL ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE \`diagrams\` ADD CONSTRAINT \`FK_f8e759235c69d03c33984f898cc\` FOREIGN KEY (\`creatorId\`) REFERENCES \`users\`(\`id\`) ON DELETE CASCADE ON UPDATE NO ACTION`);
@@ -43,8 +40,6 @@ export class InitialSchema1750259942460 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE \`diagrams\` DROP FOREIGN KEY \`FK_f8e759235c69d03c33984f898cc\``);
         await queryRunner.query(`ALTER TABLE \`questions\` DROP FOREIGN KEY \`FK_bdbe88eee023b14b483ad0d830f\``);
         await queryRunner.query(`ALTER TABLE \`questions\` DROP FOREIGN KEY \`FK_046a0e3f18c0cd51e8d61624072\``);
-        await queryRunner.query(`ALTER TABLE \`ratings\` DROP FOREIGN KEY \`FK_427b6cfbeeb3791d08c9e8b9de4\``);
-        await queryRunner.query(`ALTER TABLE \`ratings\` DROP FOREIGN KEY \`FK_4d0b0e3a4c4af854d225154ba40\``);
         await queryRunner.query(`ALTER TABLE \`options\` DROP FOREIGN KEY \`FK_46b668c49a6c4154d4643d875a5\``);
         await queryRunner.query(`DROP INDEX \`IDX_97672ac88f789774dd47f7c8be\` ON \`users\``);
         await queryRunner.query(`DROP TABLE \`users\``);
@@ -55,7 +50,6 @@ export class InitialSchema1750259942460 implements MigrationInterface {
         await queryRunner.query(`DROP TABLE \`test_answers\``);
         await queryRunner.query(`DROP TABLE \`diagrams\``);
         await queryRunner.query(`DROP TABLE \`questions\``);
-        await queryRunner.query(`DROP TABLE \`ratings\``);
         await queryRunner.query(`DROP TABLE \`options\``);
     }
 

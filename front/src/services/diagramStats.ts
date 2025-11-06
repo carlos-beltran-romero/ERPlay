@@ -66,7 +66,6 @@ export type ItemQuality = {
   attempts: number;
   claimRatePct: number;
   claimApprovalRatePct: number | null;
-  avgRating: number | null;
 };
 
 /** Análisis de distractores por pregunta */
@@ -202,7 +201,6 @@ export async function getDiagramStats(diagramId: string, params?: {
         attempts: Number(q?.attempts ?? 0),
         claimRatePct: Number(q?.claimRatePct ?? 0),
         claimApprovalRatePct: q?.claimApprovalRatePct != null ? Number(q.claimApprovalRatePct) : null,
-        avgRating: q?.avgRating != null ? Number(q.avgRating) : null,
       }))
     : undefined;
 

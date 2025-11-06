@@ -5,6 +5,7 @@ import { listDiagrams, deleteDiagram, type DiagramSummary } from '../../services
 import { toast } from 'react-toastify';
 import { Plus, Pencil, Trash2, Search, X, BarChart3, ArrowLeft } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useDelayedFlag } from '../../shared/hooks/useDelayedFlag';
 
 const normalize = (s: string) =>
   s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
@@ -25,6 +26,7 @@ const SupervisorTests: React.FC = () => {
   
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const loadMore = () => setVisibleCount((v) => v + PAGE_SIZE);
+  const showLoading = useDelayedFlag(loading);
 
   useEffect(() => {
     (async () => {
@@ -71,7 +73,7 @@ const SupervisorTests: React.FC = () => {
         {/* Volver */}
         <div className="mb-4">
           <button
-            onClick={() => navigate("supervisor/dashboard")}
+            onClick={() => navigate('/supervisor/dashboard')}
             className="inline-flex items-center rounded-full border border-gray-300 bg-white p-2 hover:bg-gray-50"
             aria-label="Volver"
             title="Volver"
@@ -116,7 +118,7 @@ const SupervisorTests: React.FC = () => {
             <div className="col-span-2 text-right">Acciones</div>
           </div>
 
-          {loading ? (
+          {showLoading ? (
             <div className="p-6 text-gray-500">Cargando…</div>
           ) : filtered.length === 0 ? (
             <div className="p-6 text-gray-500">No hay tests que coincidan con el filtro.</div>
