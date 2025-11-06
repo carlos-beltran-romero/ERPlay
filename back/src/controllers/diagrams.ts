@@ -7,7 +7,6 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { createHttpError } from '../core/errors/HttpError';
-import { env } from '../config/env';
 import { asyncHandler } from '../utils/asyncHandler';
 import { DiagramsService } from '../services/diagrams';
 
@@ -49,15 +48,11 @@ const BodySchema = z.object({
 const diagramsService = new DiagramsService();
 
 /**
- * Funciones auxiliares para resolución de URLs
+ * Para assets (imágenes), devolvemos SIEMPRE la ruta relativa guardada (/uploads/...).
+ * Nginx ya proxya /uploads → api, así que no necesitamos prefijos.
  */
-const resolvePublicBase = (req: Request) => {
-  const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol;
-  const host = req.get('host');
-  return env.PUBLIC_API_BASE_URL ?? `${proto}://${host}`;
-};
-
-const resolvePath = (base: string, path: string) => (path.startsWith('http') ? path : `${base}${path}`);
+const toPublicAssetPath = (p?: string | null) =>
+  (p && typeof p === 'string' ? p : undefined);
 
 /**
  * Lista todos los diagramas disponibles
@@ -65,14 +60,13 @@ const resolvePath = (base: string, path: string) => (path.startsWith('http') ? p
  * @param res Objeto Response de Express
  * @returns Lista de diagramas con sus metadatos
  */
-export const listDiagrams = asyncHandler(async (req: Request, res: Response) => {
-  const base = resolvePublicBase(req);
+export const listDiagrams = asyncHandler(async (_req: Request, res: Response) => {
   const rows = await diagramsService.listDiagrams();
   res.json(
     rows.map((row: any) => ({
       id: row.id,
       title: row.title,
-      path: resolvePath(base, row.path),
+      path: toPublicAssetPath(row.path),
       createdAt: row.createdAt,
       questionsCount: row.questionsCount ?? 0,
     })),
@@ -86,11 +80,10 @@ export const listDiagrams = asyncHandler(async (req: Request, res: Response) => 
  * @returns Datos completos del diagrama
  */
 export const getDiagram = asyncHandler(async (req: Request, res: Response) => {
-  const base = resolvePublicBase(req);
   const diagram = await diagramsService.getDiagramById(req.params.id);
   res.json({
     ...diagram,
-    path: resolvePath(base, diagram.path),
+    path: toPublicAssetPath(diagram.path),
   });
 });
 
@@ -105,7 +98,10 @@ export const createDiagram = asyncHandler(async (req: Request, res: Response) =>
     throw createHttpError(400, 'Imagen requerida (campo "image")');
   }
 
-  const { title, questions } = BodySchema.parse({ title: req.body.title, questions: req.body.questions });
+  const { title, questions } = BodySchema.parse({
+    title: req.body.title,
+    questions: req.body.questions,
+  });
 
   const result = await diagramsService.createDiagram({
     title,
@@ -119,6 +115,7 @@ export const createDiagram = asyncHandler(async (req: Request, res: Response) =>
     })),
   });
 
+  // result.path ya viene como /uploads/...
   res.status(201).json({ id: result.id, path: result.path });
 });
 
@@ -128,7 +125,10 @@ export const createDiagram = asyncHandler(async (req: Request, res: Response) =>
  * @param res Objeto Response de Express
  */
 export const updateDiagram = asyncHandler(async (req: Request, res: Response) => {
-  const { title, questions } = BodySchema.parse({ title: req.body.title, questions: req.body.questions });
+  const { title, questions } = BodySchema.parse({
+    title: req.body.title,
+    questions: req.body.questions,
+  });
 
   await diagramsService.updateDiagram({
     id: req.params.id,
@@ -162,14 +162,13 @@ export const deleteDiagram = asyncHandler(async (req: Request, res: Response) =>
  * @param res Objeto Response de Express
  * @returns Lista simplificada de diagramas
  */
-export const listPublicDiagrams = asyncHandler(async (req: Request, res: Response) => {
-  const base = resolvePublicBase(req);
+export const listPublicDiagrams = asyncHandler(async (_req: Request, res: Response) => {
   const rows = await diagramsService.listDiagrams();
   res.json(
     rows.map((row) => ({
       id: row.id,
       title: row.title,
-      path: resolvePath(base, row.path),
+      path: toPublicAssetPath(row.path),
     })),
   );
 });
