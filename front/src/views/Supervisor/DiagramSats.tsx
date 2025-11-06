@@ -9,18 +9,18 @@ import {
   ArrowLeft, Activity, Trophy, AlertTriangle,
   Lightbulb, Target, Sigma, BarChart3, TrendingUp, TrendingDown, Info
 } from 'lucide-react';
+import { useDelayedFlag } from '../../shared/hooks/useDelayedFlag';
 
 /* ---------- Tipos opcionales (el back puede rellenarlos) ---------- */
 type ItemQuality = {
   questionId: string;
   title: string;
-  pCorrectPct: number;          
-  discrPointBiserial: number;   
+  pCorrectPct: number;
+  discrPointBiserial: number;
   medianTimeSec: number | null;
   attempts: number;
   claimRatePct: number;
   claimApprovalRatePct: number | null;
-  avgRating: number | null;     
 };
 type DistractorBreakdown = {
   questionId: string;
@@ -182,6 +182,8 @@ const DiagramStats: React.FC = () => {
   const [driftVisible, setDriftVisible] = useState(DRIFT_PAGE);
   useEffect(() => { setDriftVisible(DRIFT_PAGE); }, [id, from, to, stats?.drift?.length]);
 
+  const showLoading = useDelayedFlag(loading);
+
   useEffect(() => {
     (async () => {
       try {
@@ -215,7 +217,7 @@ const DiagramStats: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (showLoading) {
     return (
       <PageWithHeader>
         <div className="p-6">Cargando…</div>

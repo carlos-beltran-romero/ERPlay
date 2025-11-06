@@ -199,18 +199,27 @@ export async function listMyQuestions(): Promise<MyQuestion[]> {
       correctIndex = 0;
     }
 
+    const dq = q.diagram || q.Diagram || null;
+    const diagram = dq
+      ? {
+          id: String(dq.id ?? ''),
+          title: String(dq.title ?? dq.name ?? ''),
+          path: resolveAssetUrl(dq.path ?? dq.imagePath ?? '') ?? '',
+        }
+      : (q.diagramTitle || q.diagramPath || q.diagramId)
+      ? {
+          id: String(q.diagramId ?? ''),
+          title: String(q.diagramTitle ?? ''),
+          path: resolveAssetUrl(q.diagramPath ?? q.diagram_image ?? '') ?? '',
+        }
+      : undefined;
+
     return {
       id: String(q.id),
       prompt: String(q.prompt ?? ''),
       status,
       reviewComment: q.reviewComment ?? null,
-      diagram: q.diagram
-        ? {
-            id: String(q.diagram.id ?? ''),
-            title: String(q.diagram.title ?? ''),
-            path: resolveAssetUrl(q.diagram.path) ?? '',
-          }
-        : undefined,
+      diagram,
       createdAt: q.createdAt,
       reviewedAt: q.reviewedAt ?? null,
       options,

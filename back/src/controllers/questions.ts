@@ -48,6 +48,15 @@ const getPublicBase = (req: Request) => {
   return env.PUBLIC_API_BASE_URL ?? `${proto}://${host}`;
 };
 
+const toPublicAssetUrl = (base: string, path?: string | null) => {
+  if (!path) return undefined;
+  if (/^https?:\/\//i.test(path)) return path;
+
+  const normalizedBase = base.replace(/\/+$/, '');
+  const normalizedPath = `/${String(path)}`.replace(/\/{2,}/g, '/');
+  return `${normalizedBase}${normalizedPath}`;
+};
+
 /**
  * Crea una nueva pregunta para un diagrama
  * @param req Objeto Request de Express con datos de la pregunta
@@ -146,11 +155,7 @@ export const listMine = asyncHandler(async (req: Request, res: Response) => {
         ? {
             id: row.diagram.id,
             title: row.diagram.title,
-            path: row.diagram.path
-              ? row.diagram.path.startsWith('http')
-                ? row.diagram.path
-                : `${base}${row.diagram.path}`
-              : undefined,
+            path: toPublicAssetUrl(base, row.diagram.path),
           }
         : undefined,
       options,

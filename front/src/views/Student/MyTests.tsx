@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import PageWithHeader from "../../components/layout/PageWithHeader";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
+import { useDelayedFlag } from "../../shared/hooks/useDelayedFlag";
 import {
   listMySessions,
   getSessionDetail,
@@ -54,6 +55,8 @@ const MyTests: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detail, setDetail] = useState<SessionDetail | null>(null);
+  const showLoading = useDelayedFlag(loading);
+  const showDetailLoading = useDelayedFlag(detailLoading);
 
   
   const loadList = async () => {
@@ -187,7 +190,7 @@ const MyTests: React.FC = () => {
         <div className="mb-4 flex items-start justify-between">
           <div className="flex items-start gap-3">
             <button
-              onClick={() => navigate("student")}
+              onClick={() => navigate("/student/dashboard")}
               className="rounded-xl border border-gray-300 bg-white p-2 hover:bg-gray-50"
               aria-label="Volver"
               title="Volver"
@@ -339,7 +342,7 @@ const MyTests: React.FC = () => {
             <div className="col-span-1 text-right">Ver</div>
           </div>
 
-          {loading ? (
+          {showLoading ? (
             <div className="p-6 text-gray-600">Cargando…</div>
           ) : filtered.length === 0 ? (
             <div className="p-6 text-gray-500">
@@ -515,7 +518,7 @@ const MyTests: React.FC = () => {
 
             {/* Modal body */}
             <div className="p-5 max-h-[80vh] overflow-auto">
-              {detailLoading ? (
+              {showDetailLoading ? (
                 <div className="text-gray-600">Cargando detalle…</div>
               ) : !detail ? (
                 <div className="text-gray-500">

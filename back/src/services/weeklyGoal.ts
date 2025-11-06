@@ -12,6 +12,7 @@ import { TestSession } from '../models/TestSession';
 import { User, UserRole } from '../models/User';
 import { WeeklyGoal } from '../models/WeeklyGoal';
 import { escapeHtml, renderCardEmail } from './shared/emailTemplates';
+import { Table } from 'typeorm';
 
 /**
  * Calcula el lunes (00:00 UTC) de la semana ISO del día indicado
@@ -56,6 +57,61 @@ const transporter = createMailer({
   rateDelta: 1000,
   rateLimit: 5,
 });
+
+let weeklyGoalTableEnsured = false;
+
+async function ensureWeeklyGoalTable() {
+  if (weeklyGoalTableEnsured) return;
+
+  const runner = AppDataSource.createQueryRunner();
+  try {
+    await runner.connect();
+    const hasTable = await runner.hasTable('WeeklyGoal');
+    if (!hasTable) {
+      await runner.createTable(
+        new Table({
+          name: 'WeeklyGoal',
+          columns: [
+            {
+              name: 'id',
+              type: 'varchar',
+              length: '36',
+              isPrimary: true,
+              isNullable: false,
+            },
+            { name: 'weekStart', type: 'date', isNullable: false },
+            { name: 'weekEnd', type: 'date', isNullable: false },
+            { name: 'targetTests', type: 'int', isNullable: false },
+            {
+              name: 'createdAt',
+              type: 'datetime',
+              precision: 6,
+              default: 'CURRENT_TIMESTAMP(6)',
+              isNullable: false,
+            },
+            { name: 'createdById', type: 'varchar', length: '36', isNullable: true },
+          ],
+          foreignKeys: [
+            {
+              name: 'FK_WeeklyGoal_createdBy',
+              columnNames: ['createdById'],
+              referencedTableName: 'users',
+              referencedColumnNames: ['id'],
+              onDelete: 'SET NULL',
+              onUpdate: 'NO ACTION',
+            },
+          ],
+        }),
+        true
+      );
+    }
+    weeklyGoalTableEnsured = true;
+  } finally {
+    if (!runner.isReleased) {
+      await runner.release();
+    }
+  }
+}
 
 /**
  * Envía notificación de nuevo objetivo a todos los estudiantes
@@ -128,6 +184,7 @@ async function notifyAllStudentsNewGoal(args: { weekStart: string; weekEnd: stri
  * - Si hay múltiples coincidencias, toma el más reciente
  */
 export async function getCurrentWeeklyGoal() {
+  await ensureWeeklyGoalTable();
   const repo = AppDataSource.getRepository(WeeklyGoal);
   const today = toISODate(new Date());
 
@@ -161,6 +218,7 @@ export async function setWeeklyGoal(params: {
   weekEnd?: string;
   notify?: boolean;
 }) {
+  await ensureWeeklyGoalTable();
   const { adminId, targetTests } = params;
 
   if (!Number.isFinite(targetTests) || targetTests <= 0) {
@@ -222,6 +280,7 @@ export async function setWeeklyGoal(params: {
  * - completed: true si done >= target
  */
 export async function listWeeklyProgress(weekStart?: string, weekEnd?: string) {
+  await ensureWeeklyGoalTable();
   const repo = AppDataSource.getRepository(WeeklyGoal);
   let s = weekStart;
   let e = weekEnd;

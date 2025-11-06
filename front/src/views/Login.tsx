@@ -5,6 +5,7 @@ import patternBg from "../assets/pattern-molecules.png";
 import { login as apiLogin } from "../services/auth";
 import { getProfile, type UserProfile } from "../services/users";
 import { Eye, EyeOff, Mail, Lock, Loader2 } from "lucide-react";
+import { useAuth } from "../app/AuthContext";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ const Login: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
+  const { setProfile } = useAuth();
 
   useEffect(() => {
     (async () => {
@@ -24,16 +26,18 @@ const Login: React.FC = () => {
       }
       try {
         const me = await getProfile();
+        setProfile(me);
         if (me.role === "supervisor")
           navigate("/supervisor/dashboard", { replace: true });
         else navigate("/student/dashboard", { replace: true });
       } catch {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
+        setProfile(null);
         setCheckingSession(false);
       }
     })();
-  }, [navigate]);
+  }, [navigate, setProfile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,6 +48,7 @@ const Login: React.FC = () => {
       localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("refreshToken", refreshToken);
       const me: UserProfile = await getProfile();
+      setProfile(me);
       if (me.role === "supervisor")
         navigate("/supervisor/dashboard", { replace: true });
       else navigate("/student/dashboard", { replace: true });

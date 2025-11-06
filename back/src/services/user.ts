@@ -8,6 +8,9 @@ import bcrypt from 'bcrypt';
 import { createHttpError } from '../core/errors/HttpError';
 import { AppDataSource } from '../data-source';
 import { User, UserRole } from '../models/User';
+import { defaultMailer } from '../config/mailer';
+import { env } from '../config/env';
+import { escapeHtml, renderCardEmail } from './shared/emailTemplates';
 
 /** DTO para actualización de perfil de usuario */
 export interface UpdateUserDTO {
@@ -41,6 +44,13 @@ export interface SafeUser {
  */
 export class UsersService {
   private userRepo = AppDataSource.getRepository(User);
+  private mailer = defaultMailer;
+  private fromAddress = env.SMTP_FROM || '"ERPlay" <no-reply@erplay.com>';
+  private appBaseUrl = (env.FRONTEND_URL || env.APP_URL || '').replace(/\/+$/, '');
+
+  private getLoginUrl() {
+    return this.appBaseUrl ? `${this.appBaseUrl}/login` : '';
+  }
 
   /**
    * Crea múltiples estudiantes en lote
@@ -115,6 +125,15 @@ export class UsersService {
       role: u.role,
       createdAt: u.createdAt,
     }));
+
+    const createdByEmail = new Map(created.map(user => [user.email, user]));
+    await Promise.all(
+      toCreate.map(async original => {
+        const user = createdByEmail.get(original.email);
+        if (!user) return;
+        await this.sendWelcomeCredentialsEmail(user, original.password);
+      })
+    );
 
     return {
       created,
@@ -210,5 +229,121 @@ export class UsersService {
       throw createHttpError(403, 'Solo se pueden eliminar alumnos');
     }
     await this.userRepo.remove(user);
+  }
+
+  private async sendWelcomeCredentialsEmail(user: SafeUser, password: string) {
+    if (!user.email) return;
+
+    const loginUrl = this.getLoginUrl();
+    const safeEmail = escapeHtml(user.email);
+    const safePassword = escapeHtml(password);
+    const passwordBlock = `
+      <div
+        style="margin:12px 0;padding:14px 16px;border-radius:12px;background:#111827;color:#fff;font-size:16px;
+               letter-spacing:0.6px;text-align:center;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;">
+        ${safePassword}
+      </div>
+    `;
+    const body = `
+      <p style="margin:0 0 16px 0;">Hola ${escapeHtml(user.name || user.email)},</p>
+      <p style="margin:0 0 16px 0;">Tu cuenta en ERPlay ha sido creada por tu supervisor. Estos son tus datos de acceso:</p>
+      <div style="margin:0 0 12px 0;padding:0;">
+        <div style="color:#6b7280;font-size:13px;margin-bottom:4px;">Correo</div>
+        <div style="font-weight:600;font-size:15px;word-break:break-all;">${safeEmail}</div>
+        <div style="color:#6b7280;font-size:13px;margin:16px 0 4px;">Contraseña temporal</div>
+        ${passwordBlock}
+      </div>
+      <p style="margin:0 0 16px 0;">Te recomendamos cambiar la contraseña desde “Configuración” después de iniciar sesión.</p>
+      ${loginUrl
+        ? `<div style="margin-top:16px;"><a href="${loginUrl}" style="display:inline-block;padding:12px 20px;border-radius:10px;background:#4f46e5;color:#fff;text-decoration:none;font-weight:600;">Acceder a ERPlay</a></div>`
+        : ''}
+    `;
+
+    const html = renderCardEmail({
+      title: 'Tu acceso a ERPlay',
+      bodyHtml: body,
+      accent: '#E0E7FF',
+    });
+
+    const text = [
+      `Hola ${user.name || user.email},`,
+      'Tu cuenta en ERPlay ha sido creada por tu supervisor.',
+      `Correo: ${user.email}`,
+      `Contraseña temporal: ${password}`,
+      loginUrl ? `Accede a ERPlay: ${loginUrl}` : null,
+      'Cambia la contraseña desde Configuración después del primer acceso.',
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    try {
+      await this.mailer.sendMail({
+        from: this.fromAddress,
+        to: user.email,
+        subject: 'Tu cuenta de ERPlay',
+        html,
+        text,
+      });
+    } catch (error) {
+      console.error(`No se pudo enviar el correo de credenciales a ${user.email}:`, error);
+    }
+  }
+
+  async sendPasswordUpdatedEmail(user: SafeUser, password: string) {
+    if (!user.email) return;
+
+    const loginUrl = this.getLoginUrl();
+    const safeEmail = escapeHtml(user.email);
+    const safePassword = escapeHtml(password);
+    const passwordBlock = `
+      <div
+        style="margin:12px 0;padding:14px 16px;border-radius:12px;background:#111827;color:#fff;font-size:16px;
+               letter-spacing:0.6px;text-align:center;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;">
+        ${safePassword}
+      </div>
+    `;
+    const body = `
+      <p style="margin:0 0 16px 0;">Hola ${escapeHtml(user.name || user.email)},</p>
+      <p style="margin:0 0 16px 0;">Un administrador actualizó la contraseña de tu cuenta. Usa estos datos desde ahora:</p>
+      <div style="margin:0 0 12px 0;padding:0;">
+        <div style="color:#6b7280;font-size:13px;margin-bottom:4px;">Correo</div>
+        <div style="font-weight:600;font-size:15px;word-break:break-all;">${safeEmail}</div>
+        <div style="color:#6b7280;font-size:13px;margin:16px 0 4px;">Nueva contraseña</div>
+        ${passwordBlock}
+      </div>
+      <p style="margin:0 0 16px 0;">Si no reconoces este cambio, contacta con tu supervisor inmediatamente.</p>
+      ${loginUrl
+        ? `<div style="margin-top:16px;"><a href="${loginUrl}" style="display:inline-block;padding:12px 20px;border-radius:10px;background:#4f46e5;color:#fff;text-decoration:none;font-weight:600;">Iniciar sesión</a></div>`
+        : ''}
+    `;
+
+    const html = renderCardEmail({
+      title: 'Tu contraseña fue actualizada',
+      bodyHtml: body,
+      accent: '#DBEAFE',
+    });
+
+    const text = [
+      `Hola ${user.name || user.email},`,
+      'Un administrador actualizó la contraseña de tu cuenta.',
+      `Correo: ${user.email}`,
+      `Nueva contraseña: ${password}`,
+      loginUrl ? `Inicia sesión en ERPlay: ${loginUrl}` : null,
+      'Si no reconoces este cambio contacta con tu supervisor.',
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    try {
+      await this.mailer.sendMail({
+        from: this.fromAddress,
+        to: user.email,
+        subject: 'Se actualizó tu contraseña de ERPlay',
+        html,
+        text,
+      });
+    } catch (error) {
+      console.error(`No se pudo enviar el correo de actualización a ${user.email}:`, error);
+    }
   }
 }

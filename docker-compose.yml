@@ -1,0 +1,58 @@
+version: '3.9'
+
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: erplay
+      MYSQL_USER: erplay
+      MYSQL_PASSWORD: erplay
+    ports:
+      - '3306:3306'
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  api:
+    build:
+      context: ./back
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: erplay
+      DB_PASSWORD: erplay
+      DB_NAME: erplay
+      FRONTEND_URL: http://localhost:5173
+      PUBLIC_API_BASE_URL: http://localhost:3000/api
+      APP_URL: http://localhost:3000
+      JWT_SECRET: super-secret-access
+      JWT_REFRESH_SECRET: super-secret-refresh
+      JWT_RESET_SECRET: super-secret-reset
+      SMTP_HOST: smtp.example.com
+      SMTP_PORT: 587
+      SMTP_USER: demo@example.com
+      SMTP_PASS: demo-password
+      SMTP_FROM: "ERPlay <no-reply@erplay.com>"
+      SUPERVISOR_NOTIFY_EMAIL: supervisor@example.com
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./back/uploads:/app/uploads
+    command: sh -c "npm run migration:run && node dist/index.js"
+
+volumes:
+  db_data:

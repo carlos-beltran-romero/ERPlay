@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PageWithHeader from '../../components/layout/PageWithHeader';
 import { toast } from 'react-toastify';
+import { useDelayedFlag } from '../../shared/hooks/useDelayedFlag';
 
 import {
   startTestSession,
@@ -310,7 +311,9 @@ const LearningMode: React.FC = () => {
   };
 
   
-  if (loading) {
+  const showLoading = useDelayedFlag(loading);
+
+  if (showLoading) {
     return (
       <PageWithHeader>
         <div className="p-6 text-gray-600">Cargando práctica…</div>

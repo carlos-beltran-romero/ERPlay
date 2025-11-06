@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageWithHeader from '../../components/layout/PageWithHeader';
+import { useDelayedFlag } from '../../shared/hooks/useDelayedFlag';
 import {
   listPendingQuestions,
   verifyQuestion,
@@ -83,8 +84,10 @@ const VerifyQuestions: React.FC = () => {
   
   const [lightbox, setLightbox] = useState<{ src: string; title?: string } | null>(null);
 
-  
+
   const [hasTypedComment, setHasTypedComment] = useState(false);
+  const qShowLoading = useDelayedFlag(qLoading);
+  const cShowLoading = useDelayedFlag(cLoading);
 
   
   useEffect(() => {
@@ -97,7 +100,7 @@ const VerifyQuestions: React.FC = () => {
 
   const goBack = () => {
     if (hasTypedComment && !window.confirm('¿Estás seguro que deseas salir sin guardar los cambios?')) return;
-    navigate("supervisor/dashboard");
+    navigate('/supervisor/dashboard');
   };
 
   const loadAll = async () => {
@@ -248,7 +251,7 @@ const VerifyQuestions: React.FC = () => {
         {/* PREGUNTAS */}
         {tab === 'questions' && (
           <>
-            {qLoading ? (
+            {qShowLoading ? (
               <div className="rounded-2xl border border-gray-200 bg-white p-6 text-gray-600">Cargando…</div>
             ) : pendingQ.length === 0 ? (
               <div className="rounded-2xl border border-gray-200 bg-white p-6 text-gray-600">
@@ -421,7 +424,7 @@ const VerifyQuestions: React.FC = () => {
         {/* RECLAMACIONES */}
         {tab === 'claims' && (
           <>
-            {cLoading ? (
+            {cShowLoading ? (
               <div className="rounded-2xl border border-gray-200 bg-white p-6 text-gray-600">Cargando…</div>
             ) : pendingC.length === 0 ? (
               <div className="rounded-2xl border border-gray-200 bg-white p-6 text-gray-600">

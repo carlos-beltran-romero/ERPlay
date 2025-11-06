@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { Image as ImageIcon, Plus, Save, Search, ArrowLeft } from 'lucide-react';
 import { listPublicDiagrams } from '../../services/diagrams';
 import { createQuestion } from '../../services/questions';
+import { useDelayedFlag } from '../../shared/hooks/useDelayedFlag';
 
 type PublicDiagram = { id: string; title: string; path: string };
 
@@ -151,7 +152,9 @@ const NewQuestion: React.FC = () => {
     }
   };
 
-  if (loading) {
+  const showLoading = useDelayedFlag(loading);
+
+  if (showLoading) {
     return (
       <PageWithHeader>
         <div className="p-6 text-gray-600">Cargando…</div>
@@ -357,7 +360,7 @@ const NewQuestion: React.FC = () => {
                   Seguir editando
                 </button>
                 <button
-                  onClick={() => navigate("student/dashboard")}
+                  onClick={() => navigate('/student/dashboard')}
                   className="rounded-xl px-5 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-500"
                 >
                   Salir sin guardar
