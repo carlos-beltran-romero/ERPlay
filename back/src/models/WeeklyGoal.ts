@@ -12,7 +12,7 @@ import { User } from './User';
  * 
  * @entity WeeklyGoal
  */
-@Entity('WeeklyGoal')
+@Entity('weeklygoal')
 export class WeeklyGoal {
   /** Identificador único (UUID) */
   @PrimaryGeneratedColumn('uuid')
