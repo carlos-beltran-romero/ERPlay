@@ -3,6 +3,7 @@ import PageWithHeader from "../../components/layout/PageWithHeader";
 import { toast } from "react-toastify";
 import { listMyQuestions } from "../../services/questions";
 import { useNavigate } from "react-router-dom";
+import { resolveAssetUrl } from "../../shared/utils/url";
 
 import {
   Plus,
@@ -316,31 +317,128 @@ const MyQuestionsView: React.FC = () => {
               ) : (
                 <>
                   <div className="divide-y">
-                    {filteredQ.slice(0, visibleQ).map((q) => (
-                      <div key={q.id} className="px-4 py-3">
-                        <div className="hidden md:grid grid-cols-12 gap-3 items-start">
-                          <div className="col-span-1">
-                            {q.diagram?.path ? (
-                              <img
-                                src={q.diagram.path}
-                                alt={q.diagram.title || "Diagrama"}
-                                title="Haz clic para ampliar"
-                                className="h-12 w-12 object-cover rounded border cursor-zoom-in"
-                                onClick={() =>
-                                  setPreviewImg({
-                                    src: q.diagram!.path!,
-                                    title: q.diagram?.title || "Diagrama",
-                                  })
-                                }
+                    {filteredQ.slice(0, visibleQ).map((q) => {
+                      const diagramSrc =
+                        resolveAssetUrl(q.diagram?.path) || q.diagram?.path || "";
+
+                      return (
+                        <div key={q.id} className="px-4 py-3">
+                          <div className="hidden md:grid grid-cols-12 gap-3 items-start">
+                            <div className="col-span-1">
+                              {diagramSrc ? (
+                                <img
+                                  src={diagramSrc}
+                                  alt={q.diagram.title || "Diagrama"}
+                                  title="Haz clic para ampliar"
+                                  className="h-12 w-12 object-cover rounded border cursor-zoom-in"
+                                  onClick={() =>
+                                    setPreviewImg({
+                                      src: diagramSrc,
+                                      title: q.diagram?.title || "Diagrama",
+                                    })
+                                  }
+                                />
+                              ) : (
+                                <div className="h-12 w-12 grid place-items-center rounded border text-gray-400">
+                                  <ImageIcon size={16} />
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="col-span-6 min-w-0">
+                              <ExpandableText
+                                text={q.prompt || ""}
+                                className="font-medium"
+                                minToHalf={MIN_HALF_TOGGLE}
                               />
-                            ) : (
-                              <div className="h-12 w-12 grid place-items-center rounded border text-gray-400">
-                                <ImageIcon size={16} />
+                              <div className="mt-1 text-xs text-gray-500">
+                                {q.diagram?.title?.trim() || "—"}
+                                {q.createdAt ? (
+                                  <> · Creada el {fmtDate(q.createdAt)}</>
+                                ) : null}
                               </div>
-                            )}
+
+                              {Array.isArray(q.options) &&
+                                q.options.length > 0 && (
+                                  <div className="mt-2 space-y-1">
+                                    {q.options.map((opt, idx) => {
+                                      const isSelected =
+                                        idx === (q.correctIndex ?? -1);
+                                      return (
+                                        <div
+                                          key={idx}
+                                          className={`rounded-lg border px-3 py-2 text-sm ${
+                                            isSelected
+                                              ? "border-gray-200 bg-gray-50"
+                                              : "border-gray-100 bg-white"
+                                          }`}
+                                        >
+                                          <span className="font-semibold mr-2">
+                                            {String.fromCharCode(65 + idx)}.
+                                          </span>
+                                          <ExpandableText
+                                            text={opt}
+                                            minToHalf={MIN_HALF_TOGGLE_OPT}
+                                            className="inline"
+                                          />
+                                          {isSelected && (
+                                            <span className="ml-2 inline-flex items-center text-gray-600">
+                                              <CheckCircle2
+                                                size={14}
+                                                className="mr-1"
+                                              />
+                                              Seleccionada
+                                            </span>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                            </div>
+
+                            <div className="col-span-2">
+                              <StatusBadge status={q.status} />
+                            </div>
+
+                            <div className="col-span-3">
+                              {q.status === "REJECTED" &&
+                              q.reviewComment?.trim() ? (
+                                <div className="inline-flex items-start gap-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                                  <MessageSquare size={14} className="mt-0.5" />
+                                  <span className="whitespace-pre-wrap break-words">
+                                    {q.reviewComment}
+                                  </span>
+                                </div>
+                              ) : null}
+                            </div>
                           </div>
 
-                          <div className="col-span-6 min-w-0">
+                          <div className="md:hidden">
+                            <div className="mb-3 rounded-xl border bg-white overflow-hidden">
+                              <div className="relative w-full pt-[56.25%]">
+                                {" "}
+                                {diagramSrc ? (
+                                  <img
+                                    src={diagramSrc}
+                                    alt={q.diagram.title || "Diagrama"}
+                                    title="Toca para ampliar"
+                                    className="absolute inset-0 h-full w-full object-contain bg-white"
+                                    onClick={() =>
+                                      setPreviewImg({
+                                        src: diagramSrc,
+                                        title: q.diagram?.title || "Diagrama",
+                                      })
+                                    }
+                                  />
+                                ) : (
+                                  <div className="absolute inset-0 grid place-items-center text-gray-400">
+                                    <ImageIcon size={18} />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
                             <ExpandableText
                               text={q.prompt || ""}
                               className="font-medium"
@@ -353,151 +451,59 @@ const MyQuestionsView: React.FC = () => {
                               ) : null}
                             </div>
 
-                            {Array.isArray(q.options) &&
-                              q.options.length > 0 && (
-                                <div className="mt-2 space-y-1">
-                                  {q.options.map((opt, idx) => {
-                                    const isSelected =
-                                      idx === (q.correctIndex ?? -1);
-                                    return (
-                                      <div
-                                        key={idx}
-                                        className={`rounded-lg border px-3 py-2 text-sm ${
-                                          isSelected
-                                            ? "border-gray-200 bg-gray-50"
-                                            : "border-gray-100 bg-white"
-                                        }`}
-                                      >
-                                        <span className="font-semibold mr-2">
-                                          {String.fromCharCode(65 + idx)}.
-                                        </span>
-                                        <ExpandableText
-                                          text={opt}
-                                          minToHalf={MIN_HALF_TOGGLE_OPT}
-                                          className="inline"
-                                        />
-                                        {isSelected && (
-                                          <span className="ml-2 inline-flex items-center text-gray-600">
-                                            <CheckCircle2
-                                              size={14}
-                                              className="mr-1"
-                                            />
-                                            Seleccionada
-                                          </span>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                          </div>
-
-                          <div className="col-span-2">
-                            <StatusBadge status={q.status} />
-                          </div>
-
-                          <div className="col-span-3">
-                            {q.status === "REJECTED" &&
-                            q.reviewComment?.trim() ? (
-                              <div className="inline-flex items-start gap-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                                <MessageSquare size={14} className="mt-0.5" />
-                                <span className="whitespace-pre-wrap break-words">
-                                  {q.reviewComment}
-                                </span>
-                              </div>
-                            ) : null}
-                          </div>
-                        </div>
-
-                        <div className="md:hidden">
-                          <div className="mb-3 rounded-xl border bg-white overflow-hidden">
-                            <div className="relative w-full pt-[56.25%]">
-                              {" "}
-                              {q.diagram?.path ? (
-                                <img
-                                  src={q.diagram.path}
-                                  alt={q.diagram.title || "Diagrama"}
-                                  title="Toca para ampliar"
-                                  className="absolute inset-0 h-full w-full object-contain bg-white"
-                                  onClick={() =>
-                                    setPreviewImg({
-                                      src: q.diagram!.path!,
-                                      title: q.diagram?.title || "Diagrama",
-                                    })
-                                  }
-                                />
-                              ) : (
-                                <div className="absolute inset-0 grid place-items-center text-gray-400">
-                                  <ImageIcon size={18} />
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          <ExpandableText
-                            text={q.prompt || ""}
-                            className="font-medium"
-                            minToHalf={MIN_HALF_TOGGLE}
-                          />
-                          <div className="mt-1 text-xs text-gray-500">
-                            {q.diagram?.title?.trim() || "—"}
-                            {q.createdAt ? (
-                              <> · Creada el {fmtDate(q.createdAt)}</>
-                            ) : null}
-                          </div>
-
-                          {Array.isArray(q.options) && q.options.length > 0 && (
-                            <div className="mt-2 space-y-1">
-                              {q.options.map((opt, idx) => {
-                                const isSelected =
-                                  idx === (q.correctIndex ?? -1);
-                                return (
-                                  <div
-                                    key={idx}
-                                    className={`rounded-lg border px-3 py-2 text-sm ${
-                                      isSelected
-                                        ? "border-gray-200 bg-gray-50"
-                                        : "border-gray-100 bg-white"
-                                    }`}
-                                  >
-                                    <span className="font-semibold mr-2">
-                                      {String.fromCharCode(65 + idx)}.
-                                    </span>
-                                    <ExpandableText
-                                      text={opt}
-                                      minToHalf={MIN_HALF_TOGGLE_OPT}
-                                      className="inline"
-                                    />
-                                    {isSelected && (
-                                      <span className="ml-2 inline-flex items-center text-gray-600">
-                                        <CheckCircle2
-                                          size={14}
-                                          className="mr-1"
-                                        />
-                                        Seleccionada
+                            {Array.isArray(q.options) && q.options.length > 0 && (
+                              <div className="mt-2 space-y-1">
+                                {q.options.map((opt, idx) => {
+                                  const isSelected =
+                                    idx === (q.correctIndex ?? -1);
+                                  return (
+                                    <div
+                                      key={idx}
+                                      className={`rounded-lg border px-3 py-2 text-sm ${
+                                        isSelected
+                                          ? "border-gray-200 bg-gray-50"
+                                          : "border-gray-100 bg-white"
+                                      }`}
+                                    >
+                                      <span className="font-semibold mr-2">
+                                        {String.fromCharCode(65 + idx)}.
                                       </span>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-
-                          <div className="mt-2 flex items-start justify-between gap-3">
-                            <StatusBadge status={q.status} />
-                            {q.status === "REJECTED" &&
-                            q.reviewComment?.trim() ? (
-                              <div className="inline-flex items-start gap-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-700">
-                                <MessageSquare size={14} className="mt-0.5" />
-                                <span className="whitespace-pre-wrap break-words">
-                                  {q.reviewComment}
-                                </span>
+                                      <ExpandableText
+                                        text={opt}
+                                        minToHalf={MIN_HALF_TOGGLE_OPT}
+                                        className="inline"
+                                      />
+                                      {isSelected && (
+                                        <span className="ml-2 inline-flex items-center text-gray-600">
+                                          <CheckCircle2
+                                            size={14}
+                                            className="mr-1"
+                                          />
+                                          Seleccionada
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </div>
-                            ) : null}
+                            )}
+
+                            <div className="mt-2 flex items-start justify-between gap-3">
+                              <StatusBadge status={q.status} />
+                              {q.status === "REJECTED" &&
+                              q.reviewComment?.trim() ? (
+                                <div className="inline-flex items-start gap-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-700">
+                                  <MessageSquare size={14} className="mt-0.5" />
+                                  <span className="whitespace-pre-wrap break-words">
+                                    {q.reviewComment}
+                                  </span>
+                                </div>
+                              ) : null}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   <div className="flex items-center justify-between px-4 py-3">
@@ -583,20 +589,22 @@ const MyQuestionsView: React.FC = () => {
                               c.options[c.correctIndex]
                             }`
                           : "—";
+                      const diagramSrc =
+                        resolveAssetUrl(c.diagram?.path) || c.diagram?.path || "";
 
                       return (
                         <div key={c.id} className="px-4 py-3">
                           <div className="hidden md:grid grid-cols-12 gap-3 items-start">
                             <div className="col-span-1">
-                              {c.diagram?.path ? (
+                              {diagramSrc ? (
                                 <img
-                                  src={c.diagram.path}
+                                  src={diagramSrc}
                                   alt={c.diagram.title || "Diagrama"}
                                   title="Haz clic para ampliar"
                                   className="h-12 w-12 object-cover rounded border cursor-zoom-in"
                                   onClick={() =>
                                     setPreviewImg({
-                                      src: c.diagram!.path!,
+                                      src: diagramSrc,
                                       title: c.diagram?.title || "Diagrama",
                                     })
                                   }
@@ -664,15 +672,15 @@ const MyQuestionsView: React.FC = () => {
 
                           <div className="md:hidden">
                             <div className="mb-2">
-                              {c.diagram?.path ? (
+                              {diagramSrc ? (
                                 <img
-                                  src={c.diagram.path}
+                                  src={diagramSrc}
                                   alt={c.diagram.title || "Diagrama"}
                                   title="Toca para ampliar"
                                   className="w-full max-h-64 object-contain rounded-xl border bg-white"
                                   onClick={() =>
                                     setPreviewImg({
-                                      src: c.diagram!.path!,
+                                      src: diagramSrc,
                                       title: c.diagram?.title || "Diagrama",
                                     })
                                   }
