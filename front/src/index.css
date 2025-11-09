@@ -11,21 +11,21 @@
   --color-muted-soft: #6b7280;
   --color-ring: rgba(79, 70, 229, 0.28);
   --color-shadow: rgba(15, 23, 42, 0.12);
-  --shadow-elevated: 0 20px 45px -25px rgba(15, 23, 42, 0.4);
+  --shadow-elevated: 0 22px 48px -26px rgba(15, 23, 42, 0.38);
 }
 
 :root.dark {
   color-scheme: dark;
-  --color-body: #050b1b;
-  --color-surface: #101b33;
-  --color-surface-hover: #172542;
-  --color-border: rgba(129, 140, 248, 0.35);
-  --color-foreground: #e7edff;
-  --color-muted: #96a5cc;
-  --color-muted-soft: #7d8ab5;
-  --color-ring: rgba(129, 140, 248, 0.5);
-  --color-shadow: rgba(12, 18, 38, 0.65);
-  --shadow-elevated: 0 28px 60px -24px rgba(8, 13, 34, 0.85);
+  --color-body: #030712;
+  --color-surface: #0d1628;
+  --color-surface-hover: #172135;
+  --color-border: rgba(94, 110, 180, 0.4);
+  --color-foreground: #e6ecff;
+  --color-muted: #9aa6cb;
+  --color-muted-soft: #7f8cb4;
+  --color-ring: rgba(119, 133, 208, 0.55);
+  --color-shadow: rgba(3, 7, 18, 0.7);
+  --shadow-elevated: 0 32px 68px -28px rgba(3, 7, 18, 0.85);
 }
 
 body {
@@ -43,9 +43,10 @@ body {
 }
 
 :root.dark body {
-  background-image: radial-gradient(circle at 5% 15%, rgba(99, 102, 241, 0.22) 0%, transparent 55%),
-    radial-gradient(circle at 90% 10%, rgba(56, 189, 248, 0.18) 0%, transparent 50%),
-    radial-gradient(circle at 40% 100%, rgba(236, 72, 153, 0.14) 0%, transparent 60%);
+  background-image: radial-gradient(circle at 10% 8%, rgba(70, 84, 173, 0.32) 0%, transparent 55%),
+    radial-gradient(circle at 88% 14%, rgba(37, 99, 235, 0.18) 0%, transparent 58%),
+    radial-gradient(circle at 50% 100%, rgba(236, 72, 153, 0.16) 0%, transparent 62%),
+    linear-gradient(160deg, rgba(4, 7, 17, 0.94) 0%, rgba(5, 12, 28, 0.96) 45%, rgba(9, 18, 39, 0.98) 100%);
 }
 
 ::-moz-selection {

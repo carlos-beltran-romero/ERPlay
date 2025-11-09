@@ -98,8 +98,7 @@ const Header: React.FC = () => {
         </button>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <ThemeToggleButton className="hidden sm:inline-flex" />
-          <ThemeToggleButton className="sm:hidden !rounded-xl !px-2.5 !py-2" showLabel={false} />
+          <ThemeToggleButton showLabel className="px-2.5 py-2 sm:px-3 sm:py-2" />
           {!isSupervisor && (
             <button
               onClick={() => go('/student/play-menu')}
