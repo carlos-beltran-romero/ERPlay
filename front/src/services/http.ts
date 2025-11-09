@@ -36,6 +36,33 @@ export type ApiRequestInit = RequestInit & {
 
 let refreshingPromise: Promise<string | null> | null = null;
 
+function toNetworkApiError(error: unknown): ApiError {
+  const cause = (error as any)?.cause ?? error;
+  const code = typeof cause?.code === 'string' ? cause.code : typeof cause?.errno === 'string' ? cause.errno : undefined;
+  const address = typeof cause?.address === 'string' ? cause.address : undefined;
+  const port = typeof cause?.port === 'number' ? cause.port : undefined;
+
+  const connectionDetails = code === 'ECONNREFUSED' && address && port ? `${address}:${port}` : undefined;
+  const detailsSuffix = connectionDetails ? ` (${connectionDetails})` : '';
+
+  const message =
+    code === 'ECONNREFUSED'
+      ? `No se pudo conectar con el servidor${detailsSuffix}. Verifica que la API y la base de datos estén en ejecución.`
+      : 'Se produjo un error de red al comunicarse con el servidor.';
+
+  const networkError = new ApiError(message, 0, undefined);
+  (networkError as any).cause = error;
+  return networkError;
+}
+
+async function runWithNetworkGuard<T>(operation: () => Promise<T>): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    throw toNetworkApiError(error);
+  }
+}
+
 export function getAccessToken(): string | null {
   return localStorage.getItem(ACCESS_TOKEN_KEY);
 }
@@ -115,12 +142,14 @@ async function refreshAccessToken(): Promise<string | null> {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return null;
 
-  const res = await fetch(resolveUrl('/api/auth/refresh'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ refreshToken }),
-  });
+  const res = await runWithNetworkGuard(() =>
+    fetch(resolveUrl('/api/auth/refresh'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ refreshToken }),
+    }),
+  );
 
   const body = await safeParseJson(res);
   if (!res.ok || typeof (body as any)?.accessToken !== 'string') {
@@ -180,19 +209,19 @@ export async function apiRequest(path: string, init: ApiRequestInit = {}): Promi
     return fetch(url, prepared);
   };
 
-  const first = await attempt();
+  const first = await runWithNetworkGuard(() => attempt());
   if (!auth || (first.status !== 401 && first.status !== 403)) {
     (first as any).fallbackError = fallbackError;
     return first;
   }
 
-  const refreshed = await ensureFreshToken();
+  const refreshed = await runWithNetworkGuard(() => ensureFreshToken());
   if (!refreshed) {
     (first as any).fallbackError = fallbackError;
     return first;
   }
 
-  const second = await attempt(refreshed);
+  const second = await runWithNetworkGuard(() => attempt(refreshed));
   (second as any).fallbackError = fallbackError;
   return second;
 }
