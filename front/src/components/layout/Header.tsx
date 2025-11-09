@@ -12,6 +12,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { useAuth } from '../../app/AuthContext';
+import { ThemeToggleButton } from '../ThemeToggle';
 
 /**
  * Cabecera principal con navegación contextual y menú de usuario.
@@ -97,6 +98,8 @@ const Header: React.FC = () => {
         </button>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          <ThemeToggleButton className="hidden sm:inline-flex" />
+          <ThemeToggleButton className="sm:hidden !rounded-xl !px-2.5 !py-2" showLabel={false} />
           {!isSupervisor && (
             <button
               onClick={() => go('/student/play-menu')}

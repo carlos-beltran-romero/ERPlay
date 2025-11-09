@@ -3,6 +3,8 @@ import { router } from './router';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider } from './AuthContext';
+import { ThemeProvider } from './ThemeContext';
+import { FloatingThemeToggle } from '../components/ThemeToggle';
 
 /**
  * Punto de entrada del frontend con router y notificaciones.
@@ -11,19 +13,22 @@ import { AuthProvider } from './AuthContext';
  */
 export function App() {
   return (
-    <AuthProvider>
-      <RouterProvider router={router} />
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar
-        newestOnTop
-        closeOnClick
-        draggable
-        pauseOnHover
-        theme="colored"
-        limit={3}
-      />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <RouterProvider router={router} />
+        <FloatingThemeToggle />
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar
+          newestOnTop
+          closeOnClick
+          draggable
+          pauseOnHover
+          theme="colored"
+          limit={3}
+        />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
