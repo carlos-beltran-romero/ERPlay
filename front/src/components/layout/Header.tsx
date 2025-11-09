@@ -10,14 +10,18 @@ import {
   MessageSquare,
   Users,
   Layers,
+  Moon,
+  Sun,
 } from 'lucide-react';
 import { useAuth } from '../../app/AuthContext';
+import { useTheme } from '../../app/ThemeContext';
 
 /**
  * Cabecera principal con navegación contextual y menú de usuario.
  */
 const Header: React.FC = () => {
   const { profile, loading, setProfile } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -97,6 +101,15 @@ const Header: React.FC = () => {
         </button>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/15 bg-white/5 transition hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            aria-label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+            title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+          >
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
           {!isSupervisor && (
             <button
               onClick={() => go('/student/play-menu')}

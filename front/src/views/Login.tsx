@@ -4,8 +4,9 @@ import teacherIcon from "../assets/teacher_icon.png";
 import patternBg from "../assets/pattern-molecules.png";
 import { login as apiLogin } from "../services/auth";
 import { getProfile, type UserProfile } from "../services/users";
-import { Eye, EyeOff, Mail, Lock, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, Loader2, Moon, Sun } from "lucide-react";
 import { useAuth } from "../app/AuthContext";
+import { useTheme } from "../app/ThemeContext";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const { setProfile } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     (async () => {
@@ -61,8 +63,17 @@ const Login: React.FC = () => {
 
   if (checkingSession) {
     return (
-      <div className="min-h-screen grid place-items-center bg-gradient-to-br from-slate-100 via-zinc-100 to-stone-100">
-        <div className="inline-flex items-center gap-2 text-slate-600">
+      <div className="min-h-screen relative grid place-items-center bg-gradient-to-br from-slate-100 via-zinc-100 to-stone-100 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 transition-colors duration-500">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="absolute right-6 top-6 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/70 bg-white/80 text-slate-700 shadow-sm backdrop-blur focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/60 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
+          aria-label={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+          title={theme === "dark" ? "Modo claro" : "Modo oscuro"}
+        >
+          {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
+        <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-slate-600 shadow-sm backdrop-blur dark:bg-slate-900/70 dark:text-slate-200">
           <Loader2 className="h-5 w-5 animate-spin" />
           Comprobando sesión…
         </div>
@@ -71,10 +82,19 @@ const Login: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen relative bg-gradient-to-br from-slate-100 via-zinc-100 to-stone-100">
+    <div className="min-h-screen relative bg-gradient-to-br from-slate-100 via-zinc-100 to-stone-100 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 transition-colors duration-500">
+      <button
+        type="button"
+        onClick={toggleTheme}
+        className="absolute right-6 top-6 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/70 bg-white/80 text-slate-700 shadow-sm backdrop-blur focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/60 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100"
+        aria-label={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+        title={theme === "dark" ? "Modo claro" : "Modo oscuro"}
+      >
+        {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+      </button>
       {/* patrón sutil de fondo, con mezcla para que no “queme” blanco */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-20 mix-blend-multiply"
+        className="pointer-events-none absolute inset-0 opacity-20 mix-blend-multiply dark:opacity-[0.15]"
         style={{
           backgroundImage: `url(${patternBg})`,
           backgroundSize: "900px",
@@ -83,7 +103,7 @@ const Login: React.FC = () => {
       />
 
       <main className="relative mx-auto flex min-h-screen max-w-7xl lg:max-w-[1280px] items-center px-6 lg:px-8">
-        <div className="grid w-full grid-cols-1 overflow-hidden rounded-3xl border border-slate-200/70 bg-slate-50/80 shadow-2xl backdrop-blur-sm md:grid-cols-2 md:min-h-[620px] lg:min-h-[700px]">
+        <div className="grid w-full grid-cols-1 overflow-hidden rounded-3xl border border-slate-200/70 bg-slate-50/80 shadow-2xl backdrop-blur-sm transition-colors duration-300 dark:border-slate-700 dark:bg-slate-900/70 md:grid-cols-2 md:min-h-[620px] lg:min-h-[700px]">
           {/* Lado visual / branding */}
           <div className="relative hidden md:block">
             <img
@@ -105,20 +125,20 @@ const Login: React.FC = () => {
           </div>
 
           {/* Formulario (centrado vertical) */}
-          <div className="relative isolate bg-gradient-to-b from-white/90 to-slate-50/90 p-10 sm:p-12 lg:p-14 flex items-center">
+          <div className="relative isolate bg-gradient-to-b from-white/90 to-slate-50/90 p-10 sm:p-12 lg:p-14 flex items-center transition-colors duration-300 dark:from-slate-950/95 dark:to-slate-900/80">
             {/* wrapper con ancho cómodo */}
             <div className="w-full max-w-md mx-auto">
               <div className="mb-7">
-                <h1 className="text-3xl font-semibold text-slate-800">
+                <h1 className="text-3xl font-semibold text-slate-800 dark:text-slate-100">
                   Iniciar sesión
                 </h1>
-                <p className="mt-1 text-sm text-slate-600">
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                   Bienvenido de nuevo
                 </p>
               </div>
 
               {error && (
-                <div className="mb-6 rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                <div className="mb-6 rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-400/60 dark:bg-rose-500/15 dark:text-rose-200">
                   {error}
                 </div>
               )}
@@ -128,20 +148,19 @@ const Login: React.FC = () => {
                 <div>
                   <label
                     htmlFor="email"
-                    className="mb-1.5 block text-sm text-slate-600"
+                    className="mb-1.5 block text-sm text-slate-600 dark:text-slate-300"
                   >
                     Correo electrónico
                   </label>
                   <div className="relative">
-                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                     <input
                       id="email"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="tucorreo@ejemplo.com"
-                      className="w-full rounded-xl border border-slate-300 bg-slate-50/70 pl-11 pr-3 py-3 text-[16px] text-slate-800 placeholder:text-slate-400 outline-none transition
-                       focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+                      className="w-full rounded-xl border border-slate-300 bg-slate-50/70 pl-11 pr-3 py-3 text-[16px] text-slate-800 placeholder:text-slate-400 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-600 dark:bg-slate-900/60 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-500 dark:focus:ring-slate-700/60"
                       required
                       autoFocus
                     />
@@ -153,33 +172,32 @@ const Login: React.FC = () => {
                   <div className="mb-1.5 flex items-center justify-between">
                     <label
                       htmlFor="password"
-                      className="block text-sm text-slate-600"
+                      className="block text-sm text-slate-600 dark:text-slate-300"
                     >
                       Contraseña
                     </label>
                     <a
                       href="/forgot-password"
-                      className="text-xs text-slate-500 hover:text-slate-700"
+                      className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                     >
                       ¿Olvidaste tu contraseña?
                     </a>
                   </div>
                   <div className="relative">
-                    <Lock className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                    <Lock className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                     <input
                       id="password"
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full rounded-xl border border-slate-300 bg-slate-50/70 pl-11 pr-12 py-3 text-[16px] text-slate-800 placeholder:text-slate-400 outline-none transition
-                       focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+                      className="w-full rounded-xl border border-slate-300 bg-slate-50/70 pl-11 pr-12 py-3 text-[16px] text-slate-800 placeholder:text-slate-400 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 dark:border-slate-600 dark:bg-slate-900/60 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-500 dark:focus:ring-slate-700/60"
                       required
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword((v) => !v)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-2.5 text-slate-600 hover:bg-slate-100"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-2.5 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800/70"
                       aria-label={
                         showPassword
                           ? "Ocultar contraseña"
@@ -198,8 +216,8 @@ const Login: React.FC = () => {
                   className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3 text-[15px] font-medium text-white transition
           ${
             loading
-              ? "bg-slate-400 cursor-not-allowed"
-              : "bg-slate-800 hover:bg-slate-700"
+              ? "bg-slate-400 cursor-not-allowed dark:bg-slate-600"
+              : "bg-slate-800 hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
           }`}
                 >
                   {loading && <Loader2 className="h-5 w-5 animate-spin" />}
@@ -207,7 +225,7 @@ const Login: React.FC = () => {
                 </button>
               </form>
 
-              <div className="mt-8 text-center text-xs text-slate-500">
+              <div className="mt-8 text-center text-xs text-slate-500 dark:text-slate-400">
                 © {new Date().getFullYear()} ERPlay · Todos los derechos
                 reservados
               </div>
