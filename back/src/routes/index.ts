@@ -54,9 +54,5 @@ export default function registerRoutes(app: Express) {
   // Montar router principal en /api
   app.use('/api', apiRouter);
 
-  // Servir archivos estáticos de uploads
-  app.use(
-    '/uploads',
-    express.static(path.join(process.cwd(), 'uploads'), { fallthrough: true }),
-  );
+
 }

@@ -328,7 +328,7 @@ const MyQuestionsView: React.FC = () => {
                               {diagramSrc ? (
                                 <img
                                   src={diagramSrc}
-                                  alt={q.diagram.title || "Diagrama"}
+                                  alt={q.diagram?.title ?? "Diagrama"}
                                   title="Haz clic para ampliar"
                                   className="h-12 w-12 object-cover rounded border cursor-zoom-in"
                                   onClick={() =>
@@ -421,7 +421,7 @@ const MyQuestionsView: React.FC = () => {
                                 {diagramSrc ? (
                                   <img
                                     src={diagramSrc}
-                                    alt={q.diagram.title || "Diagrama"}
+                                    alt={q.diagram?.title ?? "Diagrama"}
                                     title="Toca para ampliar"
                                     className="absolute inset-0 h-full w-full object-contain bg-white"
                                     onClick={() =>
@@ -599,7 +599,7 @@ const MyQuestionsView: React.FC = () => {
                               {diagramSrc ? (
                                 <img
                                   src={diagramSrc}
-                                  alt={c.diagram.title || "Diagrama"}
+                                  alt={c.diagram?.title ?? "Diagrama"}
                                   title="Haz clic para ampliar"
                                   className="h-12 w-12 object-cover rounded border cursor-zoom-in"
                                   onClick={() =>
@@ -675,7 +675,7 @@ const MyQuestionsView: React.FC = () => {
                               {diagramSrc ? (
                                 <img
                                   src={diagramSrc}
-                                  alt={c.diagram.title || "Diagrama"}
+                                  alt={c.diagram?.title ?? "Diagrama"}
                                   title="Toca para ampliar"
                                   className="w-full max-h-64 object-contain rounded-xl border bg-white"
                                   onClick={() =>

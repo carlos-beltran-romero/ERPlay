@@ -1,39 +1,30 @@
 {
   "name": "errplay_server",
   "version": "1.0.0",
-  "description": "REST API's Express y Typescript",
-  "main": "index.js",
+  "description": "REST API Express + TypeScript",
+  "private": true,
+  "main": "dist/index.js",
   "scripts": {
-    "dev": "nodemon -x ts-node src/index.ts",
+    "dev": "nodemon --watch src --exec ts-node src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
-    "typeorm": "typeorm-ts-node-commonjs",
-    "migration:generate": "npm run typeorm -- migration:generate src/migrations/initialSchema -d src/data-source.ts",
-    "migration:run": "npm run typeorm -- migration:run -d src/data-source.ts",
-    "migration:revert": "npm run typeorm -- migration:revert -d src/data-source.ts",
+
+    "// Local migrations (TypeScript)": "",
+    "typeorm:ts": "typeorm-ts-node-commonjs",
+    "migration:generate": "npm run typeorm:ts -- migration:generate src/migrations/initialSchema -d src/data-source.ts",
+    "migration:run": "npm run typeorm:ts -- migration:run -d src/data-source.ts",
+    "migration:revert": "npm run typeorm:ts -- migration:revert -d src/data-source.ts",
+
+    "// Prod migrations (JS compilado a dist/)": "",
+    "typeorm": "typeorm",
+    "migration:run:js": "typeorm migration:run -d dist/data-source.js",
+    "migration:revert:js": "typeorm migration:revert -d dist/data-source.js",
+
     "seed": "ts-node --transpile-only src/seeds/seed.ts",
-    "test": "node ./node_modules/jest/bin/jest.js"
+    "test": "jest"
   },
   "author": "Carlos Beltrán Romero",
   "license": "ISC",
-  "devDependencies": {
-    "@types/bcrypt": "^5.0.2",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.3",
-    "@types/helmet": "^0.0.48",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/morgan": "^1.9.10",
-    "@types/multer": "^1.4.13",
-    "@types/jest": "^29.5.14",
-    "@types/supertest": "^6.0.3",
-    "jest": "^29.7.0",
-    "nodemon": "^3.1.10",
-    "supertest": "^7.1.4",
-    "ts-jest": "^29.4.5",
-    "ts-node": "^10.9.2",
-    "typeorm": "^0.3.24",
-    "typescript": "^5.8.3"
-  },
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
@@ -48,6 +39,27 @@
     "nodemailer": "^7.0.5",
     "reflect-metadata": "^0.2.2",
     "sequelize": "^6.37.7",
+    "typeorm": "^0.3.24",
     "zod": "^4.0.5"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/helmet": "^0.0.48",
+    "@types/jest": "^29.5.14",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.10",
+    "@types/multer": "^1.4.13",
+    "@types/supertest": "^6.0.3",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.10",
+    "supertest": "^7.1.4",
+    "ts-jest": "^29.4.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
