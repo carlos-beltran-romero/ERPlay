@@ -4,8 +4,10 @@
  * @module routes/index
  */
 
-import express, { Express } from 'express';
 import path from 'path';
+import express, { Express } from 'express';
+
+import { renderSwaggerUi } from '../core/swaggerUi';
 
 import authRoutes from './auth';
 import claimsRoutes from './claims';
@@ -27,6 +29,13 @@ import userRoutes from './users';
  */
 export default function registerRoutes(app: Express) {
   const apiRouter = express.Router();
+
+  apiRouter.get('/docs', (_req, res) => {
+    res.type('text/html').send(renderSwaggerUi('/api/openapi.yaml'));
+  });
+  apiRouter.get('/openapi.yaml', (_req, res) => {
+    res.type('application/yaml').sendFile(path.resolve(__dirname, '../../openapi.yaml'));
+  });
 
   // Rutas de autenticación y usuarios
   apiRouter.use('/auth', authRoutes);

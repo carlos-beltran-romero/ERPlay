@@ -39,37 +39,37 @@ const ForgotPassword: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-200 via-white to-gray-200 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-200 via-white to-gray-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 dark:border dark:border-slate-700 rounded-2xl shadow-xl p-8">
         {/* Logo */}
         <div className="flex justify-center mb-6">
           <img src={iconoWeb} alt="ERLean Logo" className="h-20" />
         </div>
 
         {/* Title */}
-        <h2 className="text-3xl font-extrabold text-gray-800 text-center mb-4">
+        <h2 className="text-3xl font-extrabold text-gray-800 dark:text-slate-100 text-center mb-4">
           Recuperar Contraseña
         </h2>
 
         {/* Description */}
-        <p className="text-gray-600 text-center mb-6">
+        <p className="text-gray-600 dark:text-slate-300 text-center mb-6">
           Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
         </p>
 
         {/* Feedback Messages */}
         {status === 'sent' && (
-          <p className="text-green-600 text-center mb-4">
+          <p className="text-green-600 dark:text-green-400 text-center mb-4">
             Si ese correo existe, recibirás un enlace en tu bandeja de entrada.
           </p>
         )}
         {status === 'error' && error && (
-          <p className="text-red-600 text-center mb-4">{error}</p>
+          <p className="text-red-600 dark:text-rose-400 text-center mb-4">{error}</p>
         )}
 
         {/* Form */}
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div>
-            <label htmlFor="email" className="block text-gray-700 mb-2">
+            <label htmlFor="email" className="block text-gray-700 dark:text-slate-200 mb-2">
               Correo electrónico
             </label>
             <input
@@ -78,7 +78,7 @@ const ForgotPassword: React.FC = () => {
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="tucorreo@ejemplo.com"
-              className="w-full px-5 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              className="w-full px-5 py-3 border border-gray-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-indigo-500"
               required
             />
           </div>
@@ -122,8 +122,8 @@ const ForgotPassword: React.FC = () => {
         </form>
 
         {/* Back Link */}
-        <p className="mt-6 text-center text-sm text-gray-600">
-          <a href="/login" className="font-medium text-slate-500 hover:text-slate-700 hover:underline">
+        <p className="mt-6 text-center text-sm text-gray-600 dark:text-slate-300">
+          <a href="/login" className="font-medium text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-100 hover:underline">
             Volver al Login
           </a>
         </p>

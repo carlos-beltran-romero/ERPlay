@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { batchCreateStudents, type BatchStudent } from '../../services/users';
 import PageWithHeader from '../../components/layout/PageWithHeader';
 import { toast } from 'react-toastify';
-import { Plus, Trash2, Save, ArrowLeft } from 'lucide-react';
+import { Plus, Trash2, Save, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 
 type Row = {
   key: string;
@@ -22,6 +22,7 @@ const SupervisorBulkStudents: React.FC = () => {
   const [rows, setRows] = useState<Row[]>([
     { key: crypto.randomUUID(), name: '', lastName: '', email: '', password: '' },
   ]);
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
 
   const addRow = () => {
@@ -30,10 +31,19 @@ const SupervisorBulkStudents: React.FC = () => {
 
   const removeRow = (key: string) => {
     setRows(prev => prev.filter(r => r.key !== key));
+    setVisiblePasswords(prev => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
   };
 
   const updateCell = (key: string, field: keyof Row, value: string) => {
     setRows(prev => prev.map(r => (r.key === key ? { ...r, [field]: value } : r)));
+  };
+
+  const togglePasswordVisibility = (key: string) => {
+    setVisiblePasswords(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
   const validate = (draft: Row[]) => {
@@ -93,6 +103,7 @@ const SupervisorBulkStudents: React.FC = () => {
       if (duplicados > 0) toast.warn(`Omitidos por duplicados en el lote: ${result.skipped.payloadDuplicates.join(', ')}`);
 
       setRows([{ key: crypto.randomUUID(), name: '', lastName: '', email: '', password: '' }]);
+      setVisiblePasswords({});
     } catch (err: any) {
       toast.error(err.message || 'No se pudo completar el alta masiva');
     } finally {
@@ -134,99 +145,18 @@ const SupervisorBulkStudents: React.FC = () => {
             </div>
 
             <div className="divide-y">
-              {validatedRows.map(r => (
-                <div key={r.key} className="px-4 py-4">
-                  {/* Fila desktop */}
-                  <div className="hidden md:grid grid-cols-12 gap-3 items-start">
-                    <div className="col-span-3">
-                      <input
-                        value={r.name}
-                        onChange={e => updateCell(r.key, 'name', e.target.value)}
-                        placeholder="Nombre"
-                        className={`w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
-                          r.errors?.name ? 'border-red-400' : 'border-gray-300'
-                        }`}
-                        required
-                      />
-                      {r.errors?.name && <p className="mt-1 text-xs text-red-600">{r.errors.name}</p>}
-                    </div>
-
-                    <div className="col-span-3">
-                      <input
-                        value={r.lastName}
-                        onChange={e => updateCell(r.key, 'lastName', e.target.value)}
-                        placeholder="Apellidos"
-                        className={`w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
-                          r.errors?.lastName ? 'border-red-400' : 'border-gray-300'
-                        }`}
-                        required
-                      />
-                      {r.errors?.lastName && <p className="mt-1 text-xs text-red-600">{r.errors.lastName}</p>}
-                    </div>
-
-                    <div className="col-span-3">
-                      <input
-                        value={r.email}
-                        onChange={e => updateCell(r.key, 'email', e.target.value)}
-                        placeholder="correo@ejemplo.com"
-                        className={`w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
-                          r.errors?.email ? 'border-red-400' : 'border-gray-300'
-                        }`}
-                        type="email"
-                        required
-                      />
-                      {r.errors?.email && <p className="mt-1 text-xs text-red-600">{r.errors.email}</p>}
-                    </div>
-
-                    <div className="col-span-2">
-                      <input
-                        value={r.password}
-                        onChange={e => updateCell(r.key, 'password', e.target.value)}
-                        placeholder="Contraseña"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                        type="password"
-                        required
-                      />
-                      {r.errors?.password && (
-                        <p className="mt-1 text-xs text-gray-600">{r.errors.password}</p>
-                      )}
-                    </div>
-
-                    <div className="col-span-1 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => removeRow(r.key)}
-                        className="rounded-lg p-2 text-gray-600 hover:bg-gray-100"
-                        title="Eliminar fila"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Tarjeta móvil */}
-                  <div className="md:hidden rounded-xl   bg-white p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="text-sm font-medium text-gray-700">Alumno</div>
-                      <button
-                        type="button"
-                        onClick={() => removeRow(r.key)}
-                        className="rounded-lg p-1.5 text-gray-600 hover:bg-gray-100"
-                        title="Eliminar fila"
-                        aria-label="Eliminar fila"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div>
-                        <label className="mb-1 block text-xs text-gray-600">Nombre *</label>
+              {validatedRows.map(r => {
+                const passwordVisible = !!visiblePasswords[r.key];
+                return (
+                  <div key={r.key} className="px-4 py-4">
+                    {/* Fila desktop */}
+                    <div className="hidden md:grid grid-cols-12 gap-3 items-start">
+                      <div className="col-span-3">
                         <input
                           value={r.name}
                           onChange={e => updateCell(r.key, 'name', e.target.value)}
                           placeholder="Nombre"
-                          className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
+                          className={`w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
                             r.errors?.name ? 'border-red-400' : 'border-gray-300'
                           }`}
                           required
@@ -234,13 +164,12 @@ const SupervisorBulkStudents: React.FC = () => {
                         {r.errors?.name && <p className="mt-1 text-xs text-red-600">{r.errors.name}</p>}
                       </div>
 
-                      <div>
-                        <label className="mb-1 block text-xs text-gray-600">Apellidos *</label>
+                      <div className="col-span-3">
                         <input
                           value={r.lastName}
                           onChange={e => updateCell(r.key, 'lastName', e.target.value)}
                           placeholder="Apellidos"
-                          className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
+                          className={`w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
                             r.errors?.lastName ? 'border-red-400' : 'border-gray-300'
                           }`}
                           required
@@ -248,13 +177,12 @@ const SupervisorBulkStudents: React.FC = () => {
                         {r.errors?.lastName && <p className="mt-1 text-xs text-red-600">{r.errors.lastName}</p>}
                       </div>
 
-                      <div>
-                        <label className="mb-1 block text-xs text-gray-600">Email *</label>
+                      <div className="col-span-3">
                         <input
                           value={r.email}
                           onChange={e => updateCell(r.key, 'email', e.target.value)}
                           placeholder="correo@ejemplo.com"
-                          className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
+                          className={`w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
                             r.errors?.email ? 'border-red-400' : 'border-gray-300'
                           }`}
                           type="email"
@@ -263,24 +191,130 @@ const SupervisorBulkStudents: React.FC = () => {
                         {r.errors?.email && <p className="mt-1 text-xs text-red-600">{r.errors.email}</p>}
                       </div>
 
-                      <div>
-                        <label className="mb-1 block text-xs text-gray-600">Contraseña *</label>
-                        <input
-                          value={r.password}
-                          onChange={e => updateCell(r.key, 'password', e.target.value)}
-                          placeholder="Contraseña"
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                          type="password"
-                          required
-                        />
+                      <div className="col-span-2">
+                        <div className="relative">
+                          <input
+                            value={r.password}
+                            onChange={e => updateCell(r.key, 'password', e.target.value)}
+                            placeholder="Contraseña"
+                            className="w-full rounded-lg border border-gray-300 px-3 pr-11 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                            type={passwordVisible ? 'text' : 'password'}
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => togglePasswordVisibility(r.key)}
+                            className="absolute inset-y-0 right-2 flex items-center rounded-md px-2 text-gray-500 hover:text-gray-700"
+                            aria-label={passwordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                          >
+                            {passwordVisible ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
                         {r.errors?.password && (
                           <p className="mt-1 text-xs text-gray-600">{r.errors.password}</p>
                         )}
                       </div>
+
+                      <div className="col-span-1 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => removeRow(r.key)}
+                          className="rounded-lg p-2 text-gray-600 hover:bg-gray-100"
+                          title="Eliminar fila"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Tarjeta móvil */}
+                    <div className="md:hidden rounded-xl   bg-white p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-sm font-medium text-gray-700">Alumno</div>
+                        <button
+                          type="button"
+                          onClick={() => removeRow(r.key)}
+                          className="rounded-lg p-1.5 text-gray-600 hover:bg-gray-100"
+                          title="Eliminar fila"
+                          aria-label="Eliminar fila"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <label className="mb-1 block text-xs text-gray-600">Nombre *</label>
+                          <input
+                            value={r.name}
+                            onChange={e => updateCell(r.key, 'name', e.target.value)}
+                            placeholder="Nombre"
+                            className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
+                              r.errors?.name ? 'border-red-400' : 'border-gray-300'
+                            }`}
+                            required
+                          />
+                          {r.errors?.name && <p className="mt-1 text-xs text-red-600">{r.errors.name}</p>}
+                        </div>
+
+                        <div>
+                          <label className="mb-1 block text-xs text-gray-600">Apellidos *</label>
+                          <input
+                            value={r.lastName}
+                            onChange={e => updateCell(r.key, 'lastName', e.target.value)}
+                            placeholder="Apellidos"
+                            className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
+                              r.errors?.lastName ? 'border-red-400' : 'border-gray-300'
+                            }`}
+                            required
+                          />
+                          {r.errors?.lastName && <p className="mt-1 text-xs text-red-600">{r.errors.lastName}</p>}
+                        </div>
+
+                        <div>
+                          <label className="mb-1 block text-xs text-gray-600">Email *</label>
+                          <input
+                            value={r.email}
+                            onChange={e => updateCell(r.key, 'email', e.target.value)}
+                            placeholder="correo@ejemplo.com"
+                            className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
+                              r.errors?.email ? 'border-red-400' : 'border-gray-300'
+                            }`}
+                            type="email"
+                            required
+                          />
+                          {r.errors?.email && <p className="mt-1 text-xs text-red-600">{r.errors.email}</p>}
+                        </div>
+
+                        <div>
+                          <label className="mb-1 block text-xs text-gray-600">Contraseña *</label>
+                          <div className="relative">
+                            <input
+                              value={r.password}
+                              onChange={e => updateCell(r.key, 'password', e.target.value)}
+                              placeholder="Contraseña"
+                              className="w-full rounded-lg border border-gray-300 px-3 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                              type={passwordVisible ? 'text' : 'password'}
+                              required
+                            />
+                            <button
+                              type="button"
+                              onClick={() => togglePasswordVisibility(r.key)}
+                              className="absolute inset-y-0 right-2 flex items-center rounded-md px-2 text-gray-500 hover:text-gray-700"
+                              aria-label={passwordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                            >
+                              {passwordVisible ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                          </div>
+                          {r.errors?.password && (
+                            <p className="mt-1 text-xs text-gray-600">{r.errors.password}</p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

@@ -1,0 +1,347 @@
+openapi: 3.1.0
+info:
+  title: ERPlay API
+  description: |
+    API pública de ERPlay utilizada por las aplicaciones web de alumnos y supervisores.
+    Los endpoints están protegidos con JWT salvo que se indique lo contrario.
+  version: 1.0.0
+servers:
+  - url: https://api.erplay.local/api
+    description: Servidor de producción (ejemplo)
+  - url: http://localhost:3000/api
+    description: Servidor local
+security:
+  - bearerAuth: []
+tags:
+  - name: Auth
+    description: Autenticación y recuperación de contraseña
+  - name: Diagrams
+    description: Gestión de diagramas ER y sus estadísticas
+  - name: Supervisor
+    description: Herramientas disponibles para supervisores
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Iniciar sesión
+      description: Devuelve los tokens de acceso y refresco para un usuario válido.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Inicio de sesión correcto
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Credenciales incorrectas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security: []
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Enviar correo de restablecimiento de contraseña
+      description: Envía un correo con un enlace temporal para restablecer la contraseña del usuario.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '202':
+          description: Solicitud aceptada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '404':
+          description: Usuario no encontrado (respuesta genérica)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security: []
+  /users/me:
+    get:
+      tags: [Auth]
+      summary: Obtener perfil autenticado
+      responses:
+        '200':
+          description: Perfil del usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          description: Token inválido o caducado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /diagrams:
+    get:
+      tags: [Diagrams]
+      summary: Listar diagramas disponibles
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Texto a buscar en el título
+      responses:
+        '200':
+          description: Lista de diagramas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DiagramSummary'
+  /diagrams/{diagramId}:
+    get:
+      tags: [Diagrams]
+      summary: Obtener un diagrama por ID
+      parameters:
+        - $ref: '#/components/parameters/DiagramId'
+      responses:
+        '200':
+          description: Diagrama encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiagramDetail'
+        '404':
+          description: Diagrama no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /diagrams/{diagramId}/stats:
+    get:
+      tags: [Diagrams]
+      summary: Obtener estadísticas de un diagrama
+      parameters:
+        - $ref: '#/components/parameters/DiagramId'
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date
+          description: Fecha inicial (YYYY-MM-DD)
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date
+          description: Fecha final (YYYY-MM-DD)
+      responses:
+        '200':
+          description: Estadísticas detalladas del diagrama
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiagramStats'
+        '404':
+          description: Diagrama no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /supervisor/users/batch:
+    post:
+      tags: [Supervisor]
+      summary: Alta masiva de alumnos
+      description: Permite crear varios alumnos a partir de una colección de registros.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/BulkStudent'
+      responses:
+        '200':
+          description: Resultado del proceso masivo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkStudentsResponse'
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    DiagramId:
+      in: path
+      name: diagramId
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Identificador del diagrama
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+    LoginResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: integer
+          description: Segundos de validez del token de acceso
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [student, supervisor]
+    DiagramSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        visibility:
+          type: string
+          enum: [public, private]
+    DiagramDetail:
+      allOf:
+        - $ref: '#/components/schemas/DiagramSummary'
+        - type: object
+          properties:
+            description:
+              type: string
+            imageUrl:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+    DiagramStats:
+      type: object
+      description: Estadísticas agregadas del diagrama utilizadas en el panel de supervisión.
+      properties:
+        kpis:
+          type: object
+          properties:
+            examScoreAvg10:
+              type: number
+            learningAccuracyPct:
+              type: number
+            masteryRatePct:
+              type: number
+            atRiskRatePct:
+              type: number
+        hotspots:
+          type: array
+          items:
+            type: object
+            properties:
+              questionId:
+                type: string
+              title:
+                type: string
+              pCorrectPct:
+                type: number
+        riskStudents:
+          type: array
+          items:
+            type: object
+            properties:
+              studentId:
+                type: string
+              name:
+                type: string
+              lastName:
+                type: string
+              lastExamScore10:
+                type: number
+              lastAttemptAt:
+                type: string
+                format: date-time
+    BulkStudent:
+      type: object
+      required: [name, lastName, email, password]
+      properties:
+        name:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+    BulkStudentsResponse:
+      type: object
+      properties:
+        created:
+          type: array
+          items:
+            type: string
+            format: email
+        skipped:
+          type: object
+          properties:
+            exists:
+              type: array
+              items:
+                type: string
+            payloadDuplicates:
+              type: array
+              items:
+                type: string

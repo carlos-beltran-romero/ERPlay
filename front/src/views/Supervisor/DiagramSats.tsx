@@ -217,11 +217,13 @@ const DiagramStats: React.FC = () => {
     }
   };
 
-  if (showLoading) {
+  const shouldShowLoading = (!stats && loading) || showLoading;
+
+  if (shouldShowLoading) {
     return (
       <PageWithHeader>
         <div className="p-6">Cargando…</div>
-     </PageWithHeader>
+      </PageWithHeader>
     );
   }
 
@@ -229,7 +231,7 @@ const DiagramStats: React.FC = () => {
     return (
       <PageWithHeader>
         <div className="p-6 text-red-600">No hay datos.</div>
-     </PageWithHeader>
+      </PageWithHeader>
     );
   }
 
