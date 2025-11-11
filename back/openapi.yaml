@@ -3,20 +3,36 @@ info:
   title: ERPlay API
   description: |
     API pública de ERPlay utilizada por las aplicaciones web de alumnos y supervisores.
-    Los endpoints están protegidos con JWT salvo que se indique lo contrario.
-  version: 1.0.0
+    Todos los endpoints (excepto los explícitamente marcados) requieren autenticación mediante JWT Bearer.
+  version: 1.1.0
 servers:
   - url: https://api.erplay.local/api
     description: Servidor de producción (ejemplo)
   - url: http://localhost:3000/api
-    description: Servidor local
+    description: Servidor local de desarrollo
 security:
   - bearerAuth: []
 tags:
   - name: Auth
-    description: Autenticación y recuperación de contraseña
+    description: Autenticación y recuperación de credenciales
+  - name: Users
+    description: Gestión de usuarios y perfiles
   - name: Diagrams
-    description: Gestión de diagramas ER y sus estadísticas
+    description: Gestión de diagramas ER y su banco de preguntas
+  - name: Admin
+    description: Recursos administrativos de análisis avanzado
+  - name: Questions
+    description: Flujo de propuestas y revisión de preguntas
+  - name: Claims
+    description: Gestión de reclamaciones sobre preguntas
+  - name: Progress
+    description: Métricas de progreso del estudiante
+  - name: Dashboard
+    description: Feed de actividad del dashboard de alumno
+  - name: Exams
+    description: Generación de exámenes aleatorios
+  - name: TestSessions
+    description: Gestión completa de sesiones de test
   - name: Supervisor
     description: Herramientas disponibles para supervisores
 paths:
@@ -24,7 +40,8 @@ paths:
     post:
       tags: [Auth]
       summary: Iniciar sesión
-      description: Devuelve los tokens de acceso y refresco para un usuario válido.
+      description: Devuelve tokens de acceso y refresco válidos para un usuario registrado.
+      operationId: login
       requestBody:
         required: true
         content:
@@ -37,9 +54,54 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LoginResponse'
+                $ref: '#/components/schemas/AuthTokens'
         '401':
           description: Credenciales incorrectas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security: []
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Cerrar sesión
+      description: Invalida el refresh token activo del usuario autenticado.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+      responses:
+        '204':
+          description: Sesión cerrada correctamente
+        '401':
+          description: Token inválido o expirado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Renovar tokens
+      description: Genera un nuevo par de tokens a partir de un refresh token válido.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Tokens renovados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokens'
+        '400':
+          description: Refresh token inválido
           content:
             application/json:
               schema:
@@ -48,31 +110,42 @@ paths:
   /auth/forgot-password:
     post:
       tags: [Auth]
-      summary: Enviar correo de restablecimiento de contraseña
-      description: Envía un correo con un enlace temporal para restablecer la contraseña del usuario.
+      summary: Enviar correo de restablecimiento
+      description: Envía un correo con instrucciones para restablecer la contraseña.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [email]
-              properties:
-                email:
-                  type: string
-                  format: email
+              $ref: '#/components/schemas/ForgotPasswordRequest'
       responses:
-        '202':
+        '200':
           description: Solicitud aceptada
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-        '404':
-          description: Usuario no encontrado (respuesta genérica)
+                $ref: '#/components/schemas/MessageResponse'
+      security: []
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Restablecer contraseña
+      description: Define una nueva contraseña a partir de un token de restablecimiento válido.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: Contraseña restablecida correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Token inválido o caducado
           content:
             application/json:
               schema:
@@ -80,11 +153,11 @@ paths:
       security: []
   /users/me:
     get:
-      tags: [Auth]
-      summary: Obtener perfil autenticado
+      tags: [Users]
+      summary: Obtener perfil del usuario autenticado
       responses:
         '200':
-          description: Perfil del usuario
+          description: Perfil del usuario autenticado
           content:
             application/json:
               schema:
@@ -95,31 +168,220 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /diagrams:
-    get:
-      tags: [Diagrams]
-      summary: Listar diagramas disponibles
-      parameters:
-        - in: query
-          name: search
-          schema:
-            type: string
-          description: Texto a buscar en el título
+    put:
+      tags: [Users]
+      summary: Actualizar perfil propio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
       responses:
         '200':
-          description: Lista de diagramas
+          description: Perfil actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: El email ya está en uso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/me/password:
+    post:
+      tags: [Users]
+      summary: Cambiar contraseña propia
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Contraseña actualizada correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Contraseña actual incorrecta o datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users:
+    get:
+      tags: [Users]
+      summary: Listar estudiantes
+      description: Devuelve todos los estudiantes registrados ordenados por fecha de creación.
+      responses:
+        '200':
+          description: Lista de estudiantes
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/DiagramSummary'
-  /diagrams/{diagramId}:
+                  $ref: '#/components/schemas/UserSummary'
+    post:
+      tags: [Users]
+      summary: Alta masiva de usuarios
+      description: Crea múltiples estudiantes en una sola operación.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchUsersRequest'
+      responses:
+        '201':
+          description: Resultado del proceso masivo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchUsersResponse'
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/{userId}:
+    parameters:
+      - $ref: '#/components/parameters/UserId'
+    get:
+      tags: [Users]
+      summary: Obtener usuario por ID
+      responses:
+        '200':
+          description: Usuario encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetail'
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [Users]
+      summary: Actualizar usuario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Usuario actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetail'
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No autorizado para actualizar este usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email duplicado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Users]
+      summary: Eliminar usuario
+      responses:
+        '204':
+          description: Usuario eliminado
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /diagrams/public:
     get:
       tags: [Diagrams]
-      summary: Obtener un diagrama por ID
-      parameters:
-        - $ref: '#/components/parameters/DiagramId'
+      summary: Listar diagramas públicos
+      description: Devuelve los diagramas disponibles para los estudiantes.
+      responses:
+        '200':
+          description: Lista de diagramas públicos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DiagramPublicSummary'
+  /diagrams:
+    get:
+      tags: [Diagrams]
+      summary: Listar diagramas
+      responses:
+        '200':
+          description: Lista completa de diagramas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DiagramAdminSummary'
+    post:
+      tags: [Diagrams]
+      summary: Crear diagrama
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DiagramUpsertRequest'
+      responses:
+        '201':
+          description: Diagrama creado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiagramCreated'
+        '400':
+          description: Datos inválidos o imagen ausente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /diagrams/{diagramId}:
+    parameters:
+      - $ref: '#/components/parameters/DiagramId'
+    get:
+      tags: [Diagrams]
+      summary: Obtener diagrama por ID
       responses:
         '200':
           description: Diagrama encontrado
@@ -133,12 +395,293 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /diagrams/{diagramId}/stats:
-    get:
+    put:
       tags: [Diagrams]
+      summary: Actualizar diagrama
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DiagramUpsertRequest'
+      responses:
+        '200':
+          description: Diagrama actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Diagrama no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Diagrams]
+      summary: Eliminar diagrama
+      responses:
+        '204':
+          description: Diagrama eliminado correctamente
+        '404':
+          description: Diagrama no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /admin/diagrams/{diagramId}/stats:
+    parameters:
+      - $ref: '#/components/parameters/DiagramId'
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+        description: Fecha inicial (YYYY-MM-DD)
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+        description: Fecha final (YYYY-MM-DD)
+    get:
+      tags: [Admin]
       summary: Obtener estadísticas de un diagrama
+      responses:
+        '200':
+          description: Estadísticas calculadas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiagramStats'
+        '400':
+          description: Parámetros inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Diagrama no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /questions:
+    post:
+      tags: [Questions]
+      summary: Crear pregunta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionCreateRequest'
+      responses:
+        '201':
+          description: Pregunta creada correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionCreated'
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /questions/pending/count:
+    get:
+      tags: [Questions]
+      summary: Contar preguntas pendientes
+      responses:
+        '200':
+          description: Contador de pendientes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CountResponse'
+  /questions/pending:
+    get:
+      tags: [Questions]
+      summary: Listar preguntas pendientes
+      responses:
+        '200':
+          description: Preguntas pendientes de revisión
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PendingQuestion'
+  /questions/{questionId}/verify:
+    parameters:
+      - $ref: '#/components/parameters/QuestionId'
+    post:
+      tags: [Questions]
+      summary: Verificar pregunta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionReviewRequest'
+      responses:
+        '200':
+          description: Revisión aplicada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Pregunta no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /questions/mine:
+    get:
+      tags: [Questions]
+      summary: Listar mis preguntas
+      responses:
+        '200':
+          description: Preguntas creadas por el usuario actual
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MyQuestion'
+  /claims:
+    post:
+      tags: [Claims]
+      summary: Crear reclamación
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaimCreateRequest'
+      responses:
+        '201':
+          description: Reclamación registrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimCreated'
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /claims/mine:
+    get:
+      tags: [Claims]
+      summary: Listar mis reclamaciones
+      responses:
+        '200':
+          description: Reclamaciones del estudiante autenticado
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StudentClaim'
+  /claims/pending:
+    get:
+      tags: [Claims]
+      summary: Listar reclamaciones pendientes
+      responses:
+        '200':
+          description: Reclamaciones pendientes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PendingClaim'
+  /claims/pending/count:
+    get:
+      tags: [Claims]
+      summary: Contar reclamaciones pendientes
+      responses:
+        '200':
+          description: Contador de reclamaciones pendientes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CountResponse'
+  /claims/{claimId}/verify:
+    parameters:
+      - $ref: '#/components/parameters/ClaimId'
+    post:
+      tags: [Claims]
+      summary: Resolver reclamación
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaimDecisionRequest'
+      responses:
+        '200':
+          description: Reclamación resuelta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimDecisionResult'
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Reclamación no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /progress/overview:
+    get:
+      tags: [Progress]
+      summary: Obtener resumen de progreso
+      responses:
+        '200':
+          description: Métricas clave del estudiante
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressOverview'
+  /progress/trends:
+    get:
+      tags: [Progress]
+      summary: Obtener tendencias de rendimiento
       parameters:
-        - $ref: '#/components/parameters/DiagramId'
         - in: query
           name: from
           schema:
@@ -151,45 +694,572 @@ paths:
             type: string
             format: date
           description: Fecha final (YYYY-MM-DD)
+        - in: query
+          name: bucket
+          schema:
+            type: string
+            enum: [day, week]
+          description: Granularidad temporal
       responses:
         '200':
-          description: Estadísticas detalladas del diagrama
+          description: Serie temporal de desempeño
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DiagramStats'
-        '404':
-          description: Diagrama no encontrado
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProgressTrendPoint'
+  /progress/errors:
+    get:
+      tags: [Progress]
+      summary: Obtener análisis de errores
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+          description: Número máximo de preguntas a retornar
+      responses:
+        '200':
+          description: Preguntas con mayor tasa de error
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProgressErrorItem'
+  /progress/habits:
+    get:
+      tags: [Progress]
+      summary: Obtener hábitos de estudio
+      responses:
+        '200':
+          description: Estadísticas de hábitos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressHabits'
+  /progress/claims:
+    get:
+      tags: [Progress]
+      summary: Obtener estadísticas de reclamaciones
+      responses:
+        '200':
+          description: Métricas agregadas de reclamaciones
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressClaimsStats'
+  /progress/badges:
+    get:
+      tags: [Progress]
+      summary: Listar insignias obtenidas
+      responses:
+        '200':
+          description: Insignias del estudiante
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Badge'
+  /progress/weekly-goal/progress:
+    get:
+      tags: [Progress]
+      summary: Obtener progreso semanal del estudiante
+      responses:
+        '200':
+          description: Progreso hacia el objetivo semanal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeeklyProgress'
+  /dashboard/recent:
+    get:
+      tags: [Dashboard]
+      summary: Listar actividad reciente
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+          description: Número de elementos a retornar
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            minimum: 0
+          description: Desplazamiento para paginación
+      responses:
+        '200':
+          description: Feed de actividad del estudiante
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DashboardItem'
+  /exams/start:
+    get:
+      tags: [Exams]
+      summary: Iniciar examen aleatorio
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+          description: Número máximo de preguntas
+      responses:
+        '200':
+          description: Examen generado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamStartPayload'
+        '400':
+          description: No se pudo generar el examen
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /supervisor/users/batch:
+  /test-sessions/start:
     post:
-      tags: [Supervisor]
-      summary: Alta masiva de alumnos
-      description: Permite crear varios alumnos a partir de una colección de registros.
+      tags: [TestSessions]
+      summary: Iniciar sesión de test
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '#/components/schemas/BulkStudent'
+              $ref: '#/components/schemas/TestSessionStartRequest'
       responses:
         '200':
-          description: Resultado del proceso masivo
+          description: Sesión iniciada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BulkStudentsResponse'
+                $ref: '#/components/schemas/TestSessionStartResponse'
+        '400':
+          description: No fue posible iniciar la sesión
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /test-sessions/{sessionId}/results/{resultId}:
+    parameters:
+      - $ref: '#/components/parameters/SessionId'
+      - $ref: '#/components/parameters/ResultId'
+    patch:
+      tags: [TestSessions]
+      summary: Actualizar resultado de pregunta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestResultPatchRequest'
+      responses:
+        '200':
+          description: Actualización aplicada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
         '400':
           description: Datos inválidos
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /test-sessions/{sessionId}/events:
+    parameters:
+      - $ref: '#/components/parameters/SessionId'
+    post:
+      tags: [TestSessions]
+      summary: Registrar evento de sesión
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestSessionEventRequest'
+      responses:
+        '200':
+          description: Evento registrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /test-sessions/{sessionId}/finish:
+    parameters:
+      - $ref: '#/components/parameters/SessionId'
+    post:
+      tags: [TestSessions]
+      summary: Finalizar sesión de test
+      responses:
+        '200':
+          description: Resumen final de la sesión
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestSessionFinishResponse'
+        '400':
+          description: Datos inválidos o sesión inexistente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /test-sessions/mine:
+    get:
+      tags: [TestSessions]
+      summary: Listar mis sesiones de test
+      parameters:
+        - in: query
+          name: mode
+          schema:
+            type: string
+            enum: [learning, exam, errors]
+        - in: query
+          name: dateFrom
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: dateTo
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: q
+          schema:
+            type: string
+          description: Búsqueda por título de diagrama
+      responses:
+        '200':
+          description: Sesiones del usuario
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TestSessionListItem'
+  /test-sessions/{sessionId}:
+    parameters:
+      - $ref: '#/components/parameters/SessionId'
+    get:
+      tags: [TestSessions]
+      summary: Obtener detalle de sesión
+      responses:
+        '200':
+          description: Detalle completo de la sesión
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestSessionDetail'
+        '404':
+          description: Sesión no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /supervisor/students/{studentId}:
+    parameters:
+      - $ref: '#/components/parameters/StudentId'
+    get:
+      tags: [Supervisor]
+      summary: Obtener estudiante
+      responses:
+        '200':
+          description: Información del estudiante
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetail'
+        '404':
+          description: Estudiante no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /supervisor/students/{studentId}/progress/overview:
+    parameters:
+      - $ref: '#/components/parameters/StudentId'
+    get:
+      tags: [Supervisor]
+      summary: Obtener resumen de progreso de un estudiante
+      responses:
+        '200':
+          description: Resumen de progreso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressOverview'
+  /supervisor/students/{studentId}/progress/trends:
+    parameters:
+      - $ref: '#/components/parameters/StudentId'
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: bucket
+        schema:
+          type: string
+          enum: [day, week]
+    get:
+      tags: [Supervisor]
+      summary: Obtener tendencias de un estudiante
+      responses:
+        '200':
+          description: Serie temporal del estudiante
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProgressTrendPoint'
+  /supervisor/students/{studentId}/progress/errors:
+    parameters:
+      - $ref: '#/components/parameters/StudentId'
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 50
+    get:
+      tags: [Supervisor]
+      summary: Obtener errores frecuentes de un estudiante
+      responses:
+        '200':
+          description: Listado de errores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProgressErrorItem'
+  /supervisor/students/{studentId}/claims/stats:
+    parameters:
+      - $ref: '#/components/parameters/StudentId'
+    get:
+      tags: [Supervisor]
+      summary: Obtener estadísticas de reclamaciones de un estudiante
+      responses:
+        '200':
+          description: Métricas de reclamaciones
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressClaimsStats'
+  /supervisor/students/{studentId}/claims:
+    parameters:
+      - $ref: '#/components/parameters/StudentId'
+    get:
+      tags: [Supervisor]
+      summary: Listar reclamaciones de un estudiante
+      responses:
+        '200':
+          description: Reclamaciones del estudiante
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SupervisorClaim'
+  /supervisor/students/{studentId}/badges:
+    parameters:
+      - $ref: '#/components/parameters/StudentId'
+    get:
+      tags: [Supervisor]
+      summary: Obtener insignias de un estudiante
+      responses:
+        '200':
+          description: Insignias
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Badge'
+  /supervisor/students/{studentId}/questions:
+    parameters:
+      - $ref: '#/components/parameters/StudentId'
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 500
+        description: Máximo de preguntas a retornar
+    get:
+      tags: [Supervisor]
+      summary: Listar preguntas creadas por un estudiante
+      responses:
+        '200':
+          description: Preguntas creadas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MyQuestion'
+  /supervisor/students/{studentId}/tests:
+    parameters:
+      - $ref: '#/components/parameters/StudentId'
+      - in: query
+        name: mode
+        schema:
+          type: string
+          enum: [learning, exam, errors]
+      - in: query
+        name: dateFrom
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: dateTo
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: q
+        schema:
+          type: string
+    get:
+      tags: [Supervisor]
+      summary: Listar sesiones de test de un estudiante
+      responses:
+        '200':
+          description: Sesiones del estudiante
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TestSessionListItem'
+  /supervisor/students/{studentId}/tests/{sessionId}:
+    parameters:
+      - $ref: '#/components/parameters/StudentId'
+      - $ref: '#/components/parameters/SessionId'
+    get:
+      tags: [Supervisor]
+      summary: Obtener detalle de sesión de un estudiante
+      responses:
+        '200':
+          description: Detalle de la sesión
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestSessionDetail'
+        '404':
+          description: Sesión no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /supervisor/weekly-goal:
+    get:
+      tags: [Supervisor]
+      summary: Obtener objetivo semanal actual
+      responses:
+        '200':
+          description: Objetivo semanal vigente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeeklyGoal'
+    put:
+      tags: [Supervisor]
+      summary: Establecer objetivo semanal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WeeklyGoalRequest'
+      responses:
+        '200':
+          description: Objetivo actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeeklyGoal'
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags: [Supervisor]
+      summary: Establecer objetivo semanal (alias)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WeeklyGoalRequest'
+      responses:
+        '200':
+          description: Objetivo actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeeklyGoal'
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /supervisor/weekly-goal/progress:
+    get:
+      tags: [Supervisor]
+      summary: Obtener progreso semanal global
+      parameters:
+        - in: query
+          name: weekStart
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: weekEnd
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: userId
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Progreso semanal de estudiantes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WeeklyProgress'
 components:
   securitySchemes:
     bearerAuth:
@@ -205,7 +1275,63 @@ components:
         type: string
         format: uuid
       description: Identificador del diagrama
+    QuestionId:
+      in: path
+      name: questionId
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Identificador de la pregunta
+    ClaimId:
+      in: path
+      name: claimId
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Identificador de la reclamación
+    UserId:
+      in: path
+      name: userId
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Identificador del usuario
+    StudentId:
+      in: path
+      name: studentId
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Identificador del estudiante
+    SessionId:
+      in: path
+      name: sessionId
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Identificador de la sesión de test
+    ResultId:
+      in: path
+      name: resultId
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Identificador del resultado de pregunta
   schemas:
+    AuthTokens:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+      required: [accessToken, refreshToken]
     LoginRequest:
       type: object
       required: [email, password]
@@ -216,21 +1342,47 @@ components:
         password:
           type: string
           minLength: 6
-    LoginResponse:
+    LogoutRequest:
       type: object
+      required: [refreshToken]
       properties:
-        accessToken:
-          type: string
         refreshToken:
           type: string
-        expiresIn:
-          type: integer
-          description: Segundos de validez del token de acceso
-    ErrorResponse:
+    RefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+    ForgotPasswordRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+    ResetPasswordRequest:
+      type: object
+      required: [token, newPassword]
+      properties:
+        token:
+          type: string
+        newPassword:
+          type: string
+          minLength: 6
+    MessageResponse:
       type: object
       properties:
         message:
           type: string
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      additionalProperties: false
     UserProfile:
       type: object
       properties:
@@ -246,73 +1398,57 @@ components:
           format: email
         role:
           type: string
-          enum: [student, supervisor]
-    DiagramSummary:
+          enum: [alumno, supervisor]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, name, lastName, email, role, createdAt]
+    UserSummary:
       type: object
       properties:
         id:
           type: string
           format: uuid
-        title:
+        name:
           type: string
-        visibility:
+        lastName:
           type: string
-          enum: [public, private]
-    DiagramDetail:
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [alumno, supervisor]
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, lastName, email, role, createdAt]
+    UserDetail:
       allOf:
-        - $ref: '#/components/schemas/DiagramSummary'
-        - type: object
-          properties:
-            description:
-              type: string
-            imageUrl:
-              type: string
-            createdAt:
-              type: string
-              format: date-time
-    DiagramStats:
+        - $ref: '#/components/schemas/UserSummary'
+    UpdateProfileRequest:
       type: object
-      description: Estadísticas agregadas del diagrama utilizadas en el panel de supervisión.
       properties:
-        kpis:
-          type: object
-          properties:
-            examScoreAvg10:
-              type: number
-            learningAccuracyPct:
-              type: number
-            masteryRatePct:
-              type: number
-            atRiskRatePct:
-              type: number
-        hotspots:
-          type: array
-          items:
-            type: object
-            properties:
-              questionId:
-                type: string
-              title:
-                type: string
-              pCorrectPct:
-                type: number
-        riskStudents:
-          type: array
-          items:
-            type: object
-            properties:
-              studentId:
-                type: string
-              name:
-                type: string
-              lastName:
-                type: string
-              lastExamScore10:
-                type: number
-              lastAttemptAt:
-                type: string
-                format: date-time
-    BulkStudent:
+        name:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+          minLength: 6
+    BatchUserInput:
       type: object
       required: [name, lastName, email, password]
       properties:
@@ -326,14 +1462,21 @@ components:
         password:
           type: string
           minLength: 6
-    BulkStudentsResponse:
+    BatchUsersRequest:
+      type: object
+      required: [users]
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/BatchUserInput'
+    BatchUsersResponse:
       type: object
       properties:
         created:
           type: array
           items:
-            type: string
-            format: email
+            $ref: '#/components/schemas/UserSummary'
         skipped:
           type: object
           properties:
@@ -341,7 +1484,1015 @@ components:
               type: array
               items:
                 type: string
+                format: email
             payloadDuplicates:
               type: array
               items:
                 type: string
+                format: email
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+    DiagramPublicSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        path:
+          type: string
+          nullable: true
+      required: [id, title]
+    DiagramAdminSummary:
+      allOf:
+        - $ref: '#/components/schemas/DiagramPublicSummary'
+        - type: object
+          properties:
+            createdAt:
+              type: string
+              format: date-time
+            questionsCount:
+              type: integer
+          required: [questionsCount]
+    DiagramDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        path:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiagramQuestion'
+      required: [id, title, questions]
+    DiagramQuestion:
+      type: object
+      properties:
+        prompt:
+          type: string
+        hint:
+          type: string
+        correctIndex:
+          type: integer
+        options:
+          type: array
+          items:
+            type: string
+      required: [prompt, hint, correctIndex, options]
+    DiagramUpsertRequest:
+      type: object
+      required: [title, questions]
+      properties:
+        title:
+          type: string
+        questions:
+          type: string
+          description: JSON string con el arreglo de preguntas
+        image:
+          type: string
+          format: binary
+          description: Archivo de imagen del diagrama
+    DiagramCreated:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        path:
+          type: string
+      required: [id, path]
+    DiagramStats:
+      type: object
+      properties:
+        kpis:
+          type: object
+          properties:
+            examScoreAvg10:
+              type: number
+            learningAccuracyPct:
+              type: number
+            masteryRatePct:
+              type: number
+            atRiskRatePct:
+              type: number
+            practiceToExamDeltaPts:
+              type: number
+            medianTimePerQuestionExamSec:
+              type: number
+            hintUsagePct:
+              type: number
+            errorConcentrationTop5Pct:
+              type: number
+              nullable: true
+        trends:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+              examScorePct:
+                type: number
+                nullable: true
+              learningAccuracyPct:
+                type: number
+                nullable: true
+        histogramExam10:
+          type: array
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+              count:
+                type: integer
+        scatterSpeedVsAccuracy:
+          type: array
+          items:
+            type: object
+            properties:
+              studentId:
+                type: string
+                nullable: true
+              name:
+                type: string
+                nullable: true
+              accuracyPct:
+                type: number
+              timeSecPerQuestion:
+                type: number
+        hotspots:
+          type: array
+          items:
+            type: object
+            properties:
+              questionId:
+                type: string
+              title:
+                type: string
+              errorRatePct:
+                type: number
+              medianTimeSec:
+                type: number
+                nullable: true
+              commonWrongText:
+                type: string
+                nullable: true
+              attempts:
+                type: integer
+        riskStudents:
+          type: array
+          items:
+            type: object
+            properties:
+              studentId:
+                type: string
+              name:
+                type: string
+                nullable: true
+              lastName:
+                type: string
+                nullable: true
+              lastExamScore10:
+                type: number
+              attempts:
+                type: integer
+              lastAttemptAt:
+                type: string
+                format: date-time
+                nullable: true
+        itemQuality:
+          type: array
+          nullable: true
+          items:
+            type: object
+            properties:
+              questionId:
+                type: string
+              title:
+                type: string
+              pCorrectPct:
+                type: number
+              discrPointBiserial:
+                type: number
+              medianTimeSec:
+                type: number
+                nullable: true
+              attempts:
+                type: integer
+              claimRatePct:
+                type: number
+              claimApprovalRatePct:
+                type: number
+                nullable: true
+        distractors:
+          type: array
+          nullable: true
+          items:
+            type: object
+            properties:
+              questionId:
+                type: string
+              optionText:
+                type: string
+              chosenPct:
+                type: number
+              chosenPctLowQuartile:
+                type: number
+                nullable: true
+              chosenPctHighQuartile:
+                type: number
+                nullable: true
+        learningCurves:
+          type: object
+          nullable: true
+          properties:
+            attemptsToMasteryP50:
+              type: number
+              nullable: true
+            deltaPracticeToExamAvgPts:
+              type: number
+        reliability:
+          type: object
+          nullable: true
+          properties:
+            kr20:
+              type: number
+              nullable: true
+        drift:
+          type: array
+          nullable: true
+          items:
+            type: object
+            properties:
+              questionId:
+                type: string
+              title:
+                type: string
+                nullable: true
+              deltaPCorrectPct:
+                type: number
+              deltaMedianTimeSec:
+                type: number
+                nullable: true
+    QuestionCreateRequest:
+      type: object
+      required: [diagramId, prompt, hint, options, correctIndex]
+      properties:
+        diagramId:
+          type: string
+          format: uuid
+        prompt:
+          type: string
+        hint:
+          type: string
+        options:
+          type: array
+          minItems: 2
+          items:
+            type: string
+        correctIndex:
+          type: integer
+          minimum: 0
+    QuestionCreated:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, approved, rejected, PENDING, APPROVED, REJECTED]
+      required: [id, status]
+    PendingQuestion:
+      type: object
+      properties:
+        id:
+          type: string
+        prompt:
+          type: string
+        hint:
+          type: string
+        correctIndex:
+          type: integer
+        options:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        creator:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+            email:
+              type: string
+              format: email
+            name:
+              type: string
+              nullable: true
+        diagram:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+            title:
+              type: string
+            path:
+              type: string
+              nullable: true
+    QuestionReviewRequest:
+      type: object
+      required: [decision]
+      properties:
+        decision:
+          type: string
+          enum: [approve, reject]
+        comment:
+          type: string
+          maxLength: 1000
+    MyQuestion:
+      type: object
+      properties:
+        id:
+          type: string
+        prompt:
+          type: string
+        status:
+          type: string
+        reviewComment:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+        diagram:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+            title:
+              type: string
+            path:
+              type: string
+              nullable: true
+        options:
+          type: array
+          items:
+            type: string
+        correctIndex:
+          type: integer
+    ClaimCreateRequest:
+      type: object
+      required: [diagramId, prompt, options, chosenIndex, correctIndex, explanation]
+      properties:
+        testResultId:
+          type: string
+          format: uuid
+          nullable: true
+        questionId:
+          type: string
+          format: uuid
+          nullable: true
+        diagramId:
+          type: string
+          format: uuid
+        prompt:
+          type: string
+        options:
+          type: array
+          minItems: 2
+          items:
+            type: string
+        chosenIndex:
+          type: integer
+        correctIndex:
+          type: integer
+        explanation:
+          type: string
+    ClaimCreated:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        testResultId:
+          type: string
+          nullable: true
+    StudentClaim:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+        reviewerComment:
+          type: string
+          nullable: true
+        prompt:
+          type: string
+        options:
+          type: array
+          items:
+            type: string
+        chosenIndex:
+          type: integer
+        correctIndex:
+          type: integer
+        diagram:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+            title:
+              type: string
+            path:
+              type: string
+              nullable: true
+    PendingClaim:
+      type: object
+      properties:
+        id:
+          type: string
+        testResultId:
+          type: string
+          nullable: true
+        questionId:
+          type: string
+          nullable: true
+        prompt:
+          type: string
+        options:
+          type: array
+          items:
+            type: string
+        chosenIndex:
+          type: integer
+        correctIndex:
+          type: integer
+        explanation:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        student:
+          type: object
+          properties:
+            id:
+              type: string
+            email:
+              type: string
+              format: email
+            name:
+              type: string
+            lastName:
+              type: string
+        diagram:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+            title:
+              type: string
+            path:
+              type: string
+              nullable: true
+    ClaimDecisionRequest:
+      type: object
+      required: [decision]
+      properties:
+        decision:
+          type: string
+          enum: [approve, reject]
+        comment:
+          type: string
+          maxLength: 2000
+          nullable: true
+    ClaimDecisionResult:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+        reviewerComment:
+          type: string
+          nullable: true
+    SupervisorClaim:
+      allOf:
+        - $ref: '#/components/schemas/StudentClaim'
+        - type: object
+          properties:
+            claimStatus:
+              type: string
+              nullable: true
+    CountResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+      required: [count]
+    ProgressOverview:
+      type: object
+      properties:
+        accuracyLearningPct:
+          type: number
+        examScoreAvg:
+          type: number
+        answeredCount:
+          type: integer
+        avgTimePerQuestionSec:
+          type: number
+        sessionsCompleted:
+          type: integer
+        deltaExamVsLearningPts:
+          type: number
+        bestStreakDays:
+          type: integer
+      additionalProperties: false
+    ProgressTrendPoint:
+      type: object
+      properties:
+        date:
+          type: string
+        accuracyLearningPct:
+          type: number
+          nullable: true
+        examScorePct:
+          type: number
+          nullable: true
+        correctCount:
+          type: integer
+        incorrectCount:
+          type: integer
+    ProgressErrorItem:
+      type: object
+      properties:
+        questionId:
+          type: string
+          nullable: true
+        title:
+          type: string
+        errorRatePct:
+          type: number
+        commonChosenIndex:
+          type: integer
+          nullable: true
+        attempts:
+          type: integer
+          nullable: true
+    ProgressHabits:
+      type: object
+      additionalProperties: true
+      description: Estadísticas de hábitos de estudio (estructura dinámica)
+    ProgressClaimsStats:
+      type: object
+      properties:
+        totalClaims:
+          type: integer
+        approvedClaims:
+          type: integer
+        rejectedClaims:
+          type: integer
+        pendingClaims:
+          type: integer
+        approvalRatePct:
+          type: number
+          nullable: true
+      additionalProperties: true
+    Badge:
+      type: object
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        earnedAt:
+          type: string
+          format: date-time
+          nullable: true
+    WeeklyProgress:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+          nullable: true
+        weekStart:
+          type: string
+          format: date
+          nullable: true
+        weekEnd:
+          type: string
+          format: date
+          nullable: true
+        targetTests:
+          type: integer
+          nullable: true
+        completedTests:
+          type: integer
+          nullable: true
+        progressPct:
+          type: number
+          nullable: true
+    DashboardItem:
+      type: object
+      oneOf:
+        - type: object
+          properties:
+            kind:
+              const: session
+            id:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+            completedAt:
+              type: string
+              format: date-time
+              nullable: true
+            mode:
+              type: string
+              enum: [learning, exam, errors]
+            diagramTitle:
+              type: string
+              nullable: true
+            totalQuestions:
+              type: integer
+            correctCount:
+              type: integer
+            score:
+              type: number
+              nullable: true
+            durationSec:
+              type: integer
+              nullable: true
+        - type: object
+          properties:
+            kind:
+              const: question
+            id:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+            status:
+              type: string
+              enum: [pending, approved, rejected]
+            title:
+              type: string
+        - type: object
+          properties:
+            kind:
+              const: claim
+            id:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+            status:
+              type: string
+              enum: [PENDING, APPROVED, REJECTED]
+            title:
+              type: string
+    ExamStartPayload:
+      type: object
+      properties:
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExamQuestion'
+        diagram:
+          $ref: '#/components/schemas/DiagramPublicSummary'
+      additionalProperties: true
+    ExamQuestion:
+      type: object
+      properties:
+        questionId:
+          type: string
+          nullable: true
+        prompt:
+          type: string
+        options:
+          type: array
+          items:
+            type: string
+        hint:
+          type: string
+          nullable: true
+        correctIndex:
+          type: integer
+          nullable: true
+    TestSessionStartRequest:
+      type: object
+      required: [mode]
+      properties:
+        mode:
+          type: string
+          enum: [learning, exam, errors]
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 50
+    TestSessionStartResponse:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        diagram:
+          type: object
+          properties:
+            id:
+              type: string
+            title:
+              type: string
+            path:
+              type: string
+              nullable: true
+        questions:
+          type: array
+          items:
+            type: object
+            properties:
+              resultId:
+                type: string
+              questionId:
+                type: string
+                nullable: true
+              prompt:
+                type: string
+              options:
+                type: array
+                items:
+                  type: string
+              correctIndex:
+                type: integer
+                nullable: true
+              hint:
+                type: string
+                nullable: true
+      required: [sessionId, diagram, questions]
+    TestResultPatchRequest:
+      type: object
+      properties:
+        selectedIndex:
+          type: integer
+          nullable: true
+        attemptsDelta:
+          type: integer
+        usedHint:
+          type: boolean
+        revealedAnswer:
+          type: boolean
+        timeSpentSecondsDelta:
+          type: integer
+      additionalProperties: false
+    TestSessionEventRequest:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+        resultId:
+          type: string
+          nullable: true
+        payload:
+          description: Datos adicionales del evento
+    OkResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          default: true
+    TestSessionFinishResponse:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        mode:
+          type: string
+        diagram:
+          type: object
+          properties:
+            id:
+              type: string
+        totals:
+          type: object
+          properties:
+            totalQuestions:
+              type: integer
+            correct:
+              type: integer
+            incorrect:
+              type: integer
+            durationSeconds:
+              type: integer
+            score:
+              type: number
+              nullable: true
+    TestSessionListItem:
+      type: object
+      properties:
+        id:
+          type: string
+        mode:
+          type: string
+          enum: [learning, exam, errors]
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        diagram:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+            title:
+              type: string
+            path:
+              type: string
+              nullable: true
+        questionCount:
+          type: integer
+        correctCount:
+          type: integer
+        wrongCount:
+          type: integer
+        skippedCount:
+          type: integer
+        score:
+          type: number
+          nullable: true
+        summary:
+          type: object
+          properties:
+            durationSeconds:
+              type: integer
+              nullable: true
+            accuracyPct:
+              type: number
+              nullable: true
+            score:
+              type: number
+              nullable: true
+            noteLabel:
+              type: string
+              nullable: true
+    TestSessionDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        mode:
+          type: string
+          enum: [learning, exam, errors]
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        durationSeconds:
+          type: integer
+          nullable: true
+        diagram:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+            title:
+              type: string
+            path:
+              type: string
+              nullable: true
+        summary:
+          type: object
+          properties:
+            durationSeconds:
+              type: integer
+              nullable: true
+            accuracyPct:
+              type: number
+              nullable: true
+            score:
+              type: number
+              nullable: true
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              resultId:
+                type: string
+              prompt:
+                type: string
+              options:
+                type: array
+                items:
+                  type: string
+              correctIndex:
+                type: integer
+              selectedIndex:
+                type: integer
+                nullable: true
+              usedHint:
+                type: boolean
+              revealedAnswer:
+                type: boolean
+              timeSpentSeconds:
+                type: integer
+              claimed:
+                type: boolean
+              claimId:
+                type: string
+                nullable: true
+              claimStatus:
+                type: string
+                nullable: true
+              claimCreatedAt:
+                type: string
+                format: date-time
+                nullable: true
+    WeeklyGoal:
+      type: object
+      properties:
+        weekStart:
+          type: string
+          format: date
+          nullable: true
+        weekEnd:
+          type: string
+          format: date
+          nullable: true
+        targetTests:
+          type: integer
+      additionalProperties: false
+    WeeklyGoalRequest:
+      type: object
+      required: [targetTests]
+      properties:
+        targetTests:
+          type: integer
+          minimum: 1
+        weekStart:
+          type: string
+          format: date
+          nullable: true
+        weekEnd:
+          type: string
+          format: date
+          nullable: true
+        notify:
+          type: boolean
+          nullable: true
