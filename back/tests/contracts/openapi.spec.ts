@@ -31,7 +31,7 @@ describe('OpenAPI public contract', () => {
     { path: '/users/me', method: 'put', responses: ['200', '400', '409'] },
     { path: '/users/me/password', method: 'post', responses: ['200', '400'] },
     { path: '/users', method: 'get', responses: ['200'] },
-    { path: '/users', method: 'post', responses: ['201', '400'] },
+    { path: '/users/batch', method: 'post', responses: ['201', '400'] },
     { path: '/users/{userId}', method: 'get', responses: ['200', '404'] },
     { path: '/users/{userId}', method: 'put', responses: ['200', '400', '403', '404', '409'] },
     { path: '/users/{userId}', method: 'delete', responses: ['204', '404'] },
@@ -117,6 +117,7 @@ describe('OpenAPI public contract', () => {
       'DashboardItem',
       'TestSessionDetail',
       'WeeklyGoal',
+      'OperationAck',
     ];
 
     const schemas = Object.keys(spec.components?.schemas ?? {});
