@@ -601,7 +601,7 @@ const MyProgress: React.FC = () => {
                   </div>
 
                   {prog.completed && (
-                    <div className="mt-3 inline-flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 px-3 py-2">
+                    <div className="mt-3 inline-flex items-center gap-3 rounded-xl border border-emerald-200  px-3 py-2">
                       <img
                         src={badgeCompleted}
                         alt="Insignia: objetivo semanal completado"
@@ -703,7 +703,7 @@ const MyProgress: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50/50">
+                <div className="flex items-center gap-3 p-3 rounded-xl  ">
                   <div className="shrink-0 p-2.5 rounded-xl bg-emerald-50 text-emerald-700">
                     <CheckCircle className="h-5 w-5" />
                   </div>
@@ -717,7 +717,7 @@ const MyProgress: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50/50">
+                <div className="flex items-center gap-3 p-3 rounded-xl  ">
                   <div className="shrink-0 p-2.5 rounded-xl bg-rose-50 text-rose-700">
                     <XCircle className="h-5 w-5" />
                   </div>
@@ -731,7 +731,7 @@ const MyProgress: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50/50 sm:col-span-2 lg:col-span-1">
+                <div className="flex items-center gap-3 p-3 rounded-xl   sm:col-span-2 lg:col-span-1">
                   <Donut
                     value={
                       qCounts.approved + qCounts.rejected

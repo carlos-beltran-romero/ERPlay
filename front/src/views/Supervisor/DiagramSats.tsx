@@ -435,7 +435,7 @@ const DiagramStats: React.FC = () => {
                   const title = stats.itemQuality?.find(i => i.questionId === qid)?.title ?? `Pregunta ${qid}`;
                   const parts = arr.map(a => ({ label: a.optionText, value: a.chosenPct }));
                   return (
-                    <div key={qid} className="rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+                    <div key={qid} className="rounded-xl border border-gray-100  p-3">
                       <div className="text-sm font-medium mb-2"><ShowMoreLess text={title} /></div>
                       <StackedBar parts={parts} />
                       <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-600">
@@ -517,7 +517,7 @@ const DiagramStats: React.FC = () => {
               ) : (
                 <div className="space-y-2">
                   {stats.hotspots.map(h => (
-                    <div key={h.questionId} className="rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+                    <div key={h.questionId} className="rounded-xl border border-gray-100  p-3">
                       <div className="text-sm font-medium"><ShowMoreLess text={h.title} /></div>
                       <div className="mt-1 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                         <div><span className="text-gray-500">Error:</span> <span className="font-semibold">{pct(h.errorRatePct)}</span></div>

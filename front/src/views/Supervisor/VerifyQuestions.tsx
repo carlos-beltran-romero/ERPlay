@@ -99,7 +99,6 @@ const VerifyQuestions: React.FC = () => {
   }, [hasTypedComment]);
 
   const goBack = () => {
-    if (hasTypedComment && !window.confirm('¿Estás seguro que deseas salir sin guardar los cambios?')) return;
     navigate('/supervisor/dashboard');
   };
 
@@ -370,7 +369,7 @@ const VerifyQuestions: React.FC = () => {
 
                       <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-end">
                         <details className="w-full md:w-auto">
-                          <summary className="cursor-pointer text-sm text-gray-600">Añadir comentario (opcional)</summary>
+                          <summary className="cursor-pointer text-sm text-gray-600">Añadir comentario al rechazar (opcional)</summary>
                           <textarea
                             id={`q-comment-${q.id}`}
                             className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"

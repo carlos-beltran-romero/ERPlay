@@ -420,13 +420,13 @@ const MyTests: React.FC = () => {
 
                         {/* Meta en 3 columnas para que NO se junten */}
                         <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
-                          <div className="rounded-xl border border-gray-100 bg-gray-50/70 px-2.5 py-1.5 shadow-sm">
+                          <div className="rounded-xl border border-gray-100  px-2.5 py-1.5 shadow-sm">
                             <div className="text-[10px] text-gray-500">
                               Modo
                             </div>
                             <div className="font-medium">{modeTxt}</div>
                           </div>
-                          <div className="rounded-xl border border-gray-100 bg-gray-50/70 px-2.5 py-1.5 shadow-sm">
+                          <div className="rounded-xl border border-gray-100  px-2.5 py-1.5 shadow-sm">
                             <div className="text-[10px] text-gray-500">
                               Preguntas
                             </div>
@@ -434,7 +434,7 @@ const MyTests: React.FC = () => {
                               {it.questionCount ?? 0}
                             </div>
                           </div>
-                          <div className="rounded-xl border border-gray-100 bg-gray-50/70 px-2.5 py-1.5 shadow-sm min-w-0">
+                          <div className="rounded-xl border border-gray-100  px-2.5 py-1.5 shadow-sm min-w-0">
                             <div className="text-[10px] text-gray-500">
                               Fecha
                             </div>
