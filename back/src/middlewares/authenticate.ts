@@ -63,6 +63,6 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
     next();
   } catch (error) {
     // Capturar errores de verificación del token (expirado, inválido, mal formado)
-    next(createHttpError(401, 'Token inválido o expirado'));
+    next(createHttpError(401, 'Su sesión expiró. Vuelve a iniciar sesión'));
   }
 }

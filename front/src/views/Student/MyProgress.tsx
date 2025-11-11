@@ -5,8 +5,6 @@ import badgeCompleted from "../../assets/completed.png";
 import { useNavigate } from "react-router-dom";
 import { useDelayedFlag } from "../../shared/hooks/useDelayedFlag";
 
-
-
 import {
   getOverview,
   getTrends,
@@ -38,17 +36,11 @@ import {
   ArrowLeft,
 } from "lucide-react";
 
-
-
-
 const fmtPct = (n?: number | null) =>
   typeof n === "number" ? `${Math.round(n)}%` : "—";
 
-
 const fmtSec1 = (sec?: number | null) =>
   sec == null ? "—" : `${Math.max(0, sec).toFixed(1)} s`;
-
-
 
 interface CardProps {
   children: React.ReactNode;
@@ -70,7 +62,6 @@ interface CardBodyProps {
   className?: string;
 }
 
-
 const CardBody: React.FC<CardBodyProps> = ({ children, className }) => (
   <div className={`p-5 ${className || ""}`}>{children}</div>
 );
@@ -80,7 +71,6 @@ interface KPIProps {
   label: string;
   value: React.ReactNode;
 }
-
 
 const KPI: React.FC<KPIProps> = ({ icon, label, value }) => (
   <Card>
@@ -96,8 +86,6 @@ const KPI: React.FC<KPIProps> = ({ icon, label, value }) => (
   </Card>
 );
 
-
-
 const COLOR_A = "#10b981";
 const COLOR_B = "#3b82f6";
 
@@ -105,21 +93,40 @@ interface DualLineChartProps {
   data: { a?: number | null; b?: number | null }[];
 }
 
-
 const DualLineChart: React.FC<DualLineChartProps> = ({ data }) => {
   const W = 640,
     H = 220,
     P = 28;
-  const n = data.length || 1;
+
+  // utilidades
+  const clamp01 = (v: any) => {
+    const n = Number(v);
+    if (!isFinite(n)) return null;
+    return Math.max(0, Math.min(100, n));
+  };
+
+  const n = Math.max(1, data.length);
   const x = (i: number) => P + (i * (W - 2 * P)) / Math.max(1, n - 1);
   const y = (v: number) => H - P - (v * (H - 2 * P)) / 100;
-  const makePath = (key: "a" | "b") =>
-    data.reduce((acc, d, i) => {
-      const v = (d as any)[key];
-      if (v == null) return acc;
-      return acc + `${acc ? "L" : "M"} ${x(i).toFixed(1)} ${y(v).toFixed(1)} `;
-    }, "");
-  const hasAny = data.some((d) => d.a != null || d.b != null);
+
+  // puntos “limpios” por serie
+  const ptsA = data
+    .map((d, i) => ({ x: x(i), v: clamp01(d.a) }))
+    .filter((p) => p.v != null) as { x: number; v: number }[];
+
+  const ptsB = data
+    .map((d, i) => ({ x: x(i), v: clamp01(d.b) }))
+    .filter((p) => p.v != null) as { x: number; v: number }[];
+
+  const makePath = (pts: { x: number; v: number }[]) =>
+    pts.reduce(
+      (acc, p, i) =>
+        acc + `${i ? "L" : "M"} ${p.x.toFixed(1)} ${y(p.v).toFixed(1)} `,
+      ""
+    );
+
+  const hasAny = ptsA.length > 0 || ptsB.length > 0;
+
   return (
     <div>
       <svg
@@ -152,20 +159,32 @@ const DualLineChart: React.FC<DualLineChartProps> = ({ data }) => {
           stroke="#9ca3af"
           strokeWidth={1}
         />
+
         {hasAny ? (
           <>
-            <path
-              d={makePath("a")}
-              fill="none"
-              stroke={COLOR_A}
-              strokeWidth={2.25}
-            />
-            <path
-              d={makePath("b")}
-              fill="none"
-              stroke={COLOR_B}
-              strokeWidth={2.25}
-            />
+            {ptsA.length >= 2 && (
+              <path
+                d={makePath(ptsA)}
+                fill="none"
+                stroke={COLOR_A}
+                strokeWidth={2.25}
+              />
+            )}
+            {ptsA.length === 1 && (
+              <circle cx={ptsA[0].x} cy={y(ptsA[0].v)} r={3} fill={COLOR_A} />
+            )}
+
+            {ptsB.length >= 2 && (
+              <path
+                d={makePath(ptsB)}
+                fill="none"
+                stroke={COLOR_B}
+                strokeWidth={2.25}
+              />
+            )}
+            {ptsB.length === 1 && (
+              <circle cx={ptsB[0].x} cy={y(ptsB[0].v)} r={3} fill={COLOR_B} />
+            )}
           </>
         ) : (
           <text
@@ -203,7 +222,6 @@ const DualLineChart: React.FC<DualLineChartProps> = ({ data }) => {
 interface ScrollableGroupedBarsProps {
   data: { label: string; ok: number; ko: number }[];
 }
-
 
 const ScrollableGroupedBars: React.FC<ScrollableGroupedBarsProps> = ({
   data,
@@ -347,7 +365,6 @@ interface DonutProps {
   value: number;
 }
 
-
 const Donut: React.FC<DonutProps> = ({ value }) => {
   const size = 56,
     stroke = 8,
@@ -390,7 +407,6 @@ const Donut: React.FC<DonutProps> = ({ value }) => {
   );
 };
 
-
 const MyProgress: React.FC = () => {
   const navigate = useNavigate();
 
@@ -404,7 +420,6 @@ const MyProgress: React.FC = () => {
   const [claims, setClaims] = useState<ClaimsStats | null>(null);
   const [myQuestions, setMyQuestions] = useState<MyQuestionItem[]>([]);
 
-  
   const [prog, setProg] = useState<WeeklyProgressRow | null>(null);
   const [badges, setBadges] = useState<BadgeItem[]>([]);
   const [showBadges, setShowBadges] = useState(false);
@@ -438,7 +453,6 @@ const MyProgress: React.FC = () => {
     })();
   }, []);
 
-  
   const lineData = useMemo(
     () =>
       trends.map((t) => ({
@@ -457,7 +471,6 @@ const MyProgress: React.FC = () => {
     [trends]
   );
 
-  
   const qCounts = useMemo(() => {
     const c = { approved: 0, rejected: 0, pending: 0 };
     for (const q of myQuestions) {
@@ -473,14 +486,14 @@ const MyProgress: React.FC = () => {
     return (
       <PageWithHeader>
         <div className="mx-auto w-full max-w-6xl p-6">Cargando…</div>
-     </PageWithHeader>
+      </PageWithHeader>
     );
   }
   if (error) {
     return (
       <PageWithHeader>
         <div className="mx-auto w-full max-w-6xl p-6 text-red-600">{error}</div>
-     </PageWithHeader>
+      </PageWithHeader>
     );
   }
 
@@ -627,7 +640,7 @@ const MyProgress: React.FC = () => {
           <Card>
             <CardBody>
               <div className="text-sm font-medium mb-2">
-                Acierto (learning) vs Nota (examen)
+                Learning vs Examen (por día)
               </div>
               <DualLineChart data={lineData} />
             </CardBody>
@@ -850,7 +863,7 @@ const MyProgress: React.FC = () => {
           </div>
         )}
       </div>
-   </PageWithHeader>
+    </PageWithHeader>
   );
 };
 

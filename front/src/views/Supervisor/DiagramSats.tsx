@@ -367,14 +367,14 @@ const DiagramStats: React.FC = () => {
                   <thead>
                     <tr className="text-left text-gray-500">
                       <th className="py-2">Pregunta</th>
-                      <th className="py-2">% acierto</th>
+                      <th className="py-2">% Acierto</th>
                       <th className="py-2">
                         <span className="inline-flex items-center gap-1">
                           Diferencia niveles
                           <SectionInfoButtonSmall onClick={() => setOpenDiscrInfo(o => !o)} open={openDiscrInfo} />
                         </span>
                       </th>
-                      <th className="py-2">Tiempo mediano</th>
+                      <th className="py-2">Tiempo medio respuesta</th>
                       <th className="py-2">Reclamaciones</th>
                       <th className="py-2">Reclam. aceptadas</th>
                       <th className="py-2">Intentos</th>
@@ -464,7 +464,7 @@ const DiagramStats: React.FC = () => {
     {stats.learningCurves ? (
       stats.learningCurves.attemptsToMasteryP50 != null ? (
         <div className="text-2xl font-semibold">
-          {stats.learningCurves.attemptsToMasteryP50} intentos (mediana)
+          {stats.learningCurves.attemptsToMasteryP50} intentos de media
         </div>
       ) : (
         <div className="text-sm text-gray-500">
@@ -481,7 +481,7 @@ const DiagramStats: React.FC = () => {
 <Card>
   <CardBody>
     <div className="text-lg font-semibold mb-1">Mejora de learning a examen</div>
-    <div className="text-sm text-gray-600 mb-3">Diferencia media de nota. <br></br>Debe estar seleccionada un rango de fecha.</div>
+    <div className="text-sm text-gray-600 mb-3">Diferencia media de nota. <br></br></div>
 
     {stats.learningCurves ? (
       <div className="flex items-center gap-2 text-2xl font-semibold">
@@ -521,7 +521,7 @@ const DiagramStats: React.FC = () => {
                       <div className="text-sm font-medium"><ShowMoreLess text={h.title} /></div>
                       <div className="mt-1 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                         <div><span className="text-gray-500">Error:</span> <span className="font-semibold">{pct(h.errorRatePct)}</span></div>
-                        <div><span className="text-gray-500">Tiempo mediano:</span> <span className="font-semibold">{fmtSec1(h.medianTimeSec ?? undefined)}</span></div>
+                        <div><span className="text-gray-500">Tiempo medio respuesta:</span> <span className="font-semibold">{fmtSec1(h.medianTimeSec ?? undefined)}</span></div>
                         <div><span className="text-gray-500">Intentos:</span> <span className="font-semibold">{h.attempts ?? 0}</span></div>
                       </div>
                     </div>
@@ -541,7 +541,7 @@ const DiagramStats: React.FC = () => {
     {openRiskInfo && (
       <ExplainPanel>
         Consideramos “en riesgo” a quien en su <b>último examen</b> de este diagrama ha sacado <b>≤ 5/10</b>.
-        Útil para priorizar refuerzos. Se muestra su número de intentos y la fecha del último intento.
+        Útil para priorizar refuerzos. Se muestra nota y fecha del último intento.
       </ExplainPanel>
     )}
 
@@ -554,7 +554,6 @@ const DiagramStats: React.FC = () => {
             <tr className="text-left text-gray-500">
               <th className="py-2">Alumno</th>
               <th className="py-2">Últ. nota</th>
-              <th className="py-2">Intentos</th>
               <th className="py-2">Fecha</th>
             </tr>
           </thead>
@@ -565,7 +564,6 @@ const DiagramStats: React.FC = () => {
                 <tr key={r.studentId} className="border-t">
                   <td className="py-2">{fullName}</td>
                   <td className="py-2 font-semibold">{fmt10(r.lastExamScore10)}/10</td>
-                  <td className="py-2">{r.attempts}</td>
                   <td className="py-2">{r.lastAttemptAt ? new Date(r.lastAttemptAt).toLocaleString() : '—'}</td>
                 </tr>
               );

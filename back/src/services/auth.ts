@@ -118,7 +118,7 @@ export class AuthService {
 
       return { accessToken, refreshToken: newRefreshToken };
     } catch (error) {
-      throw createHttpError(401, 'Token inválido o expirado', error instanceof Error ? error.message : error);
+      throw createHttpError(401, 'Su sesión expiró. Vuelve a iniciar sesión', error instanceof Error ? error.message : error);
     }
   }
 
@@ -181,7 +181,7 @@ export class AuthService {
       await this.userRepository.save(user);
     } catch (error) {
       if (error instanceof HttpError) throw error;
-      throw createHttpError(401, 'Token inválido o expirado', error instanceof Error ? error.message : error);
+      throw createHttpError(401, 'Su sesión expiró. Vuelve a iniciar sesión', error instanceof Error ? error.message : error);
     }
   }
 }
