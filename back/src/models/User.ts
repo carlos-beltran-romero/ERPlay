@@ -29,8 +29,8 @@ export enum UserRole {
 /**
  * Entidad User - Usuario del sistema (estudiante o supervisor)
  * Representa tanto a estudiantes como a supervisores con diferentes niveles de acceso
- * 
- * @entity users
+ *
+ * @remarks Tabla en BD: `users`.
  */
 @Entity({ name: 'users' })
 export class User extends BaseEntity {

@@ -20,8 +20,8 @@ export type TestMode = 'learning' | 'exam' | 'errors';
 /**
  * Entidad TestSession - Sesión de test de un usuario
  * Representa un intento completo de test sobre un diagrama específico
- * 
- * @entity test_sessions
+ *
+ * @remarks Tabla en BD: `test_sessions`.
  */
 @Entity('test_sessions')
 export class TestSession extends BaseEntity {

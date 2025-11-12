@@ -115,7 +115,7 @@ export const getPendingClaimCount = async (_req: AuthedReq, res: Response) => {
  * Verifica y decide sobre una reclamación pendiente
  * @param req Objeto Request de Express que contiene la decisión y comentarios
  * @param res Objeto Response de Express
- * @requires Role.SUPERVISOR
+ * @remarks Requiere `Role.SUPERVISOR`.
  */
 export const verifyClaim = async (req: AuthedReq, res: Response) => {
   try {

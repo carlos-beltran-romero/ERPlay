@@ -1,6 +1,7 @@
 {
   "entryPoints": ["front/src", "back/src"],
   "entryPointStrategy": "expand",
+  "tsconfig": "tsconfig.typedoc.json",
   "out": "docs",
   "exclude": [
     "**/*.test.ts",

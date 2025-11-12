@@ -16,8 +16,8 @@ import { User } from './User';
 /**
  * Entidad RefreshToken - Token de refresco para renovar sesiones
  * Permite a los usuarios obtener nuevos access tokens sin re-autenticarse
- * 
- * @entity refresh_tokens
+ *
+ * @remarks Tabla en BD: `refresh_tokens`.
  */
 @Entity({ name: 'refresh_tokens' })
 export class RefreshToken extends BaseEntity {

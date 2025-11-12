@@ -23,6 +23,7 @@ import MyProgress from '../views/Student/MyProgress';
 import StudentDetail from '../views/Supervisor/StudentDetail';
 import DiagramStats from '../views/Supervisor/DiagramSats';
 import { getCachedProfile, setCachedProfile, clearProfileCache } from '../services/authCache';
+import NotFound from '../views/NotFound';
 
 /**
  * Valida que el usuario autenticado tenga un rol permitido.
@@ -48,6 +49,11 @@ async function requireRole(allowed: string[]) {
   }
 }
 
+/**
+ * Redirige a la vista correspondiente cuando ya existe sesión.
+ * @returns Redirección a dashboard de alumno o supervisor.
+ * @internal
+ */
 async function redirectIfAuthenticated() {
   const cached = getCachedProfile();
   if (cached) {
@@ -110,5 +116,5 @@ export const router = createBrowserRouter([
   protect({ path: '/supervisor/questions/review', element: <VerifyQuestions />, roles: ['supervisor'] }),
   protect({ path: '/supervisor/diagrams/:id/edit', element: <EditDiagram />, roles: ['supervisor'] }),
   protect({ path: '/supervisor/diagrams/:id/stats', element: <DiagramStats />, roles: ['supervisor'] }),
-  { path: '*', loader: () => redirect('/login') },
+  { path: '*', element: <NotFound /> },
 ]);

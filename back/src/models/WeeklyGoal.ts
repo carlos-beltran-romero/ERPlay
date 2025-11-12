@@ -9,8 +9,8 @@ import { User } from './User';
 /**
  * Entidad WeeklyGoal - Objetivo semanal de tests completados
  * Define la meta de tests que los usuarios deben completar en una semana
- * 
- * @entity WeeklyGoal
+ *
+ * @remarks Tabla en BD: `weekly_goals`.
  */
 @Entity('weeklygoal')
 export class WeeklyGoal {

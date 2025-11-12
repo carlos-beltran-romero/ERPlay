@@ -57,7 +57,7 @@ const usersController = {
    * @param req Objeto Request de Express
    * @param res Objeto Response de Express
    * @returns Lista de estudiantes ordenados por fecha de creación
-   * @requires Role.SUPERVISOR
+   * @remarks Requiere `Role.SUPERVISOR`.
    */
   listUsers: asyncHandler(async (_req: Request, res: Response) => {
     const repo = AppDataSource.getRepository(User);
@@ -75,7 +75,7 @@ const usersController = {
    * @param req Objeto Request de Express con array de usuarios en body.users
    * @param res Objeto Response de Express
    * @returns Resultado de la operación con usuarios creados y errores si los hay
-   * @requires Role.SUPERVISOR
+   * @remarks Requiere `Role.SUPERVISOR`.
    */
   batchCreateUsers: asyncHandler(async (req: Request, res: Response) => {
     const input = req.body.users as BatchStudentDTO[];
@@ -143,7 +143,7 @@ const usersController = {
    * Elimina un usuario estudiante del sistema de forma permanente
    * @param req Objeto Request de Express con userId en params
    * @param res Objeto Response de Express con estado 204
-   * @requires Role.SUPERVISOR
+   * @remarks Requiere `Role.SUPERVISOR`.
    */
   deleteUser: asyncHandler(async (req: Request, res: Response) => {
     const { userId } = req.params;

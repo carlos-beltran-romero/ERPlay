@@ -17,8 +17,8 @@ import { Question } from './Question';
 /**
  * Entidad Option - Opción de respuesta para preguntas de opción múltiple
  * Una pregunta típicamente tiene 4 opciones, de las cuales solo una es correcta.
- * 
- * @entity options
+ *
+ * @remarks Tabla en BD: `options`.
  */
 @Entity({ name: 'options' })
 export class Option extends BaseEntity {

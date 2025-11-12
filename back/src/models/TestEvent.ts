@@ -10,8 +10,8 @@ import { TestResult } from './TestResult';
 /**
  * Entidad TestEvent - Registro de eventos durante una sesión de test
  * Permite tracking de acciones del usuario para análisis y auditoría
- * 
- * @entity test_events
+ *
+ * @remarks Tabla en BD: `test_events`.
  */
 @Entity('test_events')
 export class TestEvent {

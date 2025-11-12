@@ -99,7 +99,7 @@ export const listPending = asyncHandler(
  * Verifica una pregunta pendiente
  * @param req Objeto Request de Express con decisión y comentarios
  * @param res Objeto Response de Express
- * @requires Role.SUPERVISOR
+ * @remarks Requiere `Role.SUPERVISOR`.
  */
 export const verifyQuestion = asyncHandler(
   async (req: Request, res: Response) => {

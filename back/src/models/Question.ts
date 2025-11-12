@@ -33,8 +33,8 @@ export enum ReviewStatus {
  * Entidad Question - Pregunta de opción múltiple asociada a un diagrama ER
  * Las preguntas pueden ser creadas por supervisores o propuestas por estudiantes.
  * Las propuestas estudiantiles requieren aprobación antes de ser usadas en tests.
- * 
- * @entity questions
+ *
+ * @remarks Tabla en BD: `questions`.
  */
 @Entity({ name: 'questions' })
 export class Question extends BaseEntity {

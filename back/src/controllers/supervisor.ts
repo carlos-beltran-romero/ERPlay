@@ -318,7 +318,7 @@ export async function getWeeklyGoal(_req: AuthedReq, res: Response) {
  * Establece un nuevo objetivo semanal global
  * @param req Objeto Request de Express autenticado con datos del objetivo
  * @param res Objeto Response de Express
- * @requires Role.SUPERVISOR
+ * @remarks Requiere `Role.SUPERVISOR`.
  */
 export async function putWeeklyGoal(req: AuthedReq, res: Response) {
   try {

@@ -14,8 +14,8 @@ import { Claim } from './Claim';
 /**
  * Entidad TestResult - Resultado individual de una pregunta en un test
  * Almacena snapshot de la pregunta y todas las interacciones del usuario
- * 
- * @entity test_results
+ *
+ * @remarks Tabla en BD: `test_results`.
  */
 @Entity('test_results')
 export class TestResult {

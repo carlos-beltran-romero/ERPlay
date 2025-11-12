@@ -15,14 +15,13 @@ import { Question } from './Question';
  * Entidad Diagram - Diagrama Entidad-Relación del sistema
  * Representa una imagen de diagrama ER subida por un supervisor o administrador
  * que sirve como base para la generación y asociación de preguntas de test.
- * 
+ *
  * @remarks
- * - Cada diagrama puede tener múltiples preguntas asociadas
- * - Se almacenan como archivos de imagen en el sistema de archivos
- * - El título debe ser único para facilitar búsqueda y referencia
- * - Las preguntas se eliminan en cascada si se elimina el diagrama
- * 
- * @entity diagrams
+ * - Tabla en BD: `diagrams`.
+ * - Cada diagrama puede tener múltiples preguntas asociadas.
+ * - Se almacenan como archivos de imagen en el sistema de archivos.
+ * - El título debe ser único para facilitar búsqueda y referencia.
+ * - Las preguntas se eliminan en cascada si se elimina el diagrama.
  */
 @Entity({ name: 'diagrams' })
 export class Diagram extends BaseEntity {

@@ -30,14 +30,13 @@ export enum ClaimStatus {
  * Entidad Claim - Reclamación de estudiante sobre una respuesta de test
  * Permite a los estudiantes disputar la corrección de una pregunta cuando consideren
  * que su respuesta era correcta o que la pregunta contenía errores.
- * 
+ *
  * @remarks
- * El flujo típico es:
+ * Tabla en BD: `claims`.
+ * Flujo típico:
  * 1. Estudiante crea reclamación con estado PENDING
  * 2. Supervisor revisa y cambia estado a APPROVED o REJECTED
  * 3. Si es APPROVED, puede actualizarse la pregunta original
- * 
- * @entity claims
  */
 @Entity('claims')
 export class Claim {
@@ -59,7 +58,6 @@ export class Claim {
   /**
    * Pregunta original asociada a la reclamación
    * Puede ser null si la pregunta fue eliminada después de crear la reclamación
-   * @optional
    */
   @ManyToOne(() => Question, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'question_id' })
@@ -68,7 +66,6 @@ export class Claim {
   /**
    * Resultado específico del test al que pertenece esta reclamación
    * Vincula la reclamación con el intento concreto del estudiante
-   * @optional
    */
   @ManyToOne(() => TestResult, (tr) => tr.claims, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'test_result_id' })
@@ -77,7 +74,6 @@ export class Claim {
   /**
    * Diagrama asociado a la pregunta reclamada
    * Proporciona contexto visual para la revisión
-   * @optional
    */
   @ManyToOne(() => Diagram, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'diagram_id' })
@@ -129,7 +125,6 @@ export class Claim {
   /**
    * Supervisor que revisó la reclamación
    * Null mientras está pendiente, se asigna al resolverse
-   * @optional
    */
   @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'reviewer_id' })
@@ -138,7 +133,6 @@ export class Claim {
   /**
    * Comentario del supervisor sobre su decisión
    * Explica el razonamiento detrás de aprobar o rechazar la reclamación
-   * @optional
    */
   @Column({ type: 'text', nullable: true })
   reviewerComment?: string | null;
@@ -146,7 +140,6 @@ export class Claim {
   /**
    * Fecha y hora en que se revisó la reclamación
    * Se establece cuando un supervisor cambia el estado de PENDING a APPROVED/REJECTED
-   * @optional
    */
   @Column({ type: 'timestamp', nullable: true })
   reviewedAt?: Date | null;
