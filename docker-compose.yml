@@ -1,7 +1,6 @@
 services:
   db:
     image: mysql:8.4
-    command: --default-authentication-plugin=mysql_native_password
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-erplay}
