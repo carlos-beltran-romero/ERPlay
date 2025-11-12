@@ -1,6 +1,6 @@
 /**
  * Módulo del modelo de resultados de test
- * @module models/TestResult
+ * @module back/models/TestResult
  */
 
 import {

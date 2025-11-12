@@ -1,7 +1,7 @@
 /**
  * Módulo de rutas de dashboard
  * Define endpoints para obtener datos del dashboard de estudiantes
- * @module routes/dashboard
+ * @module back/routes/dashboard
  */
 
 import { Router } from 'express';

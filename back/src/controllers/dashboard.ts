@@ -1,7 +1,7 @@
 /**
  * Módulo del controlador de dashboard
  * Gestiona las peticiones relacionadas con la actividad reciente
- * @module controllers/dashboard
+ * @module back/controllers/dashboard
  */
 
 import { Request, Response } from 'express';

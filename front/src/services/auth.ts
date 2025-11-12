@@ -1,7 +1,7 @@
 /**
  * Módulo de servicios de autenticación
  * Gestiona login, logout, recuperación de contraseña y renovación de tokens
- * @module services/auth
+ * @module front/services/auth
  */
 
 import { apiJson, apiRequest, clearTokens, setTokens } from './http';

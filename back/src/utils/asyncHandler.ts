@@ -1,5 +1,5 @@
 /**
- * @module utils/asyncHandler
+ * @module back/utils/asyncHandler
  */
 import { RequestHandler } from 'express';
 

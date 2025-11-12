@@ -1,6 +1,6 @@
 /**
  * Módulo del modelo de usuarios
- * @module models/User
+ * @module back/models/User
  */
 
 import {

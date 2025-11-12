@@ -1,7 +1,7 @@
 /**
  * Módulo de middleware de autenticación
  * Proporciona funciones para validar tokens JWT y proteger rutas de la API
- * @module middlewares/authenticate
+ * @module back/middlewares/authenticate
  */
 
 import { NextFunction, Request, Response } from 'express';

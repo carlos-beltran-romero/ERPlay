@@ -1,7 +1,7 @@
 /**
  * Módulo del controlador de estadísticas de diagramas
  * Gestiona las peticiones relacionadas con análisis y métricas de diagramas
- * @module controllers/diagramStats
+ * @module back/controllers/diagramStats
  */
 
 import { Request, Response } from 'express';

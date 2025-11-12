@@ -1,7 +1,7 @@
 /**
  * Módulo de middleware de autorización
  * Proporciona funciones para restringir el acceso a rutas según roles de usuario
- * @module middlewares/authorize
+ * @module back/middlewares/authorize
  */
 
 import { RequestHandler } from 'express';

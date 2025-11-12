@@ -1,7 +1,7 @@
 /**
  * Módulo de rutas de estadísticas de diagramas
  * Define endpoints para obtener métricas y estadísticas de uso de diagramas
- * @module routes/diagramStats
+ * @module back/routes/diagramStats
  */
 
 import { Router, Request, Response, NextFunction } from 'express';

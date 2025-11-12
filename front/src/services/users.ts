@@ -1,7 +1,7 @@
 /**
  * Módulo de servicios de usuarios
  * Gestiona perfil propio y administración de estudiantes
- * @module services/users
+ * @module front/services/users
  */
 
 import { apiJson } from './http';

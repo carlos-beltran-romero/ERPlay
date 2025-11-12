@@ -1,5 +1,5 @@
 /**
- * @module config/mailer
+ * @module back/config/mailer
  */
 import nodemailer from 'nodemailer';
 

@@ -1,7 +1,7 @@
 /**
  * Módulo de rutas de reclamaciones
  * Define endpoints para gestión de reclamaciones de estudiantes sobre preguntas
- * @module routes/claims
+ * @module back/routes/claims
  */
 
 import { Router } from 'express';

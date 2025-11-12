@@ -1,7 +1,7 @@
 /**
  * Módulo del controlador de sesiones de test
  * Gestiona las peticiones relacionadas con la creación, actualización y finalización de sesiones de test
- * @module controllers/testSession
+ * @module back/controllers/testSession
  */
 
 import { RequestHandler } from 'express';

@@ -1,7 +1,7 @@
 /**
  * Módulo del controlador de reclamaciones
  * Gestiona todas las peticiones HTTP relacionadas con las reclamaciones de estudiantes
- * @module controllers/claims
+ * @module back/controllers/claims
  */
 
 import { Request, Response } from 'express';

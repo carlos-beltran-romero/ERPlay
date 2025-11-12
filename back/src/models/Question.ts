@@ -1,6 +1,6 @@
 /**
  * Módulo del modelo de preguntas
- * @module models/Question
+ * @module back/models/Question
  */
 
 import {

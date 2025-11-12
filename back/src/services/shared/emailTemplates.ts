@@ -1,5 +1,5 @@
 /**
- * @module services/shared/emailTemplates
+ * @module back/services/shared/emailTemplates
  * Utilidades comunes para generar correos con el estilo corporativo.
  */
 

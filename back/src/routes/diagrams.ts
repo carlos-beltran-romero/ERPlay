@@ -1,7 +1,7 @@
 /**
  * Módulo de rutas de diagramas
  * Define endpoints CRUD para gestión de diagramas ER
- * @module routes/diagrams
+ * @module back/routes/diagrams
  */
 
 import { Router } from 'express';

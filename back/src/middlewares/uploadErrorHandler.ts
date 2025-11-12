@@ -1,7 +1,7 @@
 /**
  * Módulo de middleware de manejo de errores de carga de archivos
  * Proporciona manejo especializado para errores generados por Multer durante la subida de archivos
- * @module middlewares/uploadErrorHandler
+ * @module back/middlewares/uploadErrorHandler
  */
 
 import { ErrorRequestHandler } from 'express';

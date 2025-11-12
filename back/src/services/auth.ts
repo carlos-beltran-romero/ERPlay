@@ -1,7 +1,7 @@
 /**
  * Módulo de servicio de autenticación
  * Gestiona login, logout, tokens y recuperación de contraseña
- * @module services/auth
+ * @module back/services/auth
  */
 
 import bcrypt from 'bcrypt';

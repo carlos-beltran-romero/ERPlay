@@ -1,5 +1,5 @@
 /**
- * @module data-source
+ * @module back/data-source
  */
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';

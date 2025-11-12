@@ -1,5 +1,5 @@
 /**
- * @module server
+ * @module back/server
  */
 import { createApp } from './app';
 

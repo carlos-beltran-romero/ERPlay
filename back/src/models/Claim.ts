@@ -1,7 +1,7 @@
 /**
  * Módulo del modelo de reclamaciones
  * Define la entidad Claim para gestionar reclamaciones de estudiantes sobre respuestas en tests
- * @module models/Claim
+ * @module back/models/Claim
  */
 
 import {

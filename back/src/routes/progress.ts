@@ -1,7 +1,7 @@
 /**
  * Módulo de rutas de progreso
  * Define endpoints para obtener métricas de progreso y rendimiento del estudiante
- * @module routes/progress
+ * @module back/routes/progress
  */
 
 import { Router } from 'express';

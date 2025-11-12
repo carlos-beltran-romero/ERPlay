@@ -1,7 +1,7 @@
 /**
  * Módulo del controlador de preguntas
  * Gestiona las peticiones relacionadas con la creación y verificación de preguntas
- * @module controllers/questions
+ * @module back/controllers/questions
  */
 
 import { Request, Response } from "express";

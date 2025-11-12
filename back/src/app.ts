@@ -1,5 +1,5 @@
 /**
- * @module app
+ * @module back/app
  * Factoría principal de la aplicación Express.
  */
 import cors from 'cors';

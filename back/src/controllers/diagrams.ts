@@ -1,7 +1,7 @@
 /**
  * Módulo del controlador de diagramas
  * Gestiona las peticiones relacionadas con la gestión de diagramas ER
- * @module controllers/diagrams
+ * @module back/controllers/diagrams
  */
 
 import { Request, Response } from 'express';

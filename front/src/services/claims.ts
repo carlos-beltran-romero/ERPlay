@@ -1,7 +1,7 @@
 /**
  * Módulo de servicios de reclamaciones
  * Gestiona el flujo completo de disputas sobre preguntas incorrectas
- * @module services/claims
+ * @module front/services/claims
  */
 
 import { apiJson } from './http';

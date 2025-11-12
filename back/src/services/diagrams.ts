@@ -1,7 +1,7 @@
 /**
  * Módulo de servicio de diagramas
  * Gestiona CRUD de diagramas y sus preguntas asociadas
- * @module services/diagrams
+ * @module back/services/diagrams
  */
 
 import { AppDataSource } from '../data-source';

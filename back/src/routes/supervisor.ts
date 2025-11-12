@@ -1,7 +1,7 @@
 /**
  * Módulo de rutas de supervisor
  * Define endpoints para supervisores gestionar estudiantes, estadísticas y objetivos
- * @module routes/supervisor
+ * @module back/routes/supervisor
  */
 
 import { Router } from 'express';

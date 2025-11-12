@@ -1,7 +1,7 @@
 /**
  * Módulo del controlador de progreso
  * Gestiona las peticiones relacionadas con el seguimiento del progreso del usuario
- * @module controllers/progress
+ * @module back/controllers/progress
  */
 
 import { z } from 'zod';

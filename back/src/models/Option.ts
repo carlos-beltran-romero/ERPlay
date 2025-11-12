@@ -1,6 +1,6 @@
 /**
  * Módulo del modelo de opciones de respuesta
- * @module models/Option
+ * @module back/models/Option
  */
 
 import {

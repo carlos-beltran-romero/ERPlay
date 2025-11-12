@@ -1,7 +1,7 @@
 /**
  * Módulo de servicio de preguntas
  * Gestiona creación, revisión y notificaciones de preguntas propuestas
- * @module services/questions
+ * @module back/services/questions
  */
 
 import { defaultMailer } from '../config/mailer';

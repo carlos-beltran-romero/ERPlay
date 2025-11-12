@@ -1,7 +1,7 @@
 /**
  * Módulo del modelo de diagramas ER
  * Define la entidad Diagram que representa diagramas Entidad-Relación subidos al sistema
- * @module models/Diagram
+ * @module back/models/Diagram
  */
 
 import {

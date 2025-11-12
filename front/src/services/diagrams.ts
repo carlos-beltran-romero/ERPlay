@@ -1,7 +1,7 @@
 /**
  * Módulo de servicios de diagramas
  * Gestiona CRUD de tests (diagramas ER con preguntas asociadas)
- * @module services/diagrams
+ * @module front/services/diagrams
  */
 
 import { apiJson } from './http';

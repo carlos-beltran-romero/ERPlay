@@ -23,5 +23,12 @@
     "*"
   ],
   "sort": ["source-order"],
-  "plugin": []
+  "plugin": [],
+  "navigation": {
+    "includeFolders": true,
+    "compactFolders": false,
+    "includeCategories": false,
+    "includeGroups": false,
+    "excludeReferences": false
+  }
 }

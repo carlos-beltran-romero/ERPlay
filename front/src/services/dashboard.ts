@@ -1,7 +1,7 @@
 /**
  * Módulo de servicios del dashboard
  * Gestiona la consulta de actividad reciente del usuario
- * @module services/dashboard
+ * @module front/services/dashboard
  */
 
 import { apiJson } from './http';

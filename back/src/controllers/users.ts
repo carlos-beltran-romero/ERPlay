@@ -1,7 +1,7 @@
 /**
  * Módulo del controlador de usuarios
  * Gestiona las peticiones relacionadas con la administración y gestión de usuarios
- * @module controllers/users
+ * @module back/controllers/users
  */
 
 import { Request, Response } from 'express';

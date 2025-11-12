@@ -1,6 +1,6 @@
 /**
  * Módulo del modelo de objetivos semanales
- * @module models/WeeklyGoal
+ * @module back/models/WeeklyGoal
  */
 
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';

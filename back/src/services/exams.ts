@@ -1,7 +1,7 @@
 /**
  * Módulo de servicio de exámenes
  * Genera exámenes aleatorios con preguntas aprobadas
- * @module services/exams
+ * @module back/services/exams
  */
 
 import { AppDataSource } from '../data-source';

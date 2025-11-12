@@ -1,7 +1,7 @@
 /**
  * Módulo de rutas de preguntas
  * Define endpoints para crear y gestionar preguntas de tests
- * @module routes/questions
+ * @module back/routes/questions
  */
 
 import { Router } from 'express';

@@ -1,7 +1,7 @@
 /**
  * Módulo del controlador de supervisor
  * Gestiona las peticiones relacionadas con la supervisión de estudiantes y su progreso
- * @module controllers/supervisor
+ * @module back/controllers/supervisor
  */
 
 import { Request, Response } from 'express';

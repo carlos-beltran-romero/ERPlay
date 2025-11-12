@@ -1,7 +1,7 @@
 /**
  * Módulo de servicio de reclamaciones
  * Gestiona el ciclo de vida completo de reclamaciones sobre preguntas
- * @module services/claims
+ * @module back/services/claims
  */
 
 import { env } from '../config/env';

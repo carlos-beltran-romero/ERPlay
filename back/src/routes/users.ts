@@ -1,7 +1,7 @@
 /**
  * Módulo de rutas de usuarios
  * Define endpoints para gestión de usuarios y perfiles
- * @module routes/users
+ * @module back/routes/users
  */
 
 import { Router } from 'express';

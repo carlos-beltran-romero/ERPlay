@@ -1,5 +1,5 @@
 /**
- * @module config/env
+ * @module back/config/env
  * Configuración centralizada de variables de entorno.
  */
 import { config as loadEnv } from 'dotenv';

@@ -1,7 +1,7 @@
 /**
  * Módulo de cliente HTTP
  * Gestiona autenticación JWT, refresh tokens y manejo de errores centralizado
- * @module services/http
+ * @module front/services/http
  */
 
 import { env } from '../config/env';

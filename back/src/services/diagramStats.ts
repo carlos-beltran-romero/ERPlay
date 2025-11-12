@@ -1,7 +1,7 @@
 /**
  * Módulo de servicio de estadísticas de diagramas
  * Calcula KPIs, tendencias y análisis psicométricos avanzados
- * @module services/diagramStats
+ * @module back/services/diagramStats
  */
 
 import { Between, MoreThanOrEqual } from 'typeorm';

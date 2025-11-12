@@ -1,5 +1,5 @@
 /**
- * @module routes/index
+ * @module back/routes/index
  * Registra todas las rutas de la API y sirve Swagger UI sin depender de CDN.
  */
 

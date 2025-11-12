@@ -1,7 +1,7 @@
 /**
  * Módulo de rutas de autenticación
  * Define endpoints para login, logout, refresh token y recuperación de contraseña
- * @module routes/auth
+ * @module back/routes/auth
  */
 
 import { Router, Request, Response, NextFunction } from 'express';

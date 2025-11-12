@@ -1,6 +1,6 @@
 /**
  * Utilidades de formateo de texto
- * @module shared/utils/text
+ * @module front/shared/utils/text
  */
 
 /**

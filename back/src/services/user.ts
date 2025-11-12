@@ -1,7 +1,7 @@
 /**
  * Módulo de servicio de usuarios
  * Gestiona CRUD de estudiantes y perfiles de usuario
- * @module services/user
+ * @module back/services/user
  */
 
 import bcrypt from 'bcrypt';

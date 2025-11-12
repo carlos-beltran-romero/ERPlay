@@ -1,7 +1,7 @@
 /**
  * Módulo de servicio de sesiones de test
  * Gestiona el ciclo completo de exámenes: creación, progreso, finalización y consulta
- * @module services/testSession
+ * @module back/services/testSession
  */
 
 import { AppDataSource } from '../data-source';

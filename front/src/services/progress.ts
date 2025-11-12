@@ -1,7 +1,7 @@
 /**
  * Módulo de servicios de progreso del estudiante
  * Gestiona métricas personales, tendencias, objetivos y logros
- * @module services/progress
+ * @module front/services/progress
  */
 
 import { apiJson, API_URL } from './http';

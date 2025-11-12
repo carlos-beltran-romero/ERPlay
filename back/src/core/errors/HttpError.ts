@@ -2,7 +2,7 @@
  * Módulo de errores HTTP personalizados
  * Proporciona una clase de error extendida que incluye códigos de estado HTTP
  * para facilitar el manejo de errores en las respuestas de la API
- * @module core/errors/HttpError
+ * @module back/core/errors/HttpError
  */
 
 /**

@@ -1,6 +1,6 @@
 /**
  * Módulo del modelo de tokens de refresco
- * @module models/RefreshToken
+ * @module back/models/RefreshToken
  */
 
 import {

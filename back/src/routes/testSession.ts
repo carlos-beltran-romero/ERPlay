@@ -1,7 +1,7 @@
 /**
  * Módulo de rutas de sesiones de test
  * Define endpoints para crear, actualizar y gestionar sesiones de test de estudiantes
- * @module routes/testSession
+ * @module back/routes/testSession
  */
 
 import { Router } from 'express';

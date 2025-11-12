@@ -1,7 +1,7 @@
 /**
  * Módulo de middleware de carga de archivos
  * Proporciona configuración y validación para la subida de imágenes de diagramas ER
- * @module middlewares/upload
+ * @module back/middlewares/upload
  */
 
 import multer from 'multer';

@@ -1,7 +1,7 @@
 /**
  * Módulo de servicios de revisión
  * Gestiona contadores de elementos pendientes para supervisores
- * @module services/review
+ * @module front/services/review
  */
 
 import { apiJson } from './http';

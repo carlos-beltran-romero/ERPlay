@@ -44,16 +44,6 @@ const NotFound: FC = () => {
           >
             {primaryLabel}
           </Link>
-          <Link
-            to="/"
-            className={[
-              'inline-flex items-center justify-center rounded-xl border border-slate-300',
-              'px-6 py-3 text-sm font-medium text-slate-700 transition',
-              'hover:border-slate-400 hover:text-slate-900',
-            ].join(' ')}
-          >
-            Volver al inicio
-          </Link>
         </div>
       </div>
     </main>

@@ -1,7 +1,7 @@
 /**
  * Módulo de servicio de objetivos semanales
  * Gestiona la creación, consulta y notificación de metas de tests por semana
- * @module services/weeklyGoal
+ * @module back/services/weeklyGoal
  */
 
 import { env } from '../config/env';

@@ -1,6 +1,6 @@
 /**
  * Módulo del modelo de eventos de test
- * @module models/TestEvent
+ * @module back/models/TestEvent
  */
 
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, JoinColumn } from 'typeorm';

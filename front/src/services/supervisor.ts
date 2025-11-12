@@ -1,7 +1,7 @@
 /**
  * Módulo de servicios de supervisor
  * Gestiona operaciones administrativas sobre estudiantes, objetivos y análisis
- * @module services/supervisor
+ * @module front/services/supervisor
  */
 
 import { fetchAuth, API_URL } from './http';

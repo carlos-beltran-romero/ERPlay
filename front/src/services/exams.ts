@@ -1,7 +1,7 @@
 /**
  * Módulo de servicios de exámenes
  * Gestiona inicio de tests tipo examen (modo evaluativo)
- * @module services/exams
+ * @module front/services/exams
  */
 
 import { apiJson, API_URL } from './http';

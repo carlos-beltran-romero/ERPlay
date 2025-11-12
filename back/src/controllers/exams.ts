@@ -1,7 +1,7 @@
 /**
  * Módulo del controlador de exámenes
  * Gestiona las peticiones relacionadas con la realización de exámenes
- * @module controllers/exams
+ * @module back/controllers/exams
  */
 
 import { Request, Response } from 'express';

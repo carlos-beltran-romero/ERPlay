@@ -1,7 +1,7 @@
 /**
  * Módulo de rutas de exámenes
  * Define endpoints para iniciar y gestionar exámenes
- * @module routes/exams
+ * @module back/routes/exams
  */
 
 import { Router } from 'express';

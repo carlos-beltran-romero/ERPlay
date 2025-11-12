@@ -1,5 +1,5 @@
 /**
- * @module middlewares/logger
+ * @module back/middlewares/logger
  * Registro uniforme de peticiones HTTP.
  */
 import morgan from 'morgan';

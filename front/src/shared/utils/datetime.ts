@@ -1,6 +1,6 @@
 /**
  * Utilidades para formatear fechas y duraciones en la UI
- * @module shared/utils/datetime
+ * @module front/shared/utils/datetime
  */
 
 const defaultLocale = typeof navigator !== 'undefined' ? navigator.language : 'es-ES';

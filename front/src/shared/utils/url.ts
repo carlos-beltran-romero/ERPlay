@@ -1,6 +1,6 @@
 /**
  * Utilidades para conversión de URLs
- * @module shared/utils/url
+ * @module front/shared/utils/url
  */
 
 import { env } from '../../config/env';

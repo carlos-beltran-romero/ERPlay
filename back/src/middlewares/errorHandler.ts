@@ -1,7 +1,7 @@
 /**
  * Módulo de middleware de manejo centralizado de errores
  * Proporciona un manejador global que procesa y formatea todos los errores de la aplicación
- * @module middlewares/errorHandler
+ * @module back/middlewares/errorHandler
  */
 
 import { ErrorRequestHandler } from 'express';

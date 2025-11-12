@@ -1,5 +1,5 @@
 /**
- * @module middlewares/notFound
+ * @module back/middlewares/notFound
  */
 import { Request, Response } from 'express';
 

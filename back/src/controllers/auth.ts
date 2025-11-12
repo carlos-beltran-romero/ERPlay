@@ -1,7 +1,7 @@
 /**
  * Módulo del controlador de autenticación
  * Gestiona todas las peticiones HTTP relacionadas con la autenticación
- * @module controllers/auth
+ * @module back/controllers/auth
  */
 
 import { NextFunction, Request, Response } from 'express';

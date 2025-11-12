@@ -1,7 +1,7 @@
 /**
  * Módulo de servicio de dashboard
  * Proporciona feed de actividad reciente del estudiante
- * @module services/dashboard
+ * @module back/services/dashboard
  */
 
 import { AppDataSource } from '../data-source';

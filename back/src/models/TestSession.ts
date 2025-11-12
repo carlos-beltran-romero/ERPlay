@@ -1,6 +1,6 @@
 /**
  * Módulo del modelo de sesiones de test
- * @module models/TestSession
+ * @module back/models/TestSession
  */
 
 import {

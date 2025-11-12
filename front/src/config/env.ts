@@ -1,5 +1,5 @@
 /**
- * @module config/env
+ * @module front/config/env
  * Normaliza las variables públicas de entorno para el cliente.
  */
 

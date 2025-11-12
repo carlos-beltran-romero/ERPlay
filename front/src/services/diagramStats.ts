@@ -1,7 +1,7 @@
 /**
  * Módulo de servicios de estadísticas de diagramas
  * Proporciona métricas pedagógicas y psicométricas para análisis de tests
- * @module services/diagramStats
+ * @module front/services/diagramStats
  */
 
 import { apiJson } from './http';

@@ -1,7 +1,7 @@
 /**
  * Módulo de middleware de validación de DTOs
  * Proporciona validación automática de datos de entrada usando express-validator
- * @module middlewares/validateDto
+ * @module back/middlewares/validateDto
  */
 
 import { RequestHandler } from 'express';

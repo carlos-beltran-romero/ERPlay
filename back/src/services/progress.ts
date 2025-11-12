@@ -1,7 +1,7 @@
 /**
  * Módulo de servicio de progreso del estudiante
  * Proporciona métricas de rendimiento, tendencias temporales y análisis de hábitos
- * @module services/progress
+ * @module back/services/progress
  */
 
 import { AppDataSource } from '../data-source';

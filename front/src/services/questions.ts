@@ -1,7 +1,7 @@
 /**
  * Módulo de servicios de preguntas
  * Gestiona creación, revisión y consulta de preguntas propuestas por estudiantes
- * @module services/questions
+ * @module front/services/questions
  */
 
 import { apiJson } from './http';

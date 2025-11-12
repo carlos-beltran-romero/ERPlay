@@ -1,7 +1,7 @@
 /**
  * Módulo de servicios de tests
  * Gestiona inicio, progreso y consulta de sesiones de tests (learning/exam/errors)
- * @module services/tests
+ * @module front/services/tests
  */
 
 import { apiJson, apiRequest, API_URL } from './http';
