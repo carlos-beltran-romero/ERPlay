@@ -31,6 +31,12 @@ should_seed() {
 
 wait_for_db
 
+echo "Ejecutando migraciones de base de datos..."
+if ! npm run migration:run:js; then
+  echo "Fallo al ejecutar las migraciones." >&2
+  exit 1
+fi
+
 if should_seed; then
   echo "Ejecutando semilla de base de datos..."
   node dist/seeds/seed.js || { echo "Fallo al ejecutar la semilla." >&2; exit 1; }
