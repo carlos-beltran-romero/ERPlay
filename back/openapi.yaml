@@ -1,4 +1,4 @@
-openapi: 3.1.0
+openapi: 3.0.3
 info:
   title: ERPlay Public API
   version: 1.2.0
@@ -48,20 +48,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LoginRequest'
+              $ref: "#/components/schemas/LoginRequest"
       responses:
-        '200':
+        "200":
           description: Inicio de sesión correcto
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthTokens'
-        '401':
+                $ref: "#/components/schemas/AuthTokens"
+        "401":
           description: Credenciales incorrectas
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /auth/logout:
     post:
       tags: [Auth]
@@ -73,16 +73,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RefreshTokenRequest'
+              $ref: "#/components/schemas/RefreshTokenRequest"
       responses:
-        '204':
+        "204":
           description: Sesión cerrada correctamente
-        '401':
+        "401":
           description: Token inválido o expirado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /auth/refresh:
     post:
       tags: [Auth]
@@ -95,20 +95,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RefreshTokenRequest'
+              $ref: "#/components/schemas/RefreshTokenRequest"
       responses:
-        '200':
+        "200":
           description: Tokens renovados
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthTokens'
-        '400':
+                $ref: "#/components/schemas/AuthTokens"
+        "400":
           description: Refresh token inválido
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /auth/forgot-password:
     post:
       tags: [Auth]
@@ -121,14 +121,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ForgotPasswordRequest'
+              $ref: "#/components/schemas/ForgotPasswordRequest"
       responses:
-        '200':
+        "200":
           description: Solicitud aceptada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
+                $ref: "#/components/schemas/MessageResponse"
   /auth/reset-password:
     post:
       tags: [Auth]
@@ -141,38 +141,38 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ResetPasswordRequest'
+              $ref: "#/components/schemas/ResetPasswordRequest"
       responses:
-        '200':
+        "200":
           description: Contraseña restablecida correctamente
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
-        '400':
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
           description: Token inválido o caducado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /users/me:
     get:
       tags: [Users]
       summary: Obtener perfil del usuario autenticado
       operationId: getCurrentUser
       responses:
-        '200':
+        "200":
           description: Perfil del usuario autenticado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserProfile'
-        '401':
+                $ref: "#/components/schemas/UserProfile"
+        "401":
           description: No autenticado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
     put:
       tags: [Users]
       summary: Actualizar perfil del usuario autenticado
@@ -182,26 +182,26 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateProfileRequest'
+              $ref: "#/components/schemas/UpdateProfileRequest"
       responses:
-        '200':
+        "200":
           description: Perfil actualizado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserProfile'
-        '400':
+                $ref: "#/components/schemas/UserProfile"
+        "400":
           description: Datos inválidos
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '409':
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
           description: Email ya está en uso
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /users/me/password:
     post:
       tags: [Users]
@@ -212,20 +212,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ChangePasswordRequest'
+              $ref: "#/components/schemas/ChangePasswordRequest"
       responses:
-        '200':
+        "200":
           description: Contraseña actualizada correctamente
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
-        '400':
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
           description: Contraseña actual incorrecta o datos inválidos
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /users:
     get:
       tags: [Users]
@@ -233,14 +233,14 @@ paths:
       description: Lista los estudiantes dados de alta ordenados por fecha de creación descendente.
       operationId: listUsers
       responses:
-        '200':
+        "200":
           description: Lista de estudiantes
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/UserSummary'
+                  $ref: "#/components/schemas/UserSummary"
   /users/batch:
     post:
       tags: [Users]
@@ -252,40 +252,40 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BatchCreateUsersRequest'
+              $ref: "#/components/schemas/BatchCreateUsersRequest"
       responses:
-        '201':
+        "201":
           description: Resultado de la creación en lote
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BatchCreateUsersResponse'
-        '400':
+                $ref: "#/components/schemas/BatchCreateUsersResponse"
+        "400":
           description: Datos inválidos
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /users/{userId}:
     parameters:
-      - $ref: '#/components/parameters/UserIdParam'
+      - $ref: "#/components/parameters/UserIdParam"
     get:
       tags: [Users]
       summary: Obtener un usuario por ID
       operationId: getUser
       responses:
-        '200':
+        "200":
           description: Datos del usuario solicitado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserProfile'
-        '404':
+                $ref: "#/components/schemas/UserProfile"
+        "404":
           description: Usuario no encontrado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
     put:
       tags: [Users]
       summary: Actualizar usuario
@@ -295,79 +295,79 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateUserRequest'
+              $ref: "#/components/schemas/UpdateUserRequest"
       responses:
-        '200':
+        "200":
           description: Usuario actualizado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserProfile'
-        '400':
+                $ref: "#/components/schemas/UserProfile"
+        "400":
           description: Datos inválidos
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '403':
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
           description: No autorizado para actualizar este usuario
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
           description: Usuario no encontrado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '409':
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
           description: Email en uso por otro usuario
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
     delete:
       tags: [Users]
       summary: Eliminar un usuario
       operationId: deleteUser
       responses:
-        '204':
+        "204":
           description: Usuario eliminado
-        '404':
+        "404":
           description: Usuario no encontrado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /diagrams/public:
     get:
       tags: [Diagrams]
       summary: Listar diagramas disponibles para estudiantes
       operationId: listPublicDiagrams
       responses:
-        '200':
+        "200":
           description: Lista de diagramas visibles
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/DiagramPublicSummary'
+                  $ref: "#/components/schemas/DiagramPublicSummary"
   /diagrams:
     get:
       tags: [Diagrams]
       summary: Listar diagramas
       operationId: listDiagrams
       responses:
-        '200':
+        "200":
           description: Lista de diagramas administrables
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/DiagramSummary'
+                  $ref: "#/components/schemas/DiagramSummary"
     post:
       tags: [Diagrams]
       summary: Crear un diagrama
@@ -378,40 +378,40 @@ paths:
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/DiagramCreateRequest'
+              $ref: "#/components/schemas/DiagramCreateRequest"
       responses:
-        '201':
+        "201":
           description: Diagrama creado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DiagramCreatedResponse'
-        '400':
+                $ref: "#/components/schemas/DiagramCreatedResponse"
+        "400":
           description: Datos inválidos o imagen ausente
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /diagrams/{diagramId}:
     parameters:
-      - $ref: '#/components/parameters/DiagramIdParam'
+      - $ref: "#/components/parameters/DiagramIdParam"
     get:
       tags: [Diagrams]
       summary: Obtener un diagrama
       operationId: getDiagram
       responses:
-        '200':
+        "200":
           description: Detalle del diagrama
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DiagramDetail'
-        '404':
+                $ref: "#/components/schemas/DiagramDetail"
+        "404":
           description: Diagrama no encontrado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
     put:
       tags: [Diagrams]
       summary: Actualizar un diagrama
@@ -421,42 +421,42 @@ paths:
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/DiagramUpdateRequest'
+              $ref: "#/components/schemas/DiagramUpdateRequest"
       responses:
-        '200':
+        "200":
           description: Diagrama actualizado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
-        '400':
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
           description: Datos inválidos
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
           description: Diagrama no encontrado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
     delete:
       tags: [Diagrams]
       summary: Eliminar un diagrama
       operationId: deleteDiagram
       responses:
-        '204':
+        "204":
           description: Diagrama eliminado
-        '404':
+        "404":
           description: Diagrama no encontrado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /admin/diagrams/{diagramId}/stats:
     parameters:
-      - $ref: '#/components/parameters/DiagramIdParam'
+      - $ref: "#/components/parameters/DiagramIdParam"
     get:
       tags: [Admin]
       summary: Obtener estadísticas avanzadas de un diagrama
@@ -475,24 +475,24 @@ paths:
             format: date
           description: Fecha final (inclusive) en formato YYYY-MM-DD
       responses:
-        '200':
+        "200":
           description: Estadísticas del diagrama
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DiagramStats'
-        '400':
+                $ref: "#/components/schemas/DiagramStats"
+        "400":
           description: Parámetros inválidos
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
           description: Diagrama no encontrado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /questions:
     post:
       tags: [Questions]
@@ -503,49 +503,49 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/QuestionCreateRequest'
+              $ref: "#/components/schemas/QuestionCreateRequest"
       responses:
-        '201':
+        "201":
           description: Pregunta creada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/QuestionCreatedResponse'
-        '400':
+                $ref: "#/components/schemas/QuestionCreatedResponse"
+        "400":
           description: Datos inválidos
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /questions/pending/count:
     get:
       tags: [Questions]
       summary: Contador de preguntas pendientes
       operationId: getPendingQuestionsCount
       responses:
-        '200':
+        "200":
           description: Número de preguntas pendientes de revisión
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PendingCount'
+                $ref: "#/components/schemas/PendingCount"
   /questions/pending:
     get:
       tags: [Questions]
       summary: Listar preguntas pendientes
       operationId: listPendingQuestions
       responses:
-        '200':
+        "200":
           description: Preguntas pendientes de revisión
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/PendingQuestion'
+                  $ref: "#/components/schemas/PendingQuestion"
   /questions/{questionId}/verify:
     parameters:
-      - $ref: '#/components/parameters/QuestionIdParam'
+      - $ref: "#/components/parameters/QuestionIdParam"
     post:
       tags: [Questions]
       summary: Verificar una pregunta
@@ -555,46 +555,46 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/QuestionVerifyRequest'
+              $ref: "#/components/schemas/QuestionVerifyRequest"
       responses:
-        '200':
+        "200":
           description: Revisión aplicada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
-        '400':
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
           description: Datos inválidos
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '403':
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
           description: No autorizado para revisar
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
           description: Pregunta no encontrada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /questions/mine:
     get:
       tags: [Questions]
       summary: Listar preguntas creadas por el usuario
       operationId: listMyQuestions
       responses:
-        '200':
+        "200":
           description: Preguntas creadas por el usuario autenticado
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/MyQuestion'
+                  $ref: "#/components/schemas/MyQuestion"
   /claims:
     post:
       tags: [Claims]
@@ -605,63 +605,63 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ClaimCreateRequest'
+              $ref: "#/components/schemas/ClaimCreateRequest"
       responses:
-        '201':
+        "201":
           description: Reclamación registrada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClaimDetail'
-        '400':
+                $ref: "#/components/schemas/ClaimDetail"
+        "400":
           description: Datos inválidos
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /claims/mine:
     get:
       tags: [Claims]
       summary: Listar reclamaciones del estudiante
       operationId: listMyClaims
       responses:
-        '200':
+        "200":
           description: Reclamaciones creadas por el estudiante
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/ClaimDetail'
+                  $ref: "#/components/schemas/ClaimDetail"
   /claims/pending:
     get:
       tags: [Claims]
       summary: Listar reclamaciones pendientes
       operationId: listPendingClaims
       responses:
-        '200':
+        "200":
           description: Reclamaciones pendientes de revisión
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/ClaimDetail'
+                  $ref: "#/components/schemas/ClaimDetail"
   /claims/pending/count:
     get:
       tags: [Claims]
       summary: Contador de reclamaciones pendientes
       operationId: getPendingClaimsCount
       responses:
-        '200':
+        "200":
           description: Número de reclamaciones pendientes
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PendingCount'
+                $ref: "#/components/schemas/PendingCount"
   /claims/{claimId}/verify:
     parameters:
-      - $ref: '#/components/parameters/ClaimIdParam'
+      - $ref: "#/components/parameters/ClaimIdParam"
     post:
       tags: [Claims]
       summary: Verificar reclamación
@@ -671,44 +671,44 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ClaimVerifyRequest'
+              $ref: "#/components/schemas/ClaimVerifyRequest"
       responses:
-        '200':
+        "200":
           description: Reclamación actualizada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClaimDetail'
-        '400':
+                $ref: "#/components/schemas/ClaimDetail"
+        "400":
           description: Datos inválidos
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '403':
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
           description: No autorizado para revisar la reclamación
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
           description: Reclamación no encontrada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /progress/overview:
     get:
       tags: [Progress]
       summary: Obtener resumen de progreso
       operationId: getProgressOverview
       responses:
-        '200':
+        "200":
           description: Métricas clave del progreso del estudiante
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProgressOverview'
+                $ref: "#/components/schemas/ProgressOverview"
   /progress/trends:
     get:
       tags: [Progress]
@@ -734,14 +734,14 @@ paths:
             enum: [day, week]
           description: Granularidad de agregación
       responses:
-        '200':
+        "200":
           description: Serie temporal de métricas
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/ProgressTrendPoint'
+                  $ref: "#/components/schemas/ProgressTrendPoint"
   /progress/errors:
     get:
       tags: [Progress]
@@ -756,64 +756,64 @@ paths:
             maximum: 50
           description: Número máximo de preguntas problemáticas a devolver
       responses:
-        '200':
+        "200":
           description: Preguntas con mayor tasa de error
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/ProgressErrorItem'
+                  $ref: "#/components/schemas/ProgressErrorItem"
   /progress/habits:
     get:
       tags: [Progress]
       summary: Obtener hábitos de estudio
       operationId: getStudyHabits
       responses:
-        '200':
+        "200":
           description: Estadísticas de hábitos de estudio
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProgressHabits'
+                $ref: "#/components/schemas/ProgressHabits"
   /progress/claims:
     get:
       tags: [Progress]
       summary: Obtener estadísticas de reclamaciones del estudiante
       operationId: getProgressClaims
       responses:
-        '200':
+        "200":
           description: Métricas de reclamaciones
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProgressClaimsStats'
+                $ref: "#/components/schemas/ProgressClaimsStats"
   /progress/badges:
     get:
       tags: [Progress]
       summary: Obtener insignias del estudiante
       operationId: getMyBadges
       responses:
-        '200':
+        "200":
           description: Insignias obtenidas por el estudiante
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Badge'
+                  $ref: "#/components/schemas/Badge"
   /progress/weekly-goal/progress:
     get:
       tags: [Progress]
       summary: Obtener progreso hacia el objetivo semanal
       operationId: getMyWeeklyGoalProgress
       responses:
-        '200':
+        "200":
           description: Estado del objetivo semanal del estudiante
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/WeeklyGoalProgress'
+                $ref: "#/components/schemas/WeeklyGoalProgress"
   /dashboard/recent:
     get:
       tags: [Dashboard]
@@ -834,14 +834,14 @@ paths:
             minimum: 0
           description: Índice desde el que paginar resultados
       responses:
-        '200':
+        "200":
           description: Actividad reciente del estudiante
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/DashboardItem'
+                  $ref: "#/components/schemas/DashboardItem"
   /exams/start:
     get:
       tags: [Exams]
@@ -856,18 +856,18 @@ paths:
             maximum: 50
           description: Número de preguntas a incluir en el examen
       responses:
-        '200':
+        "200":
           description: Examen generado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ExamStartPayload'
-        '400':
+                $ref: "#/components/schemas/ExamStartPayload"
+        "400":
           description: No fue posible generar el examen
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /test-sessions/start:
     post:
       tags: [TestSessions]
@@ -878,24 +878,24 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TestSessionStartRequest'
+              $ref: "#/components/schemas/TestSessionStartRequest"
       responses:
-        '200':
+        "200":
           description: Sesión de test creada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TestSessionStartResponse'
-        '400':
+                $ref: "#/components/schemas/TestSessionStartResponse"
+        "400":
           description: Petición inválida o sin preguntas disponibles
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /test-sessions/{sessionId}/results/{resultId}:
     parameters:
-      - $ref: '#/components/parameters/SessionIdParam'
-      - $ref: '#/components/parameters/ResultIdParam'
+      - $ref: "#/components/parameters/SessionIdParam"
+      - $ref: "#/components/parameters/ResultIdParam"
     patch:
       tags: [TestSessions]
       summary: Actualizar resultado de pregunta
@@ -905,23 +905,23 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TestResultPatchRequest'
+              $ref: "#/components/schemas/TestResultPatchRequest"
       responses:
-        '200':
+        "200":
           description: Actualización confirmada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OperationAck'
-        '400':
+                $ref: "#/components/schemas/OperationAck"
+        "400":
           description: Datos inválidos o resultado inexistente
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /test-sessions/{sessionId}/events:
     parameters:
-      - $ref: '#/components/parameters/SessionIdParam'
+      - $ref: "#/components/parameters/SessionIdParam"
     post:
       tags: [TestSessions]
       summary: Registrar evento de sesión
@@ -931,40 +931,40 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TestEventRequest'
+              $ref: "#/components/schemas/TestEventRequest"
       responses:
-        '200':
+        "200":
           description: Evento registrado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OperationAck'
-        '400':
+                $ref: "#/components/schemas/OperationAck"
+        "400":
           description: Datos inválidos o sesión inexistente
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /test-sessions/{sessionId}/finish:
     parameters:
-      - $ref: '#/components/parameters/SessionIdParam'
+      - $ref: "#/components/parameters/SessionIdParam"
     post:
       tags: [TestSessions]
       summary: Finalizar sesión de test
       operationId: finishTestSession
       responses:
-        '200':
+        "200":
           description: Resumen de la sesión finalizada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TestSessionFinishResponse'
-        '400':
+                $ref: "#/components/schemas/TestSessionFinishResponse"
+        "400":
           description: Sesión inválida o inexistente
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /test-sessions/mine:
     get:
       tags: [TestSessions]
@@ -995,213 +995,213 @@ paths:
             type: string
           description: Texto a buscar en el título del diagrama
       responses:
-        '200':
+        "200":
           description: Sesiones del usuario
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/TestSessionSummary'
+                  $ref: "#/components/schemas/TestSessionSummary"
   /test-sessions/{sessionId}:
     parameters:
-      - $ref: '#/components/parameters/SessionIdParam'
+      - $ref: "#/components/parameters/SessionIdParam"
     get:
       tags: [TestSessions]
       summary: Obtener detalle de una sesión de test
       operationId: getTestSessionDetail
       responses:
-        '200':
+        "200":
           description: Detalle completo de la sesión
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TestSessionDetail'
-        '404':
+                $ref: "#/components/schemas/TestSessionDetail"
+        "404":
           description: Sesión no encontrada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /supervisor/students/{studentId}:
     parameters:
-      - $ref: '#/components/parameters/StudentIdParam'
+      - $ref: "#/components/parameters/StudentIdParam"
     get:
       tags: [Supervisor]
       summary: Obtener información básica de un estudiante
       operationId: supervisorGetStudent
       responses:
-        '200':
+        "200":
           description: Información del estudiante
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserProfile'
-        '404':
+                $ref: "#/components/schemas/UserProfile"
+        "404":
           description: Estudiante no encontrado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /supervisor/students/{studentId}/progress/overview:
     parameters:
-      - $ref: '#/components/parameters/StudentIdParam'
+      - $ref: "#/components/parameters/StudentIdParam"
     get:
       tags: [Supervisor]
       summary: Obtener resumen de progreso del estudiante
       operationId: supervisorGetProgressOverview
       responses:
-        '200':
+        "200":
           description: Métricas de progreso del estudiante
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProgressOverview'
+                $ref: "#/components/schemas/ProgressOverview"
   /supervisor/students/{studentId}/progress/trends:
     parameters:
-      - $ref: '#/components/parameters/StudentIdParam'
+      - $ref: "#/components/parameters/StudentIdParam"
     get:
       tags: [Supervisor]
       summary: Obtener tendencias de progreso del estudiante
       operationId: supervisorGetProgressTrends
       responses:
-        '200':
+        "200":
           description: Serie temporal de progreso
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/ProgressTrendPoint'
+                  $ref: "#/components/schemas/ProgressTrendPoint"
   /supervisor/students/{studentId}/progress/errors:
     parameters:
-      - $ref: '#/components/parameters/StudentIdParam'
+      - $ref: "#/components/parameters/StudentIdParam"
     get:
       tags: [Supervisor]
       summary: Obtener errores frecuentes del estudiante
       operationId: supervisorGetProgressErrors
       responses:
-        '200':
+        "200":
           description: Preguntas con mayor tasa de error
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/ProgressErrorItem'
+                  $ref: "#/components/schemas/ProgressErrorItem"
   /supervisor/students/{studentId}/claims/stats:
     parameters:
-      - $ref: '#/components/parameters/StudentIdParam'
+      - $ref: "#/components/parameters/StudentIdParam"
     get:
       tags: [Supervisor]
       summary: Obtener estadísticas de reclamaciones del estudiante
       operationId: supervisorGetClaimStats
       responses:
-        '200':
+        "200":
           description: Estadísticas de reclamaciones del estudiante
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProgressClaimsStats'
+                $ref: "#/components/schemas/ProgressClaimsStats"
   /supervisor/students/{studentId}/claims:
     parameters:
-      - $ref: '#/components/parameters/StudentIdParam'
+      - $ref: "#/components/parameters/StudentIdParam"
     get:
       tags: [Supervisor]
       summary: Listar reclamaciones del estudiante
       operationId: supervisorListClaims
       responses:
-        '200':
+        "200":
           description: Reclamaciones del estudiante
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/ClaimDetail'
+                  $ref: "#/components/schemas/ClaimDetail"
   /supervisor/students/{studentId}/badges:
     parameters:
-      - $ref: '#/components/parameters/StudentIdParam'
+      - $ref: "#/components/parameters/StudentIdParam"
     get:
       tags: [Supervisor]
       summary: Listar insignias del estudiante
       operationId: supervisorListBadges
       responses:
-        '200':
+        "200":
           description: Insignias obtenidas por el estudiante
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Badge'
+                  $ref: "#/components/schemas/Badge"
   /supervisor/students/{studentId}/questions:
     parameters:
-      - $ref: '#/components/parameters/StudentIdParam'
+      - $ref: "#/components/parameters/StudentIdParam"
     get:
       tags: [Supervisor]
       summary: Listar preguntas creadas por el estudiante
       operationId: supervisorListQuestions
       responses:
-        '200':
+        "200":
           description: Preguntas creadas por el estudiante
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/MyQuestion'
+                  $ref: "#/components/schemas/MyQuestion"
   /supervisor/students/{studentId}/tests:
     parameters:
-      - $ref: '#/components/parameters/StudentIdParam'
+      - $ref: "#/components/parameters/StudentIdParam"
     get:
       tags: [Supervisor]
       summary: Listar sesiones de test del estudiante
       operationId: supervisorListTests
       responses:
-        '200':
+        "200":
           description: Sesiones de test del estudiante
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/TestSessionSummary'
+                  $ref: "#/components/schemas/TestSessionSummary"
   /supervisor/students/{studentId}/tests/{sessionId}:
     parameters:
-      - $ref: '#/components/parameters/StudentIdParam'
-      - $ref: '#/components/parameters/SessionIdParam'
+      - $ref: "#/components/parameters/StudentIdParam"
+      - $ref: "#/components/parameters/SessionIdParam"
     get:
       tags: [Supervisor]
       summary: Obtener detalle de una sesión de test del estudiante
       operationId: supervisorGetTestDetail
       responses:
-        '200':
+        "200":
           description: Detalle de la sesión del estudiante
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TestSessionDetail'
-        '404':
+                $ref: "#/components/schemas/TestSessionDetail"
+        "404":
           description: Sesión no encontrada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /supervisor/weekly-goal:
     get:
       tags: [Supervisor]
       summary: Obtener objetivo semanal actual
       operationId: supervisorGetWeeklyGoal
       responses:
-        '200':
+        "200":
           description: Objetivo semanal activo
           content:
             application/json:
               schema:
                 oneOf:
-                  - $ref: '#/components/schemas/WeeklyGoal'
-                  - type: "null"
+                  - $ref: "#/components/schemas/WeeklyGoal"
+                  - nullable: true
     put:
       tags: [Supervisor]
       summary: Establecer objetivo semanal
@@ -1211,20 +1211,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/WeeklyGoalUpsertRequest'
+              $ref: "#/components/schemas/WeeklyGoalUpsertRequest"
       responses:
-        '200':
+        "200":
           description: Objetivo semanal actualizado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/WeeklyGoal'
-        '400':
+                $ref: "#/components/schemas/WeeklyGoal"
+        "400":
           description: Datos inválidos para el objetivo
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
     post:
       tags: [Supervisor]
       summary: Alias para actualizar el objetivo semanal
@@ -1234,34 +1234,34 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/WeeklyGoalUpsertRequest'
+              $ref: "#/components/schemas/WeeklyGoalUpsertRequest"
       responses:
-        '200':
+        "200":
           description: Objetivo semanal actualizado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/WeeklyGoal'
-        '400':
+                $ref: "#/components/schemas/WeeklyGoal"
+        "400":
           description: Datos inválidos
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
   /supervisor/weekly-goal/progress:
     get:
       tags: [Supervisor]
       summary: Progreso de los estudiantes hacia el objetivo semanal
       operationId: supervisorWeeklyGoalProgress
       responses:
-        '200':
+        "200":
           description: Lista de progreso por estudiante
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/WeeklyGoalProgressItem'
+                  $ref: "#/components/schemas/WeeklyGoalProgressItem"
 components:
   securitySchemes:
     bearerAuth:
@@ -1416,7 +1416,7 @@ components:
           nullable: true
     UserSummary:
       allOf:
-        - $ref: '#/components/schemas/UserProfile'
+        - $ref: "#/components/schemas/UserProfile"
         - type: object
           properties:
             createdAt:
@@ -1471,7 +1471,7 @@ components:
         created:
           type: array
           items:
-            $ref: '#/components/schemas/UserSummary'
+            $ref: "#/components/schemas/UserSummary"
         skipped:
           type: object
           required: [exists, payloadDuplicates]
@@ -1515,7 +1515,7 @@ components:
           description: Ruta relativa a la imagen asociada
     DiagramSummary:
       allOf:
-        - $ref: '#/components/schemas/DiagramPublicSummary'
+        - $ref: "#/components/schemas/DiagramPublicSummary"
         - type: object
           properties:
             createdAt:
@@ -1561,13 +1561,13 @@ components:
           nullable: true
     DiagramDetail:
       allOf:
-        - $ref: '#/components/schemas/DiagramSummary'
+        - $ref: "#/components/schemas/DiagramSummary"
         - type: object
           properties:
             questions:
               type: array
               items:
-                $ref: '#/components/schemas/DiagramQuestion'
+                $ref: "#/components/schemas/DiagramQuestion"
     DiagramQuestion:
       type: object
       required: [id, prompt, options]
@@ -1588,7 +1588,15 @@ components:
           minimum: 0
     DiagramStats:
       type: object
-      required: [kpis, trends, histogramExam10, scatterSpeedVsAccuracy, hotspots, riskStudents]
+      required:
+        [
+          kpis,
+          trends,
+          histogramExam10,
+          scatterSpeedVsAccuracy,
+          hotspots,
+          riskStudents,
+        ]
       properties:
         kpis:
           type: object
@@ -1890,7 +1898,8 @@ components:
           type: integer
     ClaimCreateRequest:
       type: object
-      required: [diagramId, prompt, options, chosenIndex, correctIndex, explanation]
+      required:
+        [diagramId, prompt, options, chosenIndex, correctIndex, explanation]
       properties:
         testResultId:
           type: string
@@ -1932,7 +1941,8 @@ components:
       additionalProperties: false
     ClaimDetail:
       type: object
-      required: [id, status, createdAt, diagramId, prompt, chosenIndex, correctIndex]
+      required:
+        [id, status, createdAt, diagramId, prompt, chosenIndex, correctIndex]
       properties:
         id:
           type: string
@@ -1965,7 +1975,15 @@ components:
     ProgressOverview:
       type: object
       required:
-        [accuracyLearningPct, examScoreAvg, answeredCount, avgTimePerQuestionSec, sessionsCompleted, deltaExamVsLearningPts, bestStreakDays]
+        [
+          accuracyLearningPct,
+          examScoreAvg,
+          answeredCount,
+          avgTimePerQuestionSec,
+          sessionsCompleted,
+          deltaExamVsLearningPts,
+          bestStreakDays,
+        ]
       properties:
         accuracyLearningPct:
           type: number

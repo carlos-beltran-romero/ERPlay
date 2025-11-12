@@ -1,4 +1,3 @@
-// src/data-source.ts
 /**
  * @module data-source
  */

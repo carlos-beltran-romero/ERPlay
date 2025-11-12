@@ -10,7 +10,6 @@ import * as ctrl from '../controllers/progress';
 
 const router = Router();
 
-// Todas las rutas requieren autenticación
 router.use(authenticate);
 
 /**

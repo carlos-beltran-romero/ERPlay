@@ -46,7 +46,6 @@ export class DiagramsService {
   }): Promise<{ id: string; path: string }> {
     const creator = await this.userRepo.findOneByOrFail({ id: params.creatorId });
 
-    // Validaciones
     if (!params.title.trim()) throw new Error('Título requerido');
     if (!params.questions || params.questions.length === 0) throw new Error('Debes incluir al menos 1 pregunta');
     for (const q of params.questions) {
@@ -180,7 +179,6 @@ export class DiagramsService {
       if (!actor) throw new Error('Usuario no encontrado');
       const supervisor = actor.role === UserRole.SUPERVISOR;
 
-      // Mapa de firmas a creadores originales
       const existingQs = await manager.find(Question, {
         where: { diagram: { id: diagram.id } },
         relations: { options: true, creator: true },
@@ -199,7 +197,6 @@ export class DiagramsService {
         if (q.creator) existingSignatureCreator.set(sig, q.creator);
       }
 
-      // Actualizar metadata
       oldPublicPath = params.newFile ? diagram.path : null;
       diagram.title = params.title.trim();
       if (params.newFile) {
@@ -208,13 +205,11 @@ export class DiagramsService {
       }
       await manager.save(diagram);
 
-      // Borrar preguntas existentes
       for (const q of existingQs) {
         if (q.options?.length) await manager.remove(Option, q.options);
       }
       if (existingQs.length) await manager.remove(Question, existingQs);
 
-      // Re-crear preservando creadores
       for (const q of params.questions) {
         const sig = makeSignature(q);
         const originalCreator = existingSignatureCreator.get(sig);
@@ -240,7 +235,6 @@ export class DiagramsService {
       }
     });
 
-    // Limpiar imagen antigua
     if (oldPublicPath) {
       const absolute = path.resolve(oldPublicPath.replace(/^\/+/, ''));
       fs.unlink(absolute, () => { /* ignore */ });

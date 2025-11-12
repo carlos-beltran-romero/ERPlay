@@ -80,7 +80,6 @@ export class ClaimsService {
       const qRepo = m.getRepository(Question);
       const rRepo = m.getRepository(TestResult);
 
-      // Validar testResult si se proporciona
       let testResult: TestResult | null = null;
       if (params.testResultId) {
         testResult = await rRepo.findOne({
@@ -92,14 +91,12 @@ export class ClaimsService {
           throw createHttpError(400, 'Resultado no válido para reclamar');
         }
         
-        // Evitar duplicados
         const dup = await m.getRepository(Claim).findOne({
           where: { testResult: { id: testResult.id } },
         });
         if (dup) return dup;
       }
 
-      // Resolver pregunta asociada
       let q: Question | null = null;
 
       if (params.questionId) {
@@ -116,7 +113,7 @@ export class ClaimsService {
         });
       }
 
-      // Buscar pregunta por matching de texto si no se encontró
+
       if (!q) {
         const candidate = await qRepo.find({
           where: { diagram: { id: params.diagramId } },
@@ -143,13 +140,11 @@ export class ClaimsService {
         }
       }
 
-      // Pasar pregunta a PENDING mientras se revisa
       if (q) {
         q.status = ReviewStatus.PENDING;
         await m.save(q);
       }
 
-      // Crear claim
       const c = m.create(Claim, {
         status: ClaimStatus.PENDING,
         question: q ?? null,
@@ -332,7 +327,6 @@ export class ClaimsService {
     };
   }
 
-  /** Notifica a supervisores sobre nueva reclamación */
   private async notifySupervisorsNewClaim(claim: Claim) {
     const fixed = env.SUPERVISOR_NOTIFY_EMAIL;
     let recipients: string[] = [];

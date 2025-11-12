@@ -1,0 +1,26 @@
+{
+  "entryPoints": ["front/src", "back/src"],
+  "entryPointStrategy": "expand",
+  "out": "docs",
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/node_modules/**",
+    "**/*.d.ts"
+  ],
+  "excludePrivate": true,
+  "excludeInternal": false,
+  "includeVersion": true,
+  "name": "ERPlay - Documentación Técnica",
+  "readme": "README.md",
+  "categorizeByGroup": true,
+  "categoryOrder": [
+    "Models",
+    "Services",
+    "Controllers",
+    "Utils",
+    "*"
+  ],
+  "sort": ["source-order"],
+  "plugin": []
+}

@@ -96,7 +96,6 @@ export async function getRecentActivity(userId: string, limit = 8, offset = 0): 
     durationSec: s.durationSec != null ? Number(s.durationSec) : null,
   }));
 
-  // Preguntas creadas por el usuario
   const questions = await AppDataSource.getRepository(Question)
     .createQueryBuilder('q')
     .leftJoin('q.creator', 'qc')
@@ -119,7 +118,6 @@ export async function getRecentActivity(userId: string, limit = 8, offset = 0): 
     title: String(q.prompt ?? ''),
   }));
 
-  // Reclamaciones creadas por el usuario
   const claims = await AppDataSource.getRepository(Claim)
     .createQueryBuilder('c')
     .innerJoin('c.student', 'stu')
@@ -142,7 +140,6 @@ export async function getRecentActivity(userId: string, limit = 8, offset = 0): 
     title: String(c.promptSnapshot ?? ''),
   }));
 
-  // Merge y ordenamiento por fecha
   const all = [...sessionItems, ...questionItems, ...claimItems].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );

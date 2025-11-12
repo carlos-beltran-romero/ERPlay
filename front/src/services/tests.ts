@@ -181,7 +181,6 @@ export async function logEvent(
       json: body,
     });
   } catch {
-    // Silenciar errores de tracking
   }
 }
 

@@ -154,7 +154,6 @@ export const listMine = asyncHandler(async (req: Request, res: Response) => {
         ? {
             id: row.diagram.id,
             title: row.diagram.title,
-            // ✅ devolver relativo; Nginx ya expone /uploads/
             path: row.diagram.path || undefined,
           }
         : undefined,

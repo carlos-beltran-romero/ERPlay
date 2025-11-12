@@ -18,7 +18,6 @@ const ForgotPassword: React.FC = () => {
 
     try {
       await forgotPassword(email);
-      // Asegura que el spinner dure al menos 1s
       const elapsed = Date.now() - start;
       const MIN = 1000;
       if (elapsed < MIN) {

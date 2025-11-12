@@ -31,7 +31,6 @@ export class ExamsService {
       hint?: string;
     }[];
   }> {
-    // Obtener IDs de diagramas con preguntas aprobadas
     const rows = await this.diagramRepo
       .createQueryBuilder('d')
       .innerJoin('d.questions', 'q', 'q.status = :st', { st: ReviewStatus.APPROVED })
@@ -41,7 +40,6 @@ export class ExamsService {
 
     if (!rows.length) throw new Error('No hay tests disponibles');
 
-    // Seleccionar diagrama aleatorio
     const random = rows[Math.floor(Math.random() * rows.length)].id;
 
     const diagram = await this.diagramRepo.findOne({
@@ -55,7 +53,6 @@ export class ExamsService {
     );
     if (!approved.length) throw new Error('El test no tiene preguntas aprobadas');
 
-    // Barajar y limitar preguntas
     const shuffled = approved
       .sort(() => Math.random() - 0.5)
       .slice(0, Math.min(limit, approved.length));

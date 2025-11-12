@@ -29,14 +29,13 @@ export async function getOverview(userId: string) {
   const rRepo = AppDataSource.getRepository(TestResult);
   const sRepo = AppDataSource.getRepository(TestSession);
 
-  // QueryBuilder base: resultados del usuario con joins optimizados
+
   const baseQB = rRepo
     .createQueryBuilder('r')
     .innerJoin('r.session', 's')
     .innerJoin('s.user', 'u')
     .where('u.id = :userId', { userId });
 
-  // Precisión en modo aprendizaje (learning)
   const accRow =
     (await baseQB
       .clone()
@@ -47,7 +46,6 @@ export async function getOverview(userId: string) {
 
   const accuracyLearningPct = Number(accRow.tot) ? (Number(accRow.ok) / Number(accRow.tot)) * 100 : 0;
 
-  // Nota media en modo examen (0-10)
   const examRow =
     (await baseQB
       .clone()
@@ -59,14 +57,12 @@ export async function getOverview(userId: string) {
   const examPct = Number(examRow.tot) ? (Number(examRow.ok) / Number(examRow.tot)) * 100 : 0;
   const examScoreAvg = Number(examRow.tot) ? (Number(examRow.ok) / Number(examRow.tot)) * 10 : 0;
 
-  // Tiempo medio por pregunta (todas las sesiones)
   const avgRow =
     (await baseQB
       .clone()
       .select('AVG(r.timeSpentSeconds)', 'avg')
       .getRawOne<{ avg: string }>()) ?? { avg: '0' };
 
-  // Sesiones completadas (con completedAt != NULL)
   const compRow =
     (await sRepo
       .createQueryBuilder('s')
@@ -76,8 +72,6 @@ export async function getOverview(userId: string) {
       .select('COUNT(*)', 'cnt')
       .getRawOne<{ cnt: string }>()) ?? { cnt: '0' };
 
-  // Total de preguntas respondidas (excluye omitidas)
-  // CRÍTICO: Solo cuenta preguntas con selectedIndex != NULL
   const totRow =
     (await baseQB
       .clone()
@@ -85,7 +79,6 @@ export async function getOverview(userId: string) {
       .select('COUNT(*)', 'cnt')
       .getRawOne<{ cnt: string }>()) ?? { cnt: '0' };
 
-  // Mejor racha de días consecutivos con actividad
   const streakRows = await baseQB
     .clone()
     .select('DATE(r.createdAt)', 'd')
@@ -128,13 +121,10 @@ export async function getTrends(params: { userId: string; from?: string; to?: st
   const { userId, from, to, bucket } = params;
   const rRepo = AppDataSource.getRepository(TestResult);
 
-  // Expresión SQL para agrupar por día o semana
   const baseDateExpr =
     bucket === 'week'
       ? "STR_TO_DATE(CONCAT(YEARWEEK(r.createdAt, 3),' Monday'), '%X%V %W')" // Semana ISO (modo 3)
       : 'DATE(r.createdAt)';
-
-  // Forzar formato YYYY-MM-DD para consistencia
   const dateExpr = `DATE_FORMAT(${baseDateExpr}, '%Y-%m-%d')`;
 
   const qb = rRepo
@@ -142,8 +132,6 @@ export async function getTrends(params: { userId: string; from?: string; to?: st
     .innerJoin('r.session', 's')
     .innerJoin('s.user', 'u')
     .where('u.id = :userId', { userId });
-
-  // Filtros opcionales de rango temporal
   if (from) qb.andWhere('r.createdAt >= :from', { from: `${from} 00:00:00` });
   if (to) qb.andWhere('r.createdAt <= :to', { to: `${to} 23:59:59` });
 
@@ -211,8 +199,6 @@ export async function getErrors(params: { userId: string; limit: number; minAtte
     .addOrderBy('COUNT(*)', 'DESC')
     .limit(limit)
     .getRawMany<{ id: string; title: string; tot: string; ko: string }>();
-
-  // Análisis de distractores: índice más elegido entre respuestas incorrectas
   const ids = rows.map((r) => r.id).filter(Boolean);
   let commonIndexByQ: Record<string, number | undefined> = {};
 
@@ -233,8 +219,6 @@ export async function getErrors(params: { userId: string; limit: number; minAtte
       .orderBy('qid', 'ASC')
       .addOrderBy('cnt', 'DESC')
       .getRawMany<{ qid: string; idx: string; cnt: string }>();
-
-    // Tomar solo el primer resultado (más frecuente) por pregunta
     for (const row of freqRows) {
       if (commonIndexByQ[row.qid] == null) commonIndexByQ[row.qid] = Number(row.idx);
     }
@@ -260,7 +244,6 @@ export async function getErrors(params: { userId: string; limit: number; minAtte
  * - hintsPerQuestionPct: % de preguntas en las que se usó pista (solo mode=learning)
  */
 export async function getHabits(userId: string) {
-  // Distribución de actividad por hora del día (0-23)
   const rows = await AppDataSource.getRepository(TestResult)
     .createQueryBuilder('r')
     .innerJoin('r.session', 's')
@@ -271,14 +254,10 @@ export async function getHabits(userId: string) {
     .groupBy('hour')
     .orderBy('hour', 'ASC')
     .getRawMany<{ hour: string; answered: string }>();
-
-  // Rellenar array de 24 posiciones (incluye horas sin actividad)
   const byHour = Array.from({ length: 24 }, (_, h) => {
     const f = rows.find((r) => Number(r.hour) === h);
     return { hour: h, answered: Number(f?.answered ?? 0) };
   });
-
-  // Duración media de sesiones (usa campo precalculado durationSeconds)
   const avgSessionRow =
     (await AppDataSource.getRepository(TestSession)
       .createQueryBuilder('s')
@@ -288,8 +267,6 @@ export async function getHabits(userId: string) {
       .andWhere('s.durationSeconds IS NOT NULL')
       .select('AVG(s.durationSeconds)', 'avg')
       .getRawOne<{ avg: string }>()) ?? { avg: '0' };
-
-  // Tasa de uso de pistas en modo aprendizaje
   const hintRow =
     (await AppDataSource.getRepository(TestResult)
       .createQueryBuilder('r')
@@ -350,8 +327,6 @@ export async function getClaimsStats(userId: string) {
  */
 export async function getWeeklyProgressRow(userId: string) {
   const goalRepo = AppDataSource.getRepository(WeeklyGoal);
-
-  // Buscar objetivo activo (weekStart <= hoy <= weekEnd)
   const g = await goalRepo
     .createQueryBuilder('g')
     .where('DATE(g.weekStart) <= CURRENT_DATE()')
@@ -418,7 +393,6 @@ export async function getBadges(userId: string): Promise<
   }> = [];
 
   for (const g of goals) {
-    // Contar sesiones completadas en el rango de la semana
     const { count } = await AppDataSource.getRepository(TestSession)
       .createQueryBuilder('s')
       .select('COUNT(*)', 'count')
@@ -444,8 +418,6 @@ export async function getBadges(userId: string): Promise<
   return out;
 }
 
-// ============ FUNCIONES AUXILIARES ============
-
 /**
  * Calcula la racha más larga de días consecutivos con actividad
  * 
@@ -464,8 +436,6 @@ function calcBestStreak(datesISO: string[]): number {
     const prev = new Date(d);
     prev.setUTCDate(prev.getUTCDate() - 1);
     const prevISO = prev.toISOString().slice(0, 10);
-
-    // Solo procesar si es inicio de racha (no tiene día previo)
     if (!set.has(prevISO)) {
       let len = 1;
       let cur = new Date(d);

@@ -8,18 +8,15 @@
     "dev": "nodemon --watch src --exec ts-node src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
-
     "// Local migrations (TypeScript)": "",
     "typeorm:ts": "typeorm-ts-node-commonjs",
     "migration:generate": "npm run typeorm:ts -- migration:generate src/migrations/initialSchema -d src/data-source.ts",
     "migration:run": "npm run typeorm:ts -- migration:run -d src/data-source.ts",
     "migration:revert": "npm run typeorm:ts -- migration:revert -d src/data-source.ts",
-
     "// Prod migrations (JS compilado a dist/)": "",
     "typeorm": "typeorm",
     "migration:run:js": "typeorm migration:run -d dist/data-source.js",
     "migration:revert:js": "typeorm migration:revert -d dist/data-source.js",
-
     "seed": "ts-node --transpile-only src/seeds/seed.ts",
     "test": "jest"
   },
@@ -39,6 +36,7 @@
     "nodemailer": "^7.0.5",
     "reflect-metadata": "^0.2.2",
     "sequelize": "^6.37.7",
+    "swagger-ui-dist": "^5.30.2",
     "typeorm": "^0.3.24",
     "zod": "^4.0.5"
   },

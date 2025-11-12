@@ -63,7 +63,6 @@ async function run() {
       try {
         await queryRunner.query('SET FOREIGN_KEY_CHECKS = 1');
       } catch {
-        // noop
       }
     }
     await queryRunner.release();

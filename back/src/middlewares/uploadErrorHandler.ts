@@ -29,23 +29,6 @@ import { createHttpError } from '../core/errors/HttpError';
  * - LIMIT_UNEXPECTED_FILE: Campo de archivo no esperado
  * - LIMIT_FILE_COUNT: Demasiados archivos enviados
  * 
- * @example
- * // Configuración típica en rutas
- * router.post('/diagrams', 
- *   uploadDiagramImage, 
- *   uploadErrorHandler, 
- *   createDiagramController
- * );
- * 
- * @example
- * // Respuesta cuando el archivo es demasiado grande
- * // Status: 400
- * // Body: { "error": "File too large" }
- * 
- * @example
- * // Respuesta cuando el formato no es válido
- * // Status: 400
- * // Body: { "error": "Formato no permitido (solo JPG o PNG)" }
  * 
  * @see {@link https://github.com/expressjs/multer#error-handling|Multer Error Handling}
  * @public
@@ -57,13 +40,11 @@ const uploadErrorHandler: ErrorRequestHandler = (error, _req, _res, next) => {
     return;
   }
 
-  // Manejar errores de validación personalizada (fileFilter)
   if (error) {
     next(createHttpError(400, error.message));
     return;
   }
 
-  // No hay error, continuar con el flujo normal
   next(error);
 };
 

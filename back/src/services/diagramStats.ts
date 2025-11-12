@@ -124,7 +124,6 @@ export async function getDiagramStatsService(diagramId: string, range?: Range): 
   const learningResults = learningSessions.flatMap(s => s.results ?? []);
   const allResults = sessions.flatMap(s => s.results ?? []);
 
-  // === Cálculo de KPIs ===
   const examScoreAvg10 = examSessions.length ? avg(examSessions.map(s => num(s.score))) : 0;
 
   const learningAccuracyPct = learningSessions.length
@@ -143,7 +142,6 @@ export async function getDiagramStatsService(diagramId: string, range?: Range): 
 
   const hintUsagePct = pctNum(learningResults.filter(r => !!r.usedHint).length, Math.max(1, learningResults.length));
 
-  // Concentración de errores en top-5
   const byQuestion = groupBy(allResults.filter(r => r.question?.id), r => r.question!.id);
   const errorAgg = Object.entries(byQuestion).map(([qid, rs]) => {
     const total = rs.length;
@@ -171,7 +169,6 @@ export async function getDiagramStatsService(diagramId: string, range?: Range): 
     attempts: h.total,
   }));
 
-  // Estudiantes en riesgo
   const examsByUser = groupBy(examSessions, s => s.user.id);
   const riskStudents: RiskStudentItem[] = Object.entries(examsByUser)
     .map(([userId, arr]) => {
@@ -189,7 +186,6 @@ export async function getDiagramStatsService(diagramId: string, range?: Range): 
     .filter(s => s.lastExamScore10 <= 5)
     .sort((a, b) => a.lastExamScore10 - b.lastExamScore10);
 
-  // Delta práctica→examen
   const learningByUser = groupBy(learningSessions, s => s.user.id);
   const deltasPerUser: number[] = [];
   for (const uid of Object.keys(examsByUser)) {
@@ -206,7 +202,6 @@ export async function getDiagramStatsService(diagramId: string, range?: Range): 
   }
   const deltaPracticeToExamAvgPts = deltasPerUser.length ? round2(avg(deltasPerUser)) : 0;
 
-  // Tendencias temporales
   const byDay = groupBy(sessions, s => s.createdAt.toISOString().slice(0, 10));
   const trends: TrendPoint[] = Object.entries(byDay)
     .map(([day, arr]) => {
@@ -220,14 +215,12 @@ export async function getDiagramStatsService(diagramId: string, range?: Range): 
     })
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  // Histograma de notas
   const histogramExam10: HistogramBucket[] = Array.from({ length: 10 }, (_, i) => ({ label: `${i}-${i + 1}`, count: 0 }));
   for (const s of examSessions) {
     const v = Math.max(0, Math.min(9, Math.floor(num(s.score))));
     histogramExam10[v].count += 1;
   }
 
-  // Scatter precisión vs velocidad
   const learnAccByUser = Object.entries(groupBy(learningSessions, s => s.user.id)).reduce<Record<string, number>>((acc, [uid, arr]) => {
     acc[uid] = arr.length ? avg(arr.map(s => ratioPct(s.correctCount, s.totalQuestions))) : 0;
     return acc;
@@ -255,7 +248,6 @@ export async function getDiagramStatsService(diagramId: string, range?: Range): 
       timeSecPerQuestion: examTimeByUser[uid] ?? 0,
     }));
 
-  // Calidad de ítems (discriminación point-biserial)
   type DiscRow = { correct01: number; totalExcl: number; timeSec: number | null; title: string };
   const discData = new Map<string, DiscRow[]>();
   for (const s of examSessions) {
@@ -285,7 +277,6 @@ export async function getDiagramStatsService(diagramId: string, range?: Range): 
     medianTimeByQ[qid] = median(rs.map(r => num(r.timeSpentSeconds)));
   }
 
-  // Reclamaciones
   const claimQB = AppDataSource.getRepository(Claim)
     .createQueryBuilder('c')
     .leftJoin('c.question', 'q')
@@ -341,7 +332,6 @@ export async function getDiagramStatsService(diagramId: string, range?: Range): 
     })
     .sort((a, b) => a.pCorrectPct - b.pCorrectPct);
 
-  // Análisis de distractores por cuartiles
   const distractors: DistractorBreakdown[] = [];
   const resultUser: Record<string, string> = {};
   for (const s of sessions) {
@@ -388,7 +378,6 @@ export async function getDiagramStatsService(diagramId: string, range?: Range): 
     }
   }
 
-  // Curvas de aprendizaje
   const attemptsUntilMastery: number[] = [];
   for (const [uid, arr] of Object.entries(examsByUser)) {
     const ordered = arr.sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
@@ -407,7 +396,6 @@ export async function getDiagramStatsService(diagramId: string, range?: Range): 
     deltaPracticeToExamAvgPts,
   };
 
-  // Fiabilidad (KR-20)
   const kCounts = countBy(examSessions.map(s => s.totalQuestions || (s.results?.length ?? 0)));
   const modalK = Number(Object.entries(kCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 0);
   let kr20: number | null = null;
@@ -443,7 +431,6 @@ export async function getDiagramStatsService(diagramId: string, range?: Range): 
     }
   }
 
-  // Drift temporal (mitad 1 vs mitad 2)
   const midIndex = Math.floor(sessions.length / 2);
   const firstHalf = sessions.slice(0, midIndex);
   const secondHalf = sessions.slice(midIndex);

@@ -97,8 +97,6 @@ const DualLineChart: React.FC<DualLineChartProps> = ({ data }) => {
   const W = 640,
     H = 220,
     P = 28;
-
-  // utilidades
   const clamp01 = (v: any) => {
     const n = Number(v);
     if (!isFinite(n)) return null;
@@ -108,8 +106,6 @@ const DualLineChart: React.FC<DualLineChartProps> = ({ data }) => {
   const n = Math.max(1, data.length);
   const x = (i: number) => P + (i * (W - 2 * P)) / Math.max(1, n - 1);
   const y = (v: number) => H - P - (v * (H - 2 * P)) / 100;
-
-  // puntos “limpios” por serie
   const ptsA = data
     .map((d, i) => ({ x: x(i), v: clamp01(d.a) }))
     .filter((p) => p.v != null) as { x: number; v: number }[];

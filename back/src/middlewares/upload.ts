@@ -73,23 +73,6 @@ function fileFilter(_req: any, file: Express.Multer.File, cb: multer.FileFilterC
  * El middleware rechaza cualquier archivo que no sea imagen JPEG o PNG.
  * Si el archivo excede 5MB, multer lanza un error automáticamente.
  * 
- * @example
- * // Uso en rutas de Express
- * router.post('/diagrams', uploadDiagramImage, createDiagram);
- * 
- * @example
- * // Acceso al archivo en el controlador
- * const uploadedFile = req.file;
- * const filePath = uploadedFile?.path;
- * const fileName = uploadedFile?.filename;
- * 
- * @example
- * // Request desde el cliente (multipart/form-data)
- * const formData = new FormData();
- * formData.append('image', fileBlob, 'diagram.png');
- * formData.append('title', 'Mi Diagrama ER');
- * 
- * @see {@link https://github.com/expressjs/multer|Multer Documentation}
  * @public
  */
 export const uploadDiagramImage = multer({

@@ -96,7 +96,6 @@ export async function logout(): Promise<void> {
       });
     }
   } catch {
-    // Ignorar errores (logout siempre debe completarse)
   } finally {
     clearTokens();
     clearProfileCache();

@@ -84,8 +84,6 @@ export class QuestionsService {
 
       return question;
     });
-
-    // Notificar a supervisores si requiere revisión
     if (initialStatus === ReviewStatus.PENDING) {
       await this.notifySupervisorsNewPending(q.id);
     }
@@ -186,8 +184,6 @@ export class QuestionsService {
     q.reviewedAt = new Date();
 
     await this.questionRepo.save(q);
-
-    // Notificar resultado al autor
     if (q.creator?.email) {
       await this.notifyStudentDecision({
         to: q.creator.email,
@@ -250,8 +246,6 @@ export class QuestionsService {
       };
     });
   }
-
-  // ========== MÉTODOS PRIVADOS DE NOTIFICACIÓN ==========
 
   /**
    * Notifica a supervisores sobre nueva pregunta pendiente

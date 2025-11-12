@@ -11,7 +11,7 @@ describe('OpenAPI public contract', () => {
 
   it('loads an OpenAPI 3.1 specification', () => {
     expect(spec.openapi).toBeDefined();
-    expect(String(spec.openapi)).toMatch(/^3\.1/);
+    expect(String(spec.openapi)).toMatch(/^3\.0/);
     expect(spec.paths).toBeDefined();
     expect(spec.components?.schemas).toBeDefined();
   });

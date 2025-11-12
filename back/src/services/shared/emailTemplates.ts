@@ -8,13 +8,10 @@
  * @public
  */
 export interface CardEmailOptions {
-  /** Título que aparece en la cabecera coloreada. */
   readonly title: string;
-  /** Contenido HTML que se inserta en el cuerpo del correo. */
+
   readonly bodyHtml: string;
-  /** Color hexadecimal opcional para la franja superior. */
   readonly accent?: string;
-  /** Contenido HTML opcional para el pie del correo. */
   readonly footerHtml?: string;
 }
 

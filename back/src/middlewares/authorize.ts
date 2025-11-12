@@ -43,16 +43,13 @@ import { createHttpError } from '../core/errors/HttpError';
  */
 export default function authorize(...allowedRoles: string[]): RequestHandler {
   return (req, _res, next) => {
-    // Obtener el rol del usuario autenticado desde req.user
     const role = req.user?.role;
     
-    // Validar que el usuario tenga un rol y que esté en la lista de roles permitidos
     if (!role || !allowedRoles.includes(role)) {
       next(createHttpError(403, 'Acceso denegado'));
       return;
     }
 
-    // El usuario tiene un rol permitido, continuar con la petición
     next();
   };
 }

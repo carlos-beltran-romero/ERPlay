@@ -11,10 +11,8 @@ import * as ctrl from '../controllers/supervisor';
 
 const router = Router();
 
-// Todas las rutas requieren autenticación y rol supervisor
 router.use(authenticate, authorize('supervisor'));
 
-// Middleware de logging para debugging
 router.use((req, _res, next) => {
   console.log('[supervisor router]', req.method, req.path);
   next();
