@@ -1,0 +1,69 @@
+services:
+  db:
+    image: mysql:8.4
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-erplay}
+      MYSQL_USER: ${MYSQL_USER:-erplay}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-erplay}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD:-rootpass}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "3306:3306"
+
+  back:
+    build:
+      context: ./back
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
+      PUBLIC_API_BASE_URL: ${PUBLIC_API_BASE_URL:-http://localhost:3000}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: ${MYSQL_USER:-erplay}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-erplay}
+      DB_NAME: ${MYSQL_DATABASE:-erplay}
+      JWT_SECRET: ${JWT_SECRET:-super-secret-jwt}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-super-secret-refresh}
+      JWT_RESET_SECRET: ${JWT_RESET_SECRET:-super-secret-reset}
+      SMTP_HOST: ${SMTP_HOST:-smtp.example.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-username}
+      SMTP_PASS: ${SMTP_PASS:-password}
+      SMTP_FROM: ${SMTP_FROM:-"ERPlay <noreply@erplay.local>"}
+      SUPERVISOR_NOTIFY_EMAIL: ${SUPERVISOR_NOTIFY_EMAIL:-supervisor@erplay.local}
+      RUN_DB_SEED: ${RUN_DB_SEED:-true}
+    ports:
+      - "3000:3000"
+    volumes:
+      - back_uploads:/app/uploads
+
+  front:
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api}
+    depends_on:
+      back:
+        condition: service_started
+    ports:
+      - "8080:80"
+    environment:
+      NODE_ENV: production
+
+volumes:
+  db_data:
+  back_uploads:

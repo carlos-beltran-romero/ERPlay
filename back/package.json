@@ -18,6 +18,7 @@
     "migration:run:js": "typeorm migration:run -d dist/data-source.js",
     "migration:revert:js": "typeorm migration:revert -d dist/data-source.js",
     "seed": "ts-node --transpile-only src/seeds/seed.ts",
+    "seed:prod": "node dist/seeds/seed.js",
     "test": "jest"
   },
   "author": "Carlos Beltrán Romero",

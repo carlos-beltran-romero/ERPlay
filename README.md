@@ -71,13 +71,36 @@ Credenciales generadas por defecto:
 
 ## Docker
 
-Se añadió un `Dockerfile` para el backend y un `docker-compose.yml` que levanta la API y una instancia de MySQL con datos persistentes.【F:back/Dockerfile†L1-L28】【F:docker-compose.yml†L1-L43】 El comando recomendado para desarrollar con contenedores es:
+El proyecto incluye ahora una orquestación completa con Docker para frontend, backend y base de datos. Se añaden Dockerfiles independientes para cada aplicación y un `docker-compose.yml` en la raíz que coordina los tres servicios y gestiona los volúmenes persistentes.【F:front/Dockerfile†L1-L14】【F:back/Dockerfile†L1-L28】【F:docker-compose.yml†L1-L62】 El flujo recomendado es:
 
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
 
-El servicio `api` ejecuta automáticamente las migraciones y expone la API en `http://localhost:3000`, mientras que la base de datos queda disponible en el puerto `3306`. El volumen `./back/uploads` se monta en el contenedor para conservar los archivos adjuntos.
+Durante el primer arranque se ejecutan automáticamente:
+
+- Las migraciones de TypeORM, aplicadas por el backend antes de exponer la API.
+- La semilla definida en `back/erplay.sql`, habilitada por defecto mediante la variable `RUN_DB_SEED`.
+
+Servicios expuestos:
+
+| Servicio  | URL pública              | Contenedor | Puerto interno |
+|-----------|--------------------------|------------|----------------|
+| Frontend  | http://localhost:8080    | `front`    | 80             |
+| Backend   | http://localhost:3000    | `back`     | 3000           |
+| MySQL     | `localhost:3306`         | `db`       | 3306           |
+
+El contenedor del frontend sirve la build estática de Vite con Nginx y reenvía todas las peticiones `/api/*` al backend, de modo que no necesitas configurar CORS adicionales.【F:front/docker/nginx.conf†L1-L18】 Los archivos subidos por los usuarios se almacenan en un volumen dedicado (`back_uploads`) para conservarse entre reinicios.
+
+### Omitir la semilla
+
+Si prefieres arrancar con una base de datos vacía basta con desactivar la semilla en el momento de levantar los contenedores:
+
+```bash
+RUN_DB_SEED=false docker compose up --build
+```
+
+También puedes cambiar cualquier otra credencial o secreto sobreescribiendo las variables definidas en `docker-compose.yml` (por ejemplo `MYSQL_PASSWORD`, `JWT_SECRET`, etc.).
 
 ## Scripts principales del backend
 
@@ -87,7 +110,8 @@ El servicio `api` ejecuta automáticamente las migraciones y expone la API en `h
 | `npm run build`               | Compila TypeScript a JavaScript en `dist/`.
 | `npm start`                   | Ejecuta la API compilada desde `dist/`.
 | `npm test`                    | Corre la suite de tests con Jest + Supertest.
-| `npm run seed`                | Inserta datos de prueba usando TypeORM.
+| `npm run seed`                | Inserta datos de prueba usando TypeORM (modo desarrollo con `ts-node`).
+| `npm run seed:prod`           | Ejecuta la semilla compilada (`dist/`) para entornos productivos o Docker.
 | `npm run migration:run`       | Aplica las migraciones pendientes.
 | `npm run migration:revert`    | Revierte la última migración aplicada.
 
