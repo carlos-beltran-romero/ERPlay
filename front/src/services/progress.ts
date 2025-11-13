@@ -2,12 +2,20 @@
  * Módulo de servicios de progreso del estudiante
  * Gestiona métricas personales, tendencias, objetivos y logros
  * @module front/services/progress
+ *
+ * IMPORTANTE:
+ * - NO concatenes API_URL aquí. Usa SIEMPRE paths relativos: '/api/...'
+ * - http.ts se encarga de anteponer env.API_URL (local o Docker) y normalizar.
  */
 
-import { apiJson, API_URL } from './http';
+import { apiJson } from './http';
 
-async function getJSON(url: string, fallbackError = 'Error de servidor') {
-  return apiJson<any>(url, { auth: true, fallbackError });
+async function getJSON(path: string, fallbackError = 'Error de servidor') {
+  return apiJson<any>(path, { auth: true, fallbackError });
+}
+
+function uid(): string {
+  try { return crypto.randomUUID(); } catch { return Math.random().toString(36).slice(2); }
 }
 
 /** KPIs principales del estudiante */
@@ -89,11 +97,9 @@ export type MyQuestionItem = {
 
 /**
  * Obtiene resumen general de progreso
- * @returns KPIs principales (precisión, nota media, respuestas totales, racha)
- * @remarks Normaliza formatos legacy del backend (learningAccuracyPct vs accuracyLearningPct)
  */
 export async function getOverview(): Promise<Overview> {
-  const data = await getJSON(`${API_URL}/api/progress/overview`);
+  const data = await getJSON('/api/progress/overview');
   return {
     accuracyLearningPct: Number(data.accuracyLearningPct ?? data.learningAccuracyPct ?? 0),
     examScoreAvg: Number(data.examScoreAvg ?? data.avgExamScore ?? 0),
@@ -107,16 +113,13 @@ export async function getOverview(): Promise<Overview> {
 
 /**
  * Obtiene tendencias temporales de rendimiento
- * @param params - Rango de fechas y granularidad (day/week)
- * @returns Serie temporal de precisión y nota
- * @remarks Útil para gráficas de evolución histórica
  */
 export async function getTrends(params?: { from?: string; to?: string; bucket?: 'day' | 'week' }) {
   const q = new URLSearchParams();
   if (params?.from) q.set('from', params.from);
   if (params?.to) q.set('to', params.to);
   if (params?.bucket) q.set('bucket', params.bucket);
-  const url = `${API_URL}/api/progress/trends${q.toString() ? `?${q.toString()}` : ''}`;
+  const url = `/api/progress/trends${q.toString() ? `?${q.toString()}` : ''}`;
 
   const data = await apiJson<any>(url, {
     auth: true,
@@ -135,37 +138,34 @@ export async function getTrends(params?: { from?: string; to?: string; bucket?: 
 
 /**
  * Lista preguntas con mayor tasa de error
- * @param limit - Máximo de preguntas a retornar (default: 5)
- * @returns Array ordenado por errorRatePct descendente
- * @remarks Identifica puntos débiles para repaso dirigido
  */
 export async function getErrors(limit = 5): Promise<ErrorItem[]> {
-  const data = await apiJson<any>(`${API_URL}/api/progress/errors?limit=${limit}`, {
+  const data = await apiJson<any>(`/api/progress/errors?limit=${encodeURIComponent(limit)}`, {
     auth: true,
     fallbackError: 'No se pudieron cargar errores',
   });
   const arr = Array.isArray(data) ? data : (data.items || []);
-  return (arr as any[]).map((e) => ({
-    id: String(e.id ?? e.questionId ?? crypto.randomUUID()),
-    title: String(e.title ?? e.prompt ?? 'Pregunta'),
-    errorRatePct: Number(e.errorRatePct ?? e.errorPct ?? 0),
-    commonChosenIndex:
-      typeof e.commonChosenIndex === 'number'
-        ? e.commonChosenIndex
-        : e.commonChosenIndex != null
-        ? Number(e.commonChosenIndex)
-        : undefined,
-    commonChosenText: e.commonChosenText ? String(e.commonChosenText) : undefined,
-  }));
+  return (arr as any[]).map((e) => ([
+    String(e.id ?? e.questionId ?? uid()),
+    String(e.title ?? e.prompt ?? 'Pregunta'),
+    Number(e.errorRatePct ?? e.errorPct ?? 0),
+    ((): number | undefined => {
+      const v = e.commonChosenIndex;
+      if (typeof v === 'number') return v;
+      if (v != null) return Number(v);
+      return undefined;
+    })(),
+    e.commonChosenText ? String(e.commonChosenText) : undefined,
+  ])).map(([id, title, errorRatePct, commonChosenIndex, commonChosenText]) => ({
+    id, title, errorRatePct, commonChosenIndex, commonChosenText
+  } as ErrorItem));
 }
 
 /**
  * Obtiene patrones de uso y hábitos de estudio
- * @returns Distribución horaria, duración promedio de sesiones y uso de pistas
- * @remarks byHour: Array de 24 elementos (0=00:00, 23=23:00)
  */
 export async function getHabits(): Promise<Habits> {
-  const data = await getJSON(`${API_URL}/api/progress/habits`);
+  const data = await getJSON('/api/progress/habits');
   const byHourSrc = Array.isArray(data.byHour) ? data.byHour : [];
   const byHour = byHourSrc.map((h: any) => ({
     hour: Number(h.hour ?? 0),
@@ -180,19 +180,17 @@ export async function getHabits(): Promise<Habits> {
 
 /**
  * Obtiene estadísticas de reclamaciones
- * @returns Total enviadas y aprobadas
  */
 export async function getClaimsStats(): Promise<ClaimsStats> {
-  const data = await getJSON(`${API_URL}/api/progress/claims`);
+  const data = await getJSON('/api/progress/claims');
   return { submitted: Number(data.submitted ?? 0), approved: Number(data.approved ?? 0) };
 }
 
 /**
  * Obtiene objetivo semanal y progreso actual
- * @returns Meta, respuestas completadas y racha de días
  */
 export async function getGoal(): Promise<Goal> {
-  const data = await getJSON(`${API_URL}/api/progress/goal`);
+  const data = await getJSON('/api/progress/goal');
   return {
     weeklyTargetQuestions: Number(data.weeklyTargetQuestions ?? data.target ?? 0),
     weekAnswered: Number(data.weekAnswered ?? data.answered ?? 0),
@@ -202,17 +200,15 @@ export async function getGoal(): Promise<Goal> {
 
 /**
  * Lista insignias ganadas por el estudiante
- * @returns Array de badges ordenados por fecha de obtención
- * @remarks Incluye insignias semanales y de logros especiales
  */
 export async function getBadges(): Promise<BadgeItem[]> {
-  const data = await apiJson<any>(`${API_URL}/api/progress/badges`, {
+  const data = await apiJson<any>('/api/progress/badges', {
     auth: true,
     fallbackError: 'No se pudieron cargar insignias',
   });
   const arr = Array.isArray(data) ? data : (data.items || []);
   return (arr as any[]).map((b) => ({
-    id: String(b.id ?? crypto.randomUUID()),
+    id: String(b.id ?? uid()),
     label: String(b.label ?? b.name ?? 'Insignia'),
     earnedAt: b.earnedAt ?? b.at ?? undefined,
   }));
@@ -220,13 +216,9 @@ export async function getBadges(): Promise<BadgeItem[]> {
 
 /**
  * Obtiene texto de una opción de pregunta
- * @param questionId - ID de la pregunta
- * @param optionIndex - Índice 0-based de la opción
- * @returns Texto de la opción o null si no existe
- * @remarks Usado para mostrar respuestas comunes erróneas
  */
 export async function getQuestionOptionText(questionId: string, optionIndex: number): Promise<string | null> {
-  const data = await apiJson<any>(`${API_URL}/api/questions/${questionId}`, {
+  const data = await apiJson<any>(`/api/questions/${encodeURIComponent(questionId)}`, {
     auth: true,
     fallbackError: 'No se pudo obtener la pregunta',
   });
@@ -237,10 +229,7 @@ export async function getQuestionOptionText(questionId: string, optionIndex: num
 }
 
 /**
- * Lista preguntas creadas por el estudiante
- * @param params - Filtros de paginación y estado
- * @returns Array de preguntas con estado de revisión
- * @remarks Intenta múltiples endpoints para compatibilidad con backend legacy
+ * Lista preguntas creadas por el estudiante (compatibilidad endpoints)
  */
 export async function getMyCreatedQuestions(params?: {
   limit?: number; page?: number; status?: 'all'|'approved'|'rejected'|'pending'
@@ -267,18 +256,16 @@ export async function getMyCreatedQuestions(params?: {
     })) as MyQuestionItem[];
   }
 
-  try { return await hit(`${API_URL}/api/progress/my-questions?${qs.toString()}`); } catch {}
-  try { return await hit(`${API_URL}/api/questions/mine?${qs.toString()}`); } catch {}
-  return await hit(`${API_URL}/api/questions?createdBy=me&${qs.toString()}`);
+  try { return await hit(`/api/progress/my-questions?${qs.toString()}`); } catch {}
+  try { return await hit(`/api/questions/mine?${qs.toString()}`); } catch {}
+  return await hit(`/api/questions?createdBy=me&${qs.toString()}`);
 }
 
 /**
  * Actualiza objetivo semanal del estudiante
- * @param payload - Nueva meta de preguntas por semana
- * @returns Objetivo actualizado con progreso actual
  */
 export async function updateGoal(payload: { weeklyTargetQuestions: number }) : Promise<Goal> {
-  const data = await apiJson<any>(`${API_URL}/api/progress/goal`, {
+  const data = await apiJson<any>('/api/progress/goal', {
     method: 'PUT',
     auth: true,
     json: payload,
@@ -296,19 +283,17 @@ export async function updateGoal(payload: { weeklyTargetQuestions: number }) : P
  * @deprecated Usar getBadges directamente
  */
 export async function getMyBadges(): Promise<BadgeItem[]> {
-  const data = await getJSON(`${API_URL}/api/progress/badges`);
+  const data = await getJSON('/api/progress/badges');
   return Array.isArray(data) ? data : [];
 }
 
 /**
  * Obtiene progreso semanal del estudiante autenticado
- * @returns Progreso actual o null si no hay objetivo activo
- * @remarks Intenta múltiples endpoints para compatibilidad
  */
 export async function getMyWeeklyProgress(): Promise<WeeklyProgressRow | null> {
   const urls = [
-    `${API_URL}/api/progress/weekly-progress`,
-    `${API_URL}/api/progress/weekly-goal/progress`,
+    '/api/progress/weekly-progress',
+    '/api/progress/weekly-goal/progress',
   ];
   let data: any = null, ok = false, lastErr: any = null;
 

@@ -4,7 +4,7 @@
  * @module front/services/exams
  */
 
-import { apiJson, API_URL } from './http';
+import { apiJson } from './http';
 import { resolveAssetUrl } from '../shared/utils/url';
 
 /** Pregunta de examen con opciones barajadas */
@@ -36,7 +36,7 @@ export type ExamPayload = {
  * - Crea TestSession en estado 'in_progress'
  */
 export async function startExam(limit = 10): Promise<ExamPayload> {
-  const data = await apiJson<any>(`${API_URL}/api/exams/start?limit=${limit}`, {
+  const data = await apiJson<any>(`/api/exams/start?limit=${limit}`, {
     auth: true,
     fallbackError: 'No se pudo iniciar el examen',
   });

@@ -34,15 +34,13 @@ services:
       DB_USER: ${MYSQL_USER:-erplay}
       DB_PASSWORD: ${MYSQL_PASSWORD:-erplay}
       DB_NAME: ${MYSQL_DATABASE:-erplay}
-      JWT_SECRET: ${JWT_SECRET:-super-secret-jwt}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-super-secret-refresh}
-      JWT_RESET_SECRET: ${JWT_RESET_SECRET:-super-secret-reset}
-      SMTP_HOST: ${SMTP_HOST:-smtp.example.com}
-      SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_USER: ${SMTP_USER:-username}
-      SMTP_PASS: ${SMTP_PASS:-password}
-      SMTP_FROM: ${SMTP_FROM:-"ERPlay <noreply@erplay.local>"}
-      SUPERVISOR_NOTIFY_EMAIL: ${SUPERVISOR_NOTIFY_EMAIL:-supervisor@erplay.local}
+      JWT_SECRET: 9f4a1e7c2d5b8f0134c6e2a8b7d8f0a1c3e5b6d7a8c9e0f1b2c3d4e5f6a7b82
+      JWT_REFRESH_SECRET: 3b1f2c4d5e6a7b8c9d0e1f223b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1z
+      JWT_RESET_SECRET: 3b1f2c4d5e6a7bbh9d0e1f223b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f3dza
+      SMTP_HOST: smtp.gmail.com
+      SMTP_PORT: 465
+      SMTP_USER: erplay.contact@gmail.com
+      SMTP_PASS: tygv synh whha lcnf
       RUN_DB_SEED: ${RUN_DB_SEED:-true}
     ports:
       - "3000:3000"

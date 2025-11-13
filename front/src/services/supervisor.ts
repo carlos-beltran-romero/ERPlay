@@ -146,7 +146,7 @@ export type SupClaimItem = {
  * @returns Datos básicos (nombre, email, rol)
  */
 export async function supGetStudent(studentId: string) {
-  return await getJSON(`${API_URL}/api/supervisor/students/${studentId}`);
+  return await getJSON(`/api/supervisor/students/${studentId}`);
 }
 
 /* ===================== Progress ===================== */
@@ -157,7 +157,7 @@ export async function supGetStudent(studentId: string) {
  * @returns Overview con métricas de rendimiento
  */
 export async function supGetOverview(studentId: string) {
-  return await getJSON(`${API_URL}/api/supervisor/students/${studentId}/progress/overview`);
+  return await getJSON(`/api/supervisor/students/${studentId}/progress/overview`);
 }
 
 /**
@@ -171,7 +171,7 @@ export async function supGetTrends(
   { bucket = 'day' as 'day' | 'week' | 'month' } = {}
 ) {
   const q = new URLSearchParams({ bucket }).toString();
-  return await getJSON(`${API_URL}/api/supervisor/students/${studentId}/progress/trends?${q}`);
+  return await getJSON(`/api/supervisor/students/${studentId}/progress/trends?${q}`);
 }
 
 /**
@@ -182,7 +182,7 @@ export async function supGetTrends(
  */
 export async function supGetErrors(studentId: string, limit = 5) {
   return await getJSON(
-    `${API_URL}/api/supervisor/students/${studentId}/progress/errors?limit=${limit}`
+    `/api/supervisor/students/${studentId}/progress/errors?limit=${limit}`
   );
 }
 
@@ -192,7 +192,7 @@ export async function supGetErrors(studentId: string, limit = 5) {
  * @returns Total enviadas y aprobadas
  */
 export async function supGetClaimsStats(studentId: string) {
-  return await getJSON(`${API_URL}/api/supervisor/students/${studentId}/claims/stats`);
+  return await getJSON(`/api/supervisor/students/${studentId}/claims/stats`);
 }
 
 /* ===================== Preguntas creadas por un usuario ===================== */
@@ -209,7 +209,7 @@ export async function supGetCreatedQuestions(
   opts: { limit?: number } = {}
 ) {
   const res = await fetchAuth(
-    `${API_URL}/api/supervisor/students/${userId}/questions?limit=${opts.limit ?? 200}`
+    `/api/supervisor/students/${userId}/questions?limit=${opts.limit ?? 200}`
   );
   const data = await res.json().catch(() => ([]));
   if (!res.ok) throw new Error(data?.error || 'No se pudieron cargar las preguntas del alumno');
@@ -295,7 +295,7 @@ export async function supListUserSessions(
   if (q) qs.set('q', q);
 
   const data = await getJSON(
-    `${API_URL}/api/supervisor/students/${studentId}/tests${
+    `/api/supervisor/students/${studentId}/tests${
       qs.toString() ? `?${qs.toString()}` : ''
     }`
   );
@@ -325,7 +325,7 @@ export async function supGetSessionDetail(
   studentId: string,
   sessionId: string
 ): Promise<SessionDetail> {
-  const url = `${API_URL}/api/supervisor/students/${studentId}/tests/${sessionId}`;
+  const url = `/api/supervisor/students/${studentId}/tests/${sessionId}`;
   const data = await getJSON(url);
 
   const results: TestResultItem[] = (data.results || []).map((r: any) => ({
@@ -419,7 +419,7 @@ export async function supGetSessionDetail(
  * @remarks Normaliza path de diagrama a URL absoluta
  */
 export async function supListUserClaims(studentId: string) {
-  const data = await getJSON(`${API_URL}/api/supervisor/students/${studentId}/claims`);
+  const data = await getJSON(`/api/supervisor/students/${studentId}/claims`);
   const rows = Array.isArray(data) ? data : (data.items || []);
   return rows.map((c: any) => ({
     ...c,
@@ -434,7 +434,7 @@ export async function supListUserClaims(studentId: string) {
  * @returns Objetivo vigente del sistema
  */
 export async function supGetWeeklyGoal() {
-  return await getJSON(`${API_URL}/api/supervisor/weekly-goal`);
+  return await getJSON(`/api/supervisor/weekly-goal`);
 }
 
 /**
@@ -449,7 +449,7 @@ export async function supPutWeeklyGoal(payload: {
   weekEnd?: string;
   notify?: boolean;
 }) {
-  const url = `${API_URL}/api/supervisor/weekly-goal`;
+  const url = `/api/supervisor/weekly-goal`;
 
   let res = await fetchAuth(url, {
     method: 'PUT',
@@ -487,7 +487,7 @@ export async function supGetWeeklyProgress(params?: {
   if (params?.userId) qs.set('userId', params.userId);
 
   const res = await fetchAuth(
-    `${API_URL}/api/supervisor/weekly-goal/progress${
+    `/api/supervisor/weekly-goal/progress${
       qs.toString() ? `?${qs.toString()}` : ''
     }`
   );
@@ -502,6 +502,6 @@ export async function supGetWeeklyProgress(params?: {
  * @returns Array de badges ordenados por fecha de obtención
  */
 export async function supGetStudentBadges(studentId: string) {
-  const data = await getJSON(`${API_URL}/api/supervisor/students/${studentId}/badges`);
+  const data = await getJSON(`/api/supervisor/students/${studentId}/badges`);
   return Array.isArray(data) ? data : [];
 }

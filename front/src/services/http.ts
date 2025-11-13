@@ -1,6 +1,10 @@
 /**
  * Módulo de cliente HTTP
  * Gestiona autenticación JWT, refresh tokens y manejo de errores centralizado
+ * Compatible con:
+ *  - Docker + Nginx (VITE_API_URL=/api)
+ *  - Local (VITE_API_URL=http://localhost:3000) o vacío si usas proxy de Vite
+ * Evita el doble prefijo /api/api cuando el path ya empieza por /api
  * @module front/services/http
  */
 
@@ -9,7 +13,10 @@ import { env } from '../config/env';
 const ACCESS_TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
 
-export const API_URL = env.API_URL;
+// Puede ser '', '/api' o 'http://host:3000'
+const API_URL_BASE = (env.API_URL ?? '').trim();
+
+export const API_URL = API_URL_BASE;
 
 /**
  * Error de API con contexto HTTP
@@ -38,9 +45,14 @@ let refreshingPromise: Promise<string | null> | null = null;
 
 function toNetworkApiError(error: unknown): ApiError {
   const cause = (error as any)?.cause ?? error;
-  const code = typeof cause?.code === 'string' ? cause.code : typeof cause?.errno === 'string' ? cause.errno : undefined;
-  const address = typeof cause?.address === 'string' ? cause.address : undefined;
-  const port = typeof cause?.port === 'number' ? cause.port : undefined;
+  const code =
+    typeof (cause as any)?.code === 'string'
+      ? (cause as any).code
+      : typeof (cause as any)?.errno === 'string'
+      ? (cause as any).errno
+      : undefined;
+  const address = typeof (cause as any)?.address === 'string' ? (cause as any).address : undefined;
+  const port = typeof (cause as any)?.port === 'number' ? (cause as any).port : undefined;
 
   const connectionDetails = code === 'ECONNREFUSED' && address && port ? `${address}:${port}` : undefined;
   const detailsSuffix = connectionDetails ? ` (${connectionDetails})` : '';
@@ -91,21 +103,40 @@ export function clearTokens() {
 }
 
 /**
- * Resuelve path relativo a URL absoluta
- * @param path - Path de API (ej: '/api/auth/login')
- * @returns URL completa con API_URL configurado
+ * Resuelve path relativo a URL absoluta SIN duplicar /api
+ * Reglas:
+ *  - Si path es absoluta (http/https), se devuelve tal cual.
+ *  - Si API_URL es http(s), se antepone (host) + path.
+ *  - Si API_URL es relativo ('', '/api'), y el path ya empieza por ese prefijo, se deja como está.
+ *  - En otro caso, se antepone el prefijo.
  */
 function resolveUrl(path: string): string {
   if (/^https?:\/\//i.test(path)) return path;
-  if (!path.startsWith('/')) return `${API_URL}/${path}`;
-  return `${API_URL}${path}`;
+
+  // Normaliza path a que empiece por /
+  const rel = path.startsWith('/') ? path : `/${path}`;
+
+  // ¿Base absoluta?
+  const baseIsHttp = /^https?:\/\//i.test(API_URL_BASE);
+  if (baseIsHttp) {
+    const base = API_URL_BASE.replace(/\/+$/, ''); // sin barra final
+    return `${base}${rel}`;
+  }
+
+  // Base relativa: '', '/api', '/algo'
+  const base = API_URL_BASE.replace(/\/+$/, ''); // '', '/api', '/algo'
+  if (!base) return rel; // origen actual
+
+  // Evita duplicar prefijo: si rel ya empieza por base ('/api/...'), devuélvelo tal cual
+  if (rel === base || rel.startsWith(`${base}/`)) {
+    return rel;
+  }
+
+  return `${base}${rel}`;
 }
 
 /**
  * Añade header Authorization con Bearer token
- * @param init - RequestInit base
- * @param explicitToken - Token opcional (default: usa getAccessToken())
- * @returns RequestInit con header Authorization
  */
 function withAuth(init: RequestInit, explicitToken?: string): RequestInit {
   const headers = new Headers(init.headers ?? {});
@@ -116,8 +147,6 @@ function withAuth(init: RequestInit, explicitToken?: string): RequestInit {
 
 /**
  * Parsea JSON de respuesta con manejo defensivo
- * @param res - Response de fetch
- * @returns Objeto parseado o undefined si no es JSON válido
  */
 async function safeParseJson(res: Response): Promise<unknown> {
   const text = await res.text();
@@ -131,12 +160,6 @@ async function safeParseJson(res: Response): Promise<unknown> {
 
 /**
  * Renueva access token usando refresh token
- * Automáticamente limpia tokens si el refresh falla
- * 
- * @returns Nuevo access token o null si el refresh expiró
- * @remarks
- * - Llamado automáticamente por apiRequest ante 401/403
- * - Usa promise singleton para evitar múltiples refreshes concurrentes
  */
 async function refreshAccessToken(): Promise<string | null> {
   const refreshToken = getRefreshToken();
@@ -165,9 +188,6 @@ async function refreshAccessToken(): Promise<string | null> {
 
 /**
  * Gestiona refresh de token con singleton pattern
- * Evita race conditions con múltiples llamadas concurrentes
- * 
- * @returns Promise del access token renovado
  */
 async function ensureFreshToken(): Promise<string | null> {
   if (!refreshingPromise) {
@@ -180,15 +200,6 @@ async function ensureFreshToken(): Promise<string | null> {
 
 /**
  * Cliente HTTP con auto-refresh de tokens
- * Reintenta automáticamente si detecta 401/403 y tiene refresh token
- * 
- * @param path - Path de la API
- * @param init - Opciones extendidas (auth, json, fallbackError)
- * @returns Response crudo (usar apiJson para parseado automático)
- * @remarks
- * - auth=true: Añade header Authorization automáticamente
- * - json: Serializa body y añade Content-Type: application/json
- * - Ante 401/403: Intenta refresh + reintento con nuevo token
  */
 export async function apiRequest(path: string, init: ApiRequestInit = {}): Promise<Response> {
   const { auth = false, json, fallbackError, ...rest } = init;
@@ -228,15 +239,6 @@ export async function apiRequest(path: string, init: ApiRequestInit = {}): Promi
 
 /**
  * Cliente HTTP con parsing automático de JSON
- * Lanza ApiError si el servidor devuelve error
- * 
- * @param path - Path de la API
- * @param init - Opciones extendidas
- * @returns Body parseado como tipo T
- * @throws {ApiError} Si res.ok = false, con mensaje del servidor o fallback
- * @remarks
- * - Extrae campo 'error' del body como mensaje preferencial
- * - fallbackError: Usado si el servidor no envía 'error'
  */
 export async function apiJson<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
   const res = await apiRequest(path, init);

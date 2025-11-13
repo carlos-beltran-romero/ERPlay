@@ -4,7 +4,7 @@
  * @module front/services/tests
  */
 
-import { apiJson, apiRequest, API_URL } from './http';
+import { apiJson, apiRequest } from './http';
 
 /** Modo de test disponible */
 export type TestMode = 'learning' | 'exam' | 'errors';
@@ -122,7 +122,7 @@ export type ListFilters = {
  * - errors: Carga preguntas previamente falladas
  */
 export async function startTestSession(params: { mode: TestMode; limit?: number }) {
-  return apiJson<StartedSession>(`${API_URL}/api/test-sessions/start`, {
+  return apiJson<StartedSession>(`/api/test-sessions/start`, {
     method: 'POST',
     auth: true,
     json: params,
@@ -151,7 +151,7 @@ export async function patchResult(
   }>
 ) {
   await apiJson<void>(
-    `${API_URL}/api/test-sessions/${sessionId}/results/${resultId}`,
+    `/api/test-sessions/${sessionId}/results/${resultId}`,
     {
       method: 'PATCH',
       auth: true,
@@ -175,7 +175,7 @@ export async function logEvent(
   body: { type: string; resultId?: string; payload?: any }
 ) {
   try {
-    await apiRequest(`${API_URL}/api/test-sessions/${sessionId}/events`, {
+    await apiRequest(`/api/test-sessions/${sessionId}/events`, {
       method: 'POST',
       auth: true,
       json: body,
@@ -193,7 +193,7 @@ export async function logEvent(
  * @remarks No se puede reabrir tras finalizar (finishedAt != null)
  */
 export async function finishSession(sessionId: string) {
-  return apiJson(`${API_URL}/api/test-sessions/${sessionId}/finish`, {
+  return apiJson(`/api/test-sessions/${sessionId}/finish`, {
     method: 'POST',
     auth: true,
     fallbackError: 'No se pudo finalizar',
@@ -217,7 +217,7 @@ export async function listMyTests(filters: ListFilters = {}): Promise<ListMyTest
   if (filters.pageSize) params.set('pageSize', String(filters.pageSize));
   if (filters.q) params.set('q', filters.q);
 
-  const url = `${API_URL}/api/test-sessions/mine${params.toString() ? `?${params.toString()}` : ''}`;
+  const url = `/api/test-sessions/mine${params.toString() ? `?${params.toString()}` : ''}`;
 
   const data = await apiJson<any>(url, {
     auth: true,
@@ -281,7 +281,7 @@ export async function listMyTests(filters: ListFilters = {}): Promise<ListMyTest
  * @remarks Calcula totals desde results si el backend no los envía
  */
 export async function getTestDetail(sessionId: string): Promise<TestSessionDetail> {
-  const data = await apiJson<any>(`${API_URL}/api/test-sessions/${sessionId}`, {
+  const data = await apiJson<any>(`/api/test-sessions/${sessionId}`, {
     auth: true,
     fallbackError: 'No se pudo cargar el detalle del test',
   });
