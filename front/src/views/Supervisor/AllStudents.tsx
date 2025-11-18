@@ -2,7 +2,14 @@ import React, { useEffect, useMemo, useState, useEffect as ReactUseEffect } from
 import PageWithHeader from '../../components/layout/PageWithHeader';
 import { fetchStudents, updateStudent, deleteStudent, type StudentSummary } from '../../services/users';
 import { toast } from 'react-toastify';
-import { Pencil, Trash2, Search, X, AlertTriangle, BarChart3, ArrowLeft } from 'lucide-react';
+import { Pencil, Trash2, Search, X, AlertTriangle, BarChart3, ArrowLeft, Download } from 'lucide-react';
+import {
+  supGetOverview,
+  supGetClaimsStats,
+  supGetCreatedQuestions,
+  supGetStudentBadges,
+  type SupQuestionItem,
+} from '../../services/supervisor';
 import { useNavigate } from 'react-router-dom';
 
 
@@ -28,12 +35,13 @@ const SupervisorStudents: React.FC = () => {
   const [editingOriginal, setEditingOriginal] = useState<EditForm | null>(null);
   const [saving, setSaving] = useState(false);
 
-  
+
   const [confirmDelete, setConfirmDelete] = useState<StudentSummary | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  
+
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [exporting, setExporting] = useState(false);
 
   
   useEffect(() => {
@@ -146,6 +154,98 @@ const SupervisorStudents: React.FC = () => {
     }
   };
 
+  const normalizeStatus = (status?: string | null) => {
+    const upper = String(status || '').toUpperCase();
+    if (upper === 'APPROVED') return 'APPROVED';
+    if (upper === 'REJECTED') return 'REJECTED';
+    return 'PENDING';
+  };
+
+  const formatDecimal = (value?: number | null) => {
+    if (value == null || Number.isNaN(value)) return '';
+    return Number(value).toFixed(2);
+  };
+
+  const csvEscape = (value: string | number | null | undefined) => {
+    if (value == null) return '""';
+    const str = String(value).replace(/"/g, '""');
+    return `"${str}"`;
+  };
+
+  const handleExportCsv = async () => {
+    if (!filtered.length) {
+      toast.info('No hay alumnos para exportar');
+      return;
+    }
+    setExporting(true);
+    try {
+      const rows: string[][] = [];
+      for (const student of filtered) {
+        try {
+          const [overview, claimsStats, questions, badges] = await Promise.all([
+            supGetOverview(student.id),
+            supGetClaimsStats(student.id),
+            supGetCreatedQuestions(student.id, { limit: 500 }),
+            supGetStudentBadges(student.id),
+          ]);
+
+          const createdCount = questions.length;
+          const approvedQuestions = questions.filter((q: SupQuestionItem) => normalizeStatus(q.status) === 'APPROVED').length;
+          rows.push([
+            student.name || '',
+            student.lastName || '',
+            student.email,
+            String(overview?.sessionsCompleted ?? 0),
+            formatDecimal(overview?.examScoreAvg ?? null),
+            formatDecimal(overview?.accuracyLearningPct ?? null),
+            String(claimsStats?.approved ?? 0),
+            String(claimsStats?.submitted ?? 0),
+            String(createdCount),
+            String(approvedQuestions),
+            String((badges || []).length),
+          ]);
+        } catch (err: any) {
+          throw new Error(
+            `No se pudo exportar al alumno ${student.email}: ${err?.message || 'Datos incompletos'}`
+          );
+        }
+      }
+
+      const header = [
+        'Nombre',
+        'Apellidos',
+        'Email',
+        'Sesiones completadas',
+        'Nota media examen',
+        'Nota media learning',
+        'Reclamaciones aprobadas',
+        'Reclamaciones enviadas',
+        'Preguntas creadas',
+        'Preguntas aprobadas',
+        'Insignias',
+      ];
+
+      const csvContent = [header, ...rows]
+        .map((cols) => cols.map(csvEscape).join(','))
+        .join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `alumnos-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success('CSV generado correctamente');
+    } catch (err: any) {
+      toast.error(err?.message || 'No se pudo generar el CSV');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <PageWithHeader>
       <div className="mx-auto w-full max-w-6xl p-6">
@@ -170,14 +270,30 @@ const SupervisorStudents: React.FC = () => {
             <p className="text-gray-600">Edita datos o da de baja alumnos.</p>
           </div>
 
-          <div className="relative w-full md:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar por nombre, apellidos o email…"
-              className="w-full rounded-xl border border-gray-300 pl-9 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-            />
+          <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center">
+            <div className="relative w-full md:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar por nombre, apellidos o email…"
+                className="w-full rounded-xl border border-gray-300 pl-9 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              disabled={exporting || filtered.length === 0}
+              className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-white ${
+                exporting || filtered.length === 0
+                  ? 'bg-gray-300 cursor-not-allowed'
+                  : 'bg-emerald-600 hover:bg-emerald-500'
+              }`}
+            >
+              <Download size={16} />
+              {exporting ? 'Generando…' : 'Exportar CSV'}
+            </button>
           </div>
         </div>
 
