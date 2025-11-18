@@ -207,28 +207,7 @@ const Login: React.FC = () => {
                 </button>
               </form>
 
-              <div className="mt-10 rounded-2xl border border-slate-200/80 bg-white/80 p-5 text-left text-sm text-slate-600 shadow-sm">
-                <h2 className="text-base font-semibold text-slate-800">
-                  Resolución de incidencias recientes
-                </h2>
-                <p className="mt-1 text-slate-500">
-                  Estos son los últimos ajustes aplicados para que puedas seguir trabajando sin interrupciones:
-                </p>
-                <ul className="mt-3 space-y-2 list-disc pl-5">
-                  <li>
-                    Las preguntas extensas de <strong>Errores frecuentes</strong> en alumno y supervisor ahora se muestran completas con un botón “Ver más”.
-                  </li>
-                  <li>
-                    El formulario de <strong>Recuperar contraseña</strong> respeta el modo claro/oscuro como el resto de la interfaz.
-                  </li>
-                  <li>
-                    Al abrir la web se redirige directamente a <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">/login</code> para evitar la página 404 y se eliminó el KPI duplicado de “Mejora práctica → examen”.
-                  </li>
-                  <li>
-                    Confirmamos que la sesión permanece activa mientras usas la plataforma y solo se solicita iniciar sesión de nuevo tras un periodo largo de inactividad por seguridad.
-                  </li>
-                </ul>
-              </div>
+              
 
               <div className="mt-8 text-center text-xs text-slate-500">
                 © {new Date().getFullYear()} ERPlay · Todos los derechos
