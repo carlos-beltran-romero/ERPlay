@@ -3,9 +3,11 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 12-11-2025 a las 20:43:47
+-- Tiempo de generación: 18-11-2025 a las 16:50:11
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
+
+SET FOREIGN_KEY_CHECKS=0;
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -20,31 +22,6 @@ SET time_zone = "+00:00";
 --
 -- Base de datos: `erplay`
 --
-
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `claims`
---
-
-CREATE TABLE `claims` (
-  `id` varchar(36) NOT NULL,
-  `status` enum('PENDING','APPROVED','REJECTED') NOT NULL DEFAULT 'PENDING',
-  `promptSnapshot` text NOT NULL,
-  `optionsSnapshot` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`optionsSnapshot`)),
-  `chosenIndex` int(11) NOT NULL,
-  `correctIndexAtSubmission` int(11) NOT NULL,
-  `explanation` text NOT NULL,
-  `reviewerComment` text DEFAULT NULL,
-  `reviewedAt` timestamp NULL DEFAULT NULL,
-  `createdAt` datetime(6) NOT NULL DEFAULT current_timestamp(6),
-  `updatedAt` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6),
-  `question_id` varchar(36) DEFAULT NULL,
-  `diagram_id` varchar(36) DEFAULT NULL,
-  `student_id` varchar(36) NOT NULL,
-  `reviewer_id` varchar(36) DEFAULT NULL,
-  `test_result_id` varchar(36) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `claims`
@@ -68,21 +45,6 @@ INSERT INTO `claims` (`id`, `status`, `promptSnapshot`, `optionsSnapshot`, `chos
 ('d7231b2b-d592-40e3-bf19-156dd839fcf8', 'REJECTED', '¿Hay entidades débiles explícitas en el diagrama?', '[\"Sí, Directo\",\"Sí, Tertuliano\",\"Sí, Youtuber\",\"No se muestran entidades débiles\"]', 0, 3, 'fghfhfjgfjgfjgfjcgh', NULL, '2025-08-22 20:28:49', '2025-08-22 21:32:13.767702', '2025-08-22 22:28:49.000000', NULL, 'adc091d0-8333-4dad-81fa-2c2508145ac4', 'b406f0b3-6bc7-11f0-ba87-345a6023e5e9', '906e70bc-6bc7-11f0-ba87-345a6023e5e9', NULL),
 ('e7a66044-5b1c-4355-97a8-150a8756432a', 'REJECTED', '¿Cuáles son las entidades fuertes principales del diagrama?', '[\"Concursante y Tertuliano\",\"Concursante, Gala y Directo\",\"Gala y Realiza\",\"Participa y Realiza\"]', 0, 1, 'La respuesta correcta es la B', 'No es correcta tu opción ya que la cardinalidad siempre apunta al elemento mas atributado.', '2025-08-22 16:44:05', '2025-08-22 18:43:09.889829', '2025-11-11 17:14:11.882209', NULL, 'adc091d0-8333-4dad-81fa-2c2508145ac4', 'b406f0b3-6bc7-11f0-ba87-345a6023e5e9', '906e70bc-6bc7-11f0-ba87-345a6023e5e9', NULL);
 
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `diagrams`
---
-
-CREATE TABLE `diagrams` (
-  `id` varchar(36) NOT NULL,
-  `filename` varchar(255) NOT NULL,
-  `path` varchar(500) NOT NULL,
-  `created_at` datetime(6) NOT NULL DEFAULT current_timestamp(6),
-  `updated_at` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6),
-  `title` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
 --
 -- Volcado de datos para la tabla `diagrams`
 --
@@ -91,50 +53,6 @@ INSERT INTO `diagrams` (`id`, `filename`, `path`, `created_at`, `updated_at`, `t
 ('4609b137-64bd-48ea-8f81-16a77fc63a29', 'c5eac7bc-8716-4d27-846c-346ea788e8e4.png', '/uploads/diagrams/c5eac7bc-8716-4d27-846c-346ea788e8e4.png', '2025-11-09 19:27:06.951635', '2025-11-11 16:47:34.000000', 'Diagrama problema 2 sept 21 ord'),
 ('adc091d0-8333-4dad-81fa-2c2508145ac4', '40699d54-d4b6-455a-bf7e-c41aa3996c18.png', '/uploads/diagrams/40699d54-d4b6-455a-bf7e-c41aa3996c18.png', '2025-08-12 15:30:55.661872', '2025-08-12 15:30:55.661872', 'Diagrama problema 2 junio 21');
 
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `migrations`
---
-
-CREATE TABLE `migrations` (
-  `id` int(11) NOT NULL,
-  `timestamp` bigint(20) NOT NULL,
-  `name` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `migrations`
---
-
-INSERT INTO `migrations` (`id`, `timestamp`, `name`) VALUES
-(1, 1750259942460, 'InitialSchema1750259942460'),
-(2, 1754916819021, 'AddNameToUser1754916819021'),
-(3, 1754916936792, 'AddNameToUser1754916936792'),
-(4, 1754998873348, 'AddNameToUser1754998873348'),
-(5, 1754999009301, 'AddNameToUser1754999009301'),
-(6, 1755004876208, 'AddNameToUser1755004876208'),
-(7, 1755014201217, 'AddReviewToQuestion1755014201217'),
-(8, 1755877660649, 'AddClaims1755877660649'),
-(9, 1756222928177, 'AddTestSessions1756222928177'),
-(10, 1758126135339, 'AddUserGoalandUserBadge1758126135339'),
-(11, 1759248478297, 'AddUserGoalandUserBadge1759248478297'),
-(13, 1761870000000, 'DropLegacyBadgeGoalTables1761870000000');
-
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `options`
---
-
-CREATE TABLE `options` (
-  `id` varchar(36) NOT NULL,
-  `text` text NOT NULL,
-  `orderIndex` int(11) NOT NULL,
-  `created_at` datetime(6) NOT NULL DEFAULT current_timestamp(6),
-  `updated_at` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6),
-  `questionId` varchar(36) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `options`
@@ -278,27 +196,6 @@ INSERT INTO `options` (`id`, `text`, `orderIndex`, `created_at`, `updated_at`, `
 ('fd40ed48-09c2-47d4-bc08-7a7d574f271a', 'afiliación, URL', 3, '2025-11-11 16:31:27.616157', '2025-11-11 16:31:27.616157', '326657c7-af6b-4801-834e-590808621c7a'),
 ('fff8d9d5-8c8c-48f7-bf61-ff562b51ab85', 'presentadora', 0, '2025-11-11 16:55:36.663373', '2025-11-11 16:55:36.663373', 'cae00169-8cb8-4be3-b178-0d172271008e');
 
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `questions`
---
-
-CREATE TABLE `questions` (
-  `id` varchar(36) NOT NULL,
-  `correctOptionIndex` int(11) NOT NULL,
-  `created_at` datetime(6) NOT NULL DEFAULT current_timestamp(6),
-  `updated_at` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6),
-  `diagramId` varchar(36) NOT NULL,
-  `creatorId` varchar(36) DEFAULT NULL,
-  `prompt` text NOT NULL,
-  `hint` text NOT NULL,
-  `status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending',
-  `reviewedAt` timestamp NULL DEFAULT NULL,
-  `reviewComment` text DEFAULT NULL,
-  `reviewedById` varchar(36) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
 --
 -- Volcado de datos para la tabla `questions`
 --
@@ -338,21 +235,6 @@ INSERT INTO `questions` (`id`, `correctOptionIndex`, `created_at`, `updated_at`,
 ('e5ea4255-3d12-4771-bb68-b0c0e2247444', 1, '2025-11-11 16:47:34.974811', '2025-11-11 16:47:34.974811', '4609b137-64bd-48ea-8f81-16a77fc63a29', '906e70bc-6bc7-11f0-ba87-345a6023e5e9', 'La empresa que patrocina un premio se identifica mediante…', 'Las claves suelen ser atributos ovalados simples vinculados directamente a la entidad.', 'approved', '2025-11-11 15:47:34', NULL, '906e70bc-6bc7-11f0-ba87-345a6023e5e9'),
 ('e62b6581-c205-44df-95fc-76a6833d8759', 2, '2025-11-11 16:47:34.961506', '2025-11-11 16:47:34.961506', '4609b137-64bd-48ea-8f81-16a77fc63a29', '906e70bc-6bc7-11f0-ba87-345a6023e5e9', '¿Cuántos chistes puede contar un humorista o famosete según el diagrama?', 'Observa los números o las etiquetas M y N junto a la relación \"cuenta\".', 'approved', '2025-11-11 15:47:34', NULL, '906e70bc-6bc7-11f0-ba87-345a6023e5e9'),
 ('e7960f9a-f63f-4aad-937d-c0d25d221d2a', 2, '2025-11-11 16:47:34.983092', '2025-11-11 16:47:34.983092', '4609b137-64bd-48ea-8f81-16a77fc63a29', '906e70bc-6bc7-11f0-ba87-345a6023e5e9', '¿Qué entidad contiene el atributo “cuantía”?', 'Ubica el óvalo “cuantía” y ve qué rectángulo toca.', 'approved', '2025-11-11 15:47:34', NULL, '906e70bc-6bc7-11f0-ba87-345a6023e5e9');
-
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `refresh_tokens`
---
-
-CREATE TABLE `refresh_tokens` (
-  `id` varchar(36) NOT NULL,
-  `token` varchar(500) NOT NULL,
-  `expiresAt` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `revoked` tinyint(4) NOT NULL DEFAULT 0,
-  `created_at` datetime(6) NOT NULL DEFAULT current_timestamp(6),
-  `userId` varchar(36) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `refresh_tokens`
@@ -508,10 +390,11 @@ INSERT INTO `refresh_tokens` (`id`, `token`, `expiresAt`, `revoked`, `created_at
 ('bfe71b8f-5201-4b53-b982-4d98240d3149', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImI0MDZmMGIzLTZiYzctMTFmMC1iYTg3LTM0NWE2MDIzZTVlOSIsImlhdCI6MTc1ODc4MTI4OSwiZXhwIjoxNzU5Mzg2MDg5fQ.mSipYRROKbUNWFiHrosXwU3bT0VYAca6RmAW9mDPNxI', '2025-09-25 06:21:29', 0, '2025-09-25 08:21:29.148296', 'b406f0b3-6bc7-11f0-ba87-345a6023e5e9'),
 ('bff45dfd-9c44-4db7-a494-9ccd481fc56a', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImI0MDZmMGIzLTZiYzctMTFmMC1iYTg3LTM0NWE2MDIzZTVlOSIsImlhdCI6MTc1MzcxOTk2OSwiZXhwIjoxNzU0MzI0NzY5fQ.1d-fbmoY_Edqo1hU0w08hX1iADTfaqM5rdF5jDKwNHo', '2025-07-28 16:26:09', 0, '2025-07-28 18:26:09.772553', 'b406f0b3-6bc7-11f0-ba87-345a6023e5e9'),
 ('bffb62a3-17db-4773-be11-5247682a9338', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImI0MDZmMGIzLTZiYzctMTFmMC1iYTg3LTM0NWE2MDIzZTVlOSIsImlhdCI6MTc1Mzc4OTMxOSwiZXhwIjoxNzU0Mzk0MTE5fQ.tSrYhlKTBz_266LrlZ3PIXGBzvsKBhyVOeUQqczrxS0', '2025-07-29 11:41:59', 0, '2025-07-29 13:41:59.299105', 'b406f0b3-6bc7-11f0-ba87-345a6023e5e9'),
+('c0ae01df-9896-40a5-9d37-084bc6cf029f', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImI0MDZmMGIzLTZiYzctMTFmMC1iYTg3LTM0NWE2MDIzZTVlOSIsImlhdCI6MTc2MzAzNzIyNCwiZXhwIjoxNzYzNjQyMDI0fQ.JCpScpSnW6RBYaQO7qhmZ4ApQc2cjaVC2o2FjJa26JQ', '2025-11-20 12:33:44', 0, '2025-11-13 13:33:44.587764', 'b406f0b3-6bc7-11f0-ba87-345a6023e5e9'),
 ('c2be689b-9aa1-491d-8bc0-d625755fac3a', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImI0MDZmMGIzLTZiYzctMTFmMC1iYTg3LTM0NWE2MDIzZTVlOSIsImlhdCI6MTc2MDYwODY4OSwiZXhwIjoxNzYxMjEzNDg5fQ.IzMouAMvSNqCkAQL9SdwmEQCIZInnduPXO_JGCHi9Pk', '2025-10-16 09:58:09', 0, '2025-10-16 11:58:09.399958', 'b406f0b3-6bc7-11f0-ba87-345a6023e5e9'),
-('c2f25fed-ad21-4982-8ec0-ce2cbaea809d', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjkwNmU3MGJjLTZiYzctMTFmMC1iYTg3LTM0NWE2MDIzZTVlOSIsImlhdCI6MTc1NDkyODU2NSwiZXhwIjoxNzU1NTMzMzY1fQ.YFI-2o9d5CtZt0Xr6aRQ3HJ3GkcL3RZIqyZx3CT2V7Y', '2025-08-11 16:09:25', 0, '2025-08-11 18:09:25.902960', '906e70bc-6bc7-11f0-ba87-345a6023e5e9'),
-('c4621770-bf9d-4076-8091-1f8faa733777', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjkwNmU3MGJjLTZiYzctMTFmMC1iYTg3LTM0NWE2MDIzZTVlOSIsImlhdCI6MTc1NTUzMTc2MSwiZXhwIjoxNzU2MTM2NTYxfQ.E9mxeti8HCzLnqcfqpaqO0tIljsBL7kALdO5a5sCTrs', '2025-08-18 15:42:41', 0, '2025-08-18 17:42:41.811332', '906e70bc-6bc7-11f0-ba87-345a6023e5e9');
+('c2f25fed-ad21-4982-8ec0-ce2cbaea809d', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjkwNmU3MGJjLTZiYzctMTFmMC1iYTg3LTM0NWE2MDIzZTVlOSIsImlhdCI6MTc1NDkyODU2NSwiZXhwIjoxNzU1NTMzMzY1fQ.YFI-2o9d5CtZt0Xr6aRQ3HJ3GkcL3RZIqyZx3CT2V7Y', '2025-08-11 16:09:25', 0, '2025-08-11 18:09:25.902960', '906e70bc-6bc7-11f0-ba87-345a6023e5e9');
 INSERT INTO `refresh_tokens` (`id`, `token`, `expiresAt`, `revoked`, `created_at`, `userId`) VALUES
+('c4621770-bf9d-4076-8091-1f8faa733777', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjkwNmU3MGJjLTZiYzctMTFmMC1iYTg3LTM0NWE2MDIzZTVlOSIsImlhdCI6MTc1NTUzMTc2MSwiZXhwIjoxNzU2MTM2NTYxfQ.E9mxeti8HCzLnqcfqpaqO0tIljsBL7kALdO5a5sCTrs', '2025-08-18 15:42:41', 0, '2025-08-18 17:42:41.811332', '906e70bc-6bc7-11f0-ba87-345a6023e5e9'),
 ('c58e311b-3b76-440d-ad85-ac3029f1b921', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjkwNmU3MGJjLTZiYzctMTFmMC1iYTg3LTM0NWE2MDIzZTVlOSIsImlhdCI6MTc2MjY5OTA4NiwiZXhwIjoxNzYzMzAzODg2fQ.cUwzUSa4xG7VFCC_uSEJVUsZVev3PjekNOyISIsI9EQ', '2025-11-16 14:38:06', 0, '2025-11-09 15:38:06.234829', '906e70bc-6bc7-11f0-ba87-345a6023e5e9'),
 ('c5c19b80-89f4-4c40-a2f1-826878b2cd45', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImI0MDZmMGIzLTZiYzctMTFmMC1iYTg3LTM0NWE2MDIzZTVlOSIsImlhdCI6MTc1MzcxOTQ3NCwiZXhwIjoxNzU0MzI0Mjc0fQ.su7-LSWyR3_fQvX0NnM0h90Z527XymIgApH3k9wWPcA', '2025-07-28 16:17:54', 0, '2025-07-28 18:17:54.814576', 'b406f0b3-6bc7-11f0-ba87-345a6023e5e9'),
 ('c62ac33e-8984-4265-8e1d-ed4efa4d8fea', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjkwNmU3MGJjLTZiYzctMTFmMC1iYTg3LTM0NWE2MDIzZTVlOSIsImlhdCI6MTc1MzcyMDQxMCwiZXhwIjoxNzU0MzI1MjEwfQ.jlaS9i4JNATLMeAGPHQ_646JDmfFJ1DbikRVN-kSqXY', '2025-07-28 16:33:30', 0, '2025-07-28 18:33:30.751150', '906e70bc-6bc7-11f0-ba87-345a6023e5e9'),
@@ -557,21 +440,6 @@ INSERT INTO `refresh_tokens` (`id`, `token`, `expiresAt`, `revoked`, `created_at
 ('fc2d025c-0721-4b12-80c1-e9967c414db9', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImI0MDZmMGIzLTZiYzctMTFmMC1iYTg3LTM0NWE2MDIzZTVlOSIsImlhdCI6MTc1NTg3MzMxNiwiZXhwIjoxNzU2NDc4MTE2fQ.RXV4pjvedE9TVkOeZrVOUL8S2xWkjN8jxx__5jGXDwI', '2025-08-22 14:35:16', 0, '2025-08-22 16:35:16.381370', 'b406f0b3-6bc7-11f0-ba87-345a6023e5e9'),
 ('ff8a8bfe-040d-43d0-a131-a0973fb219ed', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjkwNmU3MGJjLTZiYzctMTFmMC1iYTg3LTM0NWE2MDIzZTVlOSIsImlhdCI6MTc2MTc1NzQwNiwiZXhwIjoxNzYyMzYyMjA2fQ.eqzDatTKOWtjxFUjKOstNizIv-t4335oD32llvDLw3c', '2025-10-29 17:03:26', 0, '2025-10-29 17:47:28.062007', '906e70bc-6bc7-11f0-ba87-345a6023e5e9'),
 ('ffde0526-24ce-43e8-a425-5c1c628fbb8c', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImI0MDZmMGIzLTZiYzctMTFmMC1iYTg3LTM0NWE2MDIzZTVlOSIsImlhdCI6MTc2MDYxMjgzOSwiZXhwIjoxNzYxMjE3NjM5fQ.M70uwFBXtedhtfx-USPgo8Wv0g1YZtEIRMx9Rc-wNl8', '2025-10-16 11:07:19', 0, '2025-10-16 13:07:19.929773', 'b406f0b3-6bc7-11f0-ba87-345a6023e5e9');
-
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `test_events`
---
-
-CREATE TABLE `test_events` (
-  `id` varchar(36) NOT NULL,
-  `type` varchar(80) NOT NULL,
-  `createdAt` datetime(6) NOT NULL DEFAULT current_timestamp(6),
-  `session_id` varchar(36) NOT NULL,
-  `result_id` varchar(36) DEFAULT NULL,
-  `payload` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`payload`))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `test_events`
@@ -1914,30 +1782,6 @@ INSERT INTO `test_events` (`id`, `type`, `createdAt`, `session_id`, `result_id`,
 ('ff6ba5dc-c545-437a-bb23-a80ddaf3d5a7', 'view_question', '2025-10-24 18:28:29.376532', '0bd85678-5e4f-44cd-b046-a05dc4bfaf4e', 'b8759dde-207e-4913-ac04-b37db30ee333', '{\"index\":1}'),
 ('ffc358fd-0f7b-487b-b780-bed4e11a44e8', 'view_question', '2025-08-26 21:01:02.196663', 'e9778858-bda3-46c5-b05a-73a516418017', 'b2d2fb54-8876-4b49-af13-a48637c7a030', NULL);
 
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `test_results`
---
-
-CREATE TABLE `test_results` (
-  `id` varchar(36) NOT NULL,
-  `orderIndex` int(11) NOT NULL,
-  `promptSnapshot` text NOT NULL,
-  `optionsSnapshot` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`optionsSnapshot`)),
-  `correctIndexAtTest` int(11) NOT NULL,
-  `selectedIndex` int(11) DEFAULT NULL,
-  `usedHint` tinyint(4) NOT NULL DEFAULT 0,
-  `revealedAnswer` tinyint(4) NOT NULL DEFAULT 0,
-  `attemptsCount` int(11) NOT NULL DEFAULT 0,
-  `timeSpentSeconds` int(11) NOT NULL DEFAULT 0,
-  `isCorrect` tinyint(4) DEFAULT NULL,
-  `createdAt` datetime(6) NOT NULL DEFAULT current_timestamp(6),
-  `updatedAt` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6),
-  `session_id` varchar(36) NOT NULL,
-  `question_id` varchar(36) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
 --
 -- Volcado de datos para la tabla `test_results`
 --
@@ -2749,28 +2593,6 @@ INSERT INTO `test_results` (`id`, `orderIndex`, `promptSnapshot`, `optionsSnapsh
 ('ff33cf0c-0c91-457b-b876-905038ffdd33', 0, 'ñlkjblñhlj', '[\"lñnlñlñn\",\"´llñ\"]', 0, 0, 0, 1, 1, 1, 1, '2025-10-28 18:14:59.262042', '2025-10-28 18:15:01.000000', 'fdb3b648-58ee-4b44-bb6c-5ed3b7979e7e', NULL),
 ('ff65ad3d-bb8c-40bd-a09b-6794902c1618', 1, '¿Cuál de los siguientes es un atributo de Directo?', '[\"premio\",\"URL\",\"presentadora\",\"fase\"]', 0, 2, 0, 1, 1, 0, 0, '2025-10-02 19:58:48.711119', '2025-10-02 19:58:52.000000', 'ee5ad883-e319-4e94-ab02-efeccff586a9', NULL);
 
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `test_sessions`
---
-
-CREATE TABLE `test_sessions` (
-  `id` varchar(36) NOT NULL,
-  `mode` enum('learning','exam','errors') NOT NULL DEFAULT 'learning',
-  `userId` varchar(36) NOT NULL,
-  `diagramId` varchar(36) NOT NULL,
-  `totalQuestions` int(11) NOT NULL DEFAULT 0,
-  `correctCount` int(11) NOT NULL DEFAULT 0,
-  `incorrectCount` int(11) NOT NULL DEFAULT 0,
-  `durationSeconds` int(11) DEFAULT NULL,
-  `score` float DEFAULT NULL,
-  `createdAt` datetime(6) NOT NULL DEFAULT current_timestamp(6),
-  `completedAt` timestamp NULL DEFAULT NULL,
-  `updatedAt` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6),
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
 --
 -- Volcado de datos para la tabla `test_sessions`
 --
@@ -2857,23 +2679,6 @@ INSERT INTO `test_sessions` (`id`, `mode`, `userId`, `diagramId`, `totalQuestion
 ('fedc3fab-b3ef-41b4-b09a-5e1a6559e1fb', 'exam', 'b406f0b3-6bc7-11f0-ba87-345a6023e5e9', 'adc091d0-8333-4dad-81fa-2c2508145ac4', 10, 2, 8, 9, 2, '2025-11-04 16:13:02.312992', '2025-11-04 15:13:12', '2025-11-04 16:13:12.000000', NULL),
 ('ffe392ca-654e-415a-b7cf-4e68eefd0572', 'learning', 'b406f0b3-6bc7-11f0-ba87-345a6023e5e9', 'adc091d0-8333-4dad-81fa-2c2508145ac4', 10, 5, 5, 16, NULL, '2025-10-24 18:33:01.972513', '2025-10-24 16:33:18', '2025-10-24 18:33:18.000000', NULL);
 
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `users`
---
-
-CREATE TABLE `users` (
-  `id` varchar(36) NOT NULL,
-  `email` varchar(255) NOT NULL,
-  `passwordHash` varchar(255) NOT NULL,
-  `role` enum('alumno','supervisor') NOT NULL DEFAULT 'alumno',
-  `created_at` datetime(6) NOT NULL DEFAULT current_timestamp(6),
-  `updated_at` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6),
-  `name` varchar(100) NOT NULL,
-  `lastName` varchar(100) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
 --
 -- Volcado de datos para la tabla `users`
 --
@@ -2882,21 +2687,6 @@ INSERT INTO `users` (`id`, `email`, `passwordHash`, `role`, `created_at`, `updat
 ('681ad9af-4ec4-48d9-b1a6-2fc1da21730e', 'carlosbeltranrom18@gmail.com', '$2b$10$uKTUK7xGMLmwIGxSPJCR7.Urzt9jPXGq74Mc8T1bBgOafgHsvs4AS', 'alumno', '2025-11-04 16:39:21.906976', '2025-11-11 16:22:55.000000', 'Carlos', 'Beltrán Romero'),
 ('906e70bc-6bc7-11f0-ba87-345a6023e5e9', 'erplay.supervisor@gmail.com', '$2b$10$Ns2i4Mx8uZl4CC/NqLThOO5JcetnO1.nmmbdbetkMfFMDIoSxxyXm', 'supervisor', '0000-00-00 00:00:00.000000', '2025-08-20 18:22:16.566181', '', ''),
 ('b406f0b3-6bc7-11f0-ba87-345a6023e5e9', 'carlosxerezano18@gmail.com', '$2b$10$LIUEXPRRNWx7PZlQV2KDmuZJ7eNZ01RV3Oqf6zJWhqCC2D50b21da', 'alumno', '0000-00-00 00:00:00.000000', '2025-11-11 16:23:25.000000', 'Juan', 'Medina Pimentel');
-
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `weeklygoal`
---
-
-CREATE TABLE `weeklygoal` (
-  `id` varchar(36) NOT NULL,
-  `weekStart` date NOT NULL,
-  `weekEnd` date NOT NULL,
-  `targetTests` int(11) NOT NULL,
-  `createdAt` datetime(6) NOT NULL DEFAULT current_timestamp(6),
-  `createdById` varchar(36) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `weeklygoal`
@@ -2910,169 +2700,9 @@ INSERT INTO `weeklygoal` (`id`, `weekStart`, `weekEnd`, `targetTests`, `createdA
 ('b2cd779a-77e0-44c6-bed0-3fd965779367', '2025-11-03', '2025-11-09', 5, '2025-11-04 16:10:10.020476', NULL),
 ('de54beff-3de2-45ed-b42c-b49d599e03d6', '2025-10-13', '2025-10-19', 3, '2025-10-16 21:01:00.466257', NULL),
 ('e1fa1ba4-a8be-40b8-beb0-fba81962f255', '2025-10-27', '2025-11-02', 3, '2025-10-29 18:37:06.875824', NULL);
-
---
--- Índices para tablas volcadas
---
-
---
--- Indices de la tabla `claims`
---
-ALTER TABLE `claims`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `FK_d4647efdb6d488286a69e2d197e` (`student_id`),
-  ADD KEY `FK_f5ba25037816797d23e98a00994` (`question_id`),
-  ADD KEY `FK_e35fa0900ccac58f73ddee5ad74` (`test_result_id`),
-  ADD KEY `FK_94b39eab939e6e5cff0df666c49` (`diagram_id`),
-  ADD KEY `FK_101b85ed9a1f068fd22c65a1681` (`reviewer_id`);
-
---
--- Indices de la tabla `diagrams`
---
-ALTER TABLE `diagrams`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `IDX_2022c2f0548e362c5060f3c1f1` (`title`);
-
---
--- Indices de la tabla `migrations`
---
-ALTER TABLE `migrations`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indices de la tabla `options`
---
-ALTER TABLE `options`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `FK_46b668c49a6c4154d4643d875a5` (`questionId`);
-
---
--- Indices de la tabla `questions`
---
-ALTER TABLE `questions`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `FK_046a0e3f18c0cd51e8d61624072` (`diagramId`),
-  ADD KEY `FK_bdbe88eee023b14b483ad0d830f` (`creatorId`),
-  ADD KEY `FK_e52e58fc5d50b943802a3082cf7` (`reviewedById`);
-
---
--- Indices de la tabla `refresh_tokens`
---
-ALTER TABLE `refresh_tokens`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `IDX_4542dd2f38a61354a040ba9fd5` (`token`),
-  ADD KEY `FK_610102b60fea1455310ccd299de` (`userId`);
-
---
--- Indices de la tabla `test_events`
---
-ALTER TABLE `test_events`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `FK_43e24edcbb498e80ca62d431f80` (`session_id`),
-  ADD KEY `FK_4d32a4b999e0fbe7045fc6cb8de` (`result_id`);
-
---
--- Indices de la tabla `test_results`
---
-ALTER TABLE `test_results`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `FK_e51fc3bef47128e892f5a87d604` (`session_id`),
-  ADD KEY `FK_f9639f4d28117f9fca41982f038` (`question_id`);
-
---
--- Indices de la tabla `test_sessions`
---
-ALTER TABLE `test_sessions`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `FK_87039342f59e95b41cba0d60322` (`userId`),
-  ADD KEY `FK_d1da3c8204bb204536500db2e20` (`diagramId`);
-
---
--- Indices de la tabla `users`
---
-ALTER TABLE `users`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `IDX_97672ac88f789774dd47f7c8be` (`email`);
-
---
--- Indices de la tabla `weeklygoal`
---
-ALTER TABLE `weeklygoal`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `FK_9354f94b0b5e50b4f60511f69a8` (`createdById`);
-
---
--- AUTO_INCREMENT de las tablas volcadas
---
-
---
--- AUTO_INCREMENT de la tabla `migrations`
---
-ALTER TABLE `migrations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
-
---
--- Restricciones para tablas volcadas
---
-
---
--- Filtros para la tabla `claims`
---
-ALTER TABLE `claims`
-  ADD CONSTRAINT `FK_101b85ed9a1f068fd22c65a1681` FOREIGN KEY (`reviewer_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION,
-  ADD CONSTRAINT `FK_94b39eab939e6e5cff0df666c49` FOREIGN KEY (`diagram_id`) REFERENCES `diagrams` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION,
-  ADD CONSTRAINT `FK_d4647efdb6d488286a69e2d197e` FOREIGN KEY (`student_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
-  ADD CONSTRAINT `FK_e35fa0900ccac58f73ddee5ad74` FOREIGN KEY (`test_result_id`) REFERENCES `test_results` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION,
-  ADD CONSTRAINT `FK_f5ba25037816797d23e98a00994` FOREIGN KEY (`question_id`) REFERENCES `questions` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
-
---
--- Filtros para la tabla `options`
---
-ALTER TABLE `options`
-  ADD CONSTRAINT `FK_46b668c49a6c4154d4643d875a5` FOREIGN KEY (`questionId`) REFERENCES `questions` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
-
---
--- Filtros para la tabla `questions`
---
-ALTER TABLE `questions`
-  ADD CONSTRAINT `FK_046a0e3f18c0cd51e8d61624072` FOREIGN KEY (`diagramId`) REFERENCES `diagrams` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
-  ADD CONSTRAINT `FK_bdbe88eee023b14b483ad0d830f` FOREIGN KEY (`creatorId`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION,
-  ADD CONSTRAINT `FK_e52e58fc5d50b943802a3082cf7` FOREIGN KEY (`reviewedById`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
-
---
--- Filtros para la tabla `refresh_tokens`
---
-ALTER TABLE `refresh_tokens`
-  ADD CONSTRAINT `FK_610102b60fea1455310ccd299de` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
-
---
--- Filtros para la tabla `test_events`
---
-ALTER TABLE `test_events`
-  ADD CONSTRAINT `FK_43e24edcbb498e80ca62d431f80` FOREIGN KEY (`session_id`) REFERENCES `test_sessions` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
-  ADD CONSTRAINT `FK_4d32a4b999e0fbe7045fc6cb8de` FOREIGN KEY (`result_id`) REFERENCES `test_results` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
-
---
--- Filtros para la tabla `test_results`
---
-ALTER TABLE `test_results`
-  ADD CONSTRAINT `FK_e51fc3bef47128e892f5a87d604` FOREIGN KEY (`session_id`) REFERENCES `test_sessions` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
-  ADD CONSTRAINT `FK_f9639f4d28117f9fca41982f038` FOREIGN KEY (`question_id`) REFERENCES `questions` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
-
---
--- Filtros para la tabla `test_sessions`
---
-ALTER TABLE `test_sessions`
-  ADD CONSTRAINT `FK_87039342f59e95b41cba0d60322` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
-  ADD CONSTRAINT `FK_d1da3c8204bb204536500db2e20` FOREIGN KEY (`diagramId`) REFERENCES `diagrams` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
-
---
--- Filtros para la tabla `weeklygoal`
---
-ALTER TABLE `weeklygoal`
-  ADD CONSTRAINT `FK_9354f94b0b5e50b4f60511f69a8` FOREIGN KEY (`createdById`) REFERENCES `users` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+SET FOREIGN_KEY_CHECKS=1;

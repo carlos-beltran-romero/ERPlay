@@ -1,5 +1,5 @@
 #!/bin/sh
-# POSIX-safe: sin 'pipefail'
+# POSIX-safe
 set -eu
 
 wait_for_db() {
@@ -21,7 +21,7 @@ wait_for_db() {
 }
 
 should_seed() {
-  value="${RUN_DB_SEED:-true}"
+  value="${RUN_DB_SEED:-false}"   # por defecto false
   value=$(printf '%s' "$value" | tr '[:upper:]' '[:lower:]')
   case "$value" in
     1|true|yes|on) return 0 ;;
@@ -38,10 +38,39 @@ if ! npm run migration:run:js; then
 fi
 
 if should_seed; then
-  echo "Ejecutando semilla de base de datos..."
-  node dist/seeds/seed.js || { echo "Fallo al ejecutar la semilla." >&2; exit 1; }
+  echo "RUN_DB_SEED=true → comprobando si la BD ya tiene usuarios..."
+
+  # Obtenemos el número de usuarios; si falla el comando, asumimos 0
+  EXISTEN_USUARIOS=$(
+    mysql -N -s \
+      -h"$DB_HOST" -P"$DB_PORT" \
+      -u"$DB_USER" -p"$DB_PASSWORD" \
+      "$DB_NAME" \
+      -e "SELECT COUNT(*) FROM users;" 2>/dev/null \
+    || echo "0"
+  )
+
+
+  case "$EXISTEN_USUARIOS" in
+    '' ) EXISTEN_USUARIOS=0 ;;
+  esac
+
+  if [ "$EXISTEN_USUARIOS" -gt 0 ]; then
+    echo "La BD ya tiene datos. No se ejecuta la seed."
+  else
+    echo "La BD está vacía → ejecutando seed..."
+    if ! mysql \
+      -h"$DB_HOST" -P"$DB_PORT" \
+      -u"$DB_USER" -p"$DB_PASSWORD" \
+      "$DB_NAME" < erplay.sql; then
+      echo "Fallo al ejecutar erplay.sql." >&2
+      exit 1
+    fi
+    echo "erplay.sql ejecutado correctamente."
+  fi
 else
-  echo "RUN_DB_SEED desactivado; se omite la semilla."
+  echo "RUN_DB_SEED desactivado; Sin seed en base de datos."
 fi
 
+echo "Arrancando aplicación Node..."
 exec node dist/index.js
