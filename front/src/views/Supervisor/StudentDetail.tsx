@@ -1018,9 +1018,10 @@ const StudentDetail: React.FC = () => {
                         key={(e as any).id}
                         className="rounded-xl border border-gray-200 bg-gray-50 p-4"
                       >
-                        <div className="text-sm font-medium">
-                          {(e as any).title}
-                        </div>
+                        <ExpandableText
+                          text={(e as any).title}
+                          className="text-sm font-medium leading-snug"
+                        />
                         <div className="text-sm mt-1">
                           Tasa de error:{" "}
                           <span className="font-semibold">

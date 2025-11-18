@@ -95,6 +95,7 @@ function protect(route: ProtectedRoute) {
  * @public
  */
 export const router = createBrowserRouter([
+  { path: '/', loader: () => redirect('/login'), element: <></> },
   { path: '/login', element: <Login />, loader: redirectIfAuthenticated },
   { path: '/forgot-password', element: <ForgotPassword /> },
   { path: '/reset-password', element: <ResetPassword /> },

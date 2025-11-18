@@ -7,7 +7,7 @@ import { getDiagramStats, type DiagramStatsResponse } from '../../services/diagr
 import { toast } from 'react-toastify';
 import {
   ArrowLeft, Activity, Trophy, AlertTriangle,
-  Lightbulb, Target, Sigma, BarChart3, TrendingUp, TrendingDown, Info
+  Lightbulb, Target, Sigma, TrendingUp, TrendingDown, Info,
 } from 'lucide-react';
 import { useDelayedFlag } from '../../shared/hooks/useDelayedFlag';
 
@@ -322,17 +322,6 @@ const DiagramStats: React.FC = () => {
                   <div className="mt-1">Guía rápida: <b>0.80–1.00</b> muy estable · <b>0.70–0.79</b> aceptable · <b>&lt; 0.70</b> revisar preguntas.</div>
                 </ExplainPanel>
               )}
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardBody>
-              <div className="flex items-start justify-between gap-2">
-                <span className="text-xs uppercase tracking-wide text-gray-500">Mejora práctica → examen</span>
-                <BarChart3 className="h-5 w-5 text-gray-700" />
-              </div>
-              <div className="mt-1 text-2xl font-semibold">{fmt10(k.practiceToExamDeltaPts)} pts</div>
-              <div className="text-[11px] text-gray-500">Media por alumno</div>
             </CardBody>
           </Card>
 

@@ -86,6 +86,31 @@ const KPI: React.FC<KPIProps> = ({ icon, label, value }) => (
   </Card>
 );
 
+const ExpandableText: React.FC<{
+  text: string;
+  className?: string;
+  limit?: number;
+}> = ({ text, className, limit = 140 }) => {
+  const [expanded, setExpanded] = useState(false);
+  const value = (text || "").trim();
+  const needsToggle = value.length > limit;
+
+  return (
+    <span className={`block whitespace-pre-wrap break-words ${className || ""}`}>
+      {needsToggle && !expanded ? `${value.slice(0, limit)}…` : value}
+      {needsToggle && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="ml-2 text-xs font-medium text-indigo-600 hover:text-indigo-700"
+        >
+          {expanded ? "Ver menos" : "Ver más"}
+        </button>
+      )}
+    </span>
+  );
+};
+
 const COLOR_A = "#10b981";
 const COLOR_B = "#3b82f6";
 
@@ -771,8 +796,13 @@ const MyProgress: React.FC = () => {
               {errorsTop.map((e) => (
                 <Card key={e.id}>
                   <CardBody className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm font-medium">
-                      <XCircle className="h-4 w-4 text-rose-500" /> {e.title}
+                    <div className="flex items-start gap-2 text-sm font-medium">
+                      <XCircle className="h-4 w-4 text-rose-500 mt-0.5" />
+                      <ExpandableText
+                        text={e.title}
+                        className="leading-snug"
+                        limit={160}
+                      />
                     </div>
                     <div className="text-sm">
                       Tasa de error:{" "}
