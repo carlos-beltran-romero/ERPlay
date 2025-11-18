@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { batchCreateStudents, type BatchStudent } from '../../services/users';
 import PageWithHeader from '../../components/layout/PageWithHeader';
 import { toast } from 'react-toastify';
-import { Plus, Trash2, Save, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { Plus, Trash2, Save, ArrowLeft, Eye, EyeOff, Upload, Info } from 'lucide-react';
 
 type Row = {
   key: string;
@@ -15,18 +15,296 @@ type Row = {
 };
 
 const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_PASSWORD_LENGTH = 6;
+
+type RowField = 'name' | 'lastName' | 'email' | 'password';
+
+const TEMPLATE_FIELDS: Array<{ key: RowField; label: string; aliases: string[] }> = [
+  { key: 'name', label: 'Nombre', aliases: ['Nombre', 'Nombres', 'Name'] },
+  { key: 'lastName', label: 'Apellidos', aliases: ['Apellidos', 'Apellido', 'Apellidos completos', 'Surname'] },
+  { key: 'email', label: 'Email', aliases: ['Email', 'Correo', 'Correo electrónico', 'Mail'] },
+  { key: 'password', label: 'Contraseña', aliases: ['Contraseña', 'Contrasena', 'Password'] },
+];
+
+const fieldLabels: Record<RowField, string> = TEMPLATE_FIELDS.reduce(
+  (acc, field) => ({ ...acc, [field.key]: field.label }),
+  {} as Record<RowField, string>,
+);
+
+const allowedExtensions = new Set(['xlsx', 'xls', 'csv']);
+
+type RawRecord = {
+  values: Record<string, string>;
+  rowNumber: number;
+};
+
+const emptyRow = (): Row => ({ key: crypto.randomUUID(), name: '', lastName: '', email: '', password: '' });
+
+const isDraftEmpty = (draft: Pick<Row, RowField>) =>
+  !draft.name && !draft.lastName && !draft.email && !draft.password;
+
+const normalizeHeader = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toLowerCase();
+
+const headerAliasMap = (() => {
+  const map = new Map<string, RowField>();
+  TEMPLATE_FIELDS.forEach(field => {
+    field.aliases.forEach(alias => {
+      map.set(normalizeHeader(alias), field.key);
+    });
+  });
+  return map;
+})();
+
+const extractDraftFromRecord = (record: Record<string, string>): Pick<Row, RowField> => {
+  const draft: Pick<Row, RowField> = { name: '', lastName: '', email: '', password: '' };
+  Object.entries(record).forEach(([key, value]) => {
+    const normalized = normalizeHeader(key);
+    const field = headerAliasMap.get(normalized);
+    if (field) {
+      draft[field] = String(value ?? '').trim();
+    }
+  });
+  return draft;
+};
+
+const detectMissingColumns = (records: RawRecord[]) => {
+  const seenColumns = new Set<string>();
+  records.forEach(record => {
+    Object.keys(record.values).forEach(column => {
+      const normalized = normalizeHeader(column);
+      if (normalized) seenColumns.add(normalized);
+    });
+  });
+
+  const missing = TEMPLATE_FIELDS.filter(field =>
+    field.aliases.every(alias => !seenColumns.has(normalizeHeader(alias))),
+  );
+
+  if (missing.length) {
+    throw new Error(
+      `Formato incorrecto. Añade las columnas obligatorias: ${missing.map(field => field.label).join(', ')}`,
+    );
+  }
+};
+
+const normalizeRecords = (records: RawRecord[]): Array<Pick<Row, RowField>> => {
+  if (!records.length) {
+    throw new Error('El archivo no contiene datos debajo de la cabecera.');
+  }
+
+  detectMissingColumns(records);
+
+  const issues: string[] = [];
+  const seenEmails = new Set<string>();
+  const result: Array<Pick<Row, RowField>> = [];
+
+  records.forEach((record, index) => {
+    const rowNumber = record.rowNumber || index + 2;
+    const draft = extractDraftFromRecord(record.values);
+
+    if (isDraftEmpty(draft)) {
+      return;
+    }
+
+    const missingFields: string[] = [];
+    (Object.keys(fieldLabels) as RowField[]).forEach(field => {
+      if (!draft[field]) missingFields.push(fieldLabels[field]);
+    });
+
+    if (missingFields.length) {
+      issues.push(`Fila ${rowNumber}: ${missingFields.join(', ')} es obligatorio.`);
+      return;
+    }
+
+    if (!emailRx.test(draft.email)) {
+      issues.push(`Fila ${rowNumber}: email inválido (${draft.email}).`);
+      return;
+    }
+
+    const normalizedEmail = draft.email.trim().toLowerCase();
+    if (seenEmails.has(normalizedEmail)) {
+      issues.push(`Fila ${rowNumber}: email duplicado (${draft.email}).`);
+      return;
+    }
+
+    seenEmails.add(normalizedEmail);
+
+    if (draft.password.length < MIN_PASSWORD_LENGTH) {
+      issues.push(`Fila ${rowNumber}: contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`);
+      return;
+    }
+
+    result.push(draft);
+  });
+
+  if (!result.length) {
+    throw new Error(issues.length ? issues[0] : 'No se encontraron filas válidas en el archivo.');
+  }
+
+  if (issues.length) {
+    const summary = issues.length > 4 ? `${issues.slice(0, 4).join(' ')}…` : issues.join(' ');
+    throw new Error(summary);
+  }
+
+  return result;
+};
+
+const detectDelimiter = (line: string) => {
+  const commaCount = (line.match(/,/g) ?? []).length;
+  const semicolonCount = (line.match(/;/g) ?? []).length;
+  const tabCount = (line.match(/\t/g) ?? []).length;
+
+  if (semicolonCount > commaCount && semicolonCount >= tabCount) return ';';
+  if (tabCount > commaCount && tabCount >= semicolonCount) return '\t';
+  return ',';
+};
+
+const splitCsv = (text: string, delimiter: string) => {
+  const rows: string[][] = [];
+  let current = '';
+  let insideQuotes = false;
+  let row: string[] = [];
+
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    const nextChar = text[i + 1];
+
+    if (char === '"') {
+      if (insideQuotes && nextChar === '"') {
+        current += '"';
+        i += 1;
+      } else {
+        insideQuotes = !insideQuotes;
+      }
+    } else if (!insideQuotes && char === delimiter) {
+      row.push(current);
+      current = '';
+    } else if (!insideQuotes && (char === '\n' || char === '\r')) {
+      if (char === '\r' && nextChar === '\n') {
+        i += 1;
+      }
+      row.push(current);
+      rows.push(row);
+      row = [];
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  row.push(current);
+  rows.push(row);
+  return rows.filter(r => !(r.length === 1 && !r[0].trim()));
+};
+
+const parseCsvRecords = (text: string): RawRecord[] => {
+  const sanitized = text.replace(/^\ufeff/, '');
+  const trimmed = sanitized.trim();
+  if (!trimmed) {
+    throw new Error('El archivo está vacío.');
+  }
+
+  const firstLine = trimmed.split(/\r?\n/)[0] ?? '';
+  const delimiter = detectDelimiter(firstLine);
+  const rows = splitCsv(sanitized, delimiter);
+
+  if (!rows.length) {
+    throw new Error('No se pudo detectar la cabecera del archivo.');
+  }
+
+  const header = rows[0].map(cell => cell.trim());
+  if (!header.some(Boolean)) {
+    throw new Error('La primera fila debe contener los nombres de las columnas.');
+  }
+
+  const dataRows = rows.slice(1);
+  const records: RawRecord[] = [];
+
+  dataRows.forEach((cells, idx) => {
+    const record: Record<string, string> = {};
+    header.forEach((column, colIdx) => {
+      if (!column) return;
+      record[column] = (cells[colIdx] ?? '').trim();
+    });
+
+    if (Object.values(record).every(value => !value)) {
+      return;
+    }
+
+    records.push({ values: record, rowNumber: idx + 2 });
+  });
+
+  if (!records.length) {
+    throw new Error('No se encontraron filas con datos en el CSV.');
+  }
+
+  return records;
+};
+
+const readSpreadsheetFile = async (file: File): Promise<Array<Pick<Row, RowField>>> => {
+  const extension = file.name.split('.').pop()?.toLowerCase();
+  if (!extension || !allowedExtensions.has(extension)) {
+    throw new Error('Formato no soportado. Usa archivos .xlsx, .xls o .csv.');
+  }
+
+  if (extension === 'csv') {
+    const text = await file.text();
+    const records = parseCsvRecords(text);
+    return normalizeRecords(records);
+  }
+
+  if (!window.XLSX) {
+    throw new Error('No se pudo cargar el lector de Excel. Refresca la página o prueba con un CSV.');
+  }
+
+  const buffer = await file.arrayBuffer();
+  const workbook = window.XLSX.read(buffer, { type: 'array', cellDates: false });
+  const [sheetName] = workbook.SheetNames;
+
+  if (!sheetName) {
+    throw new Error('El archivo no contiene hojas.');
+  }
+
+  const sheet = workbook.Sheets[sheetName];
+  const rows = window.XLSX.utils.sheet_to_json(sheet, { raw: false, defval: '' }) as Array<Record<string, string>>;
+
+  if (!rows.length) {
+    throw new Error('La hoja está vacía.');
+  }
+
+  const records: RawRecord[] = rows.map((row, index) => {
+    const cloned: Record<string, string> = {};
+    Object.entries(row).forEach(([key, value]) => {
+      if (key === '__rowNum__') return;
+      cloned[key] = typeof value === 'string' ? value : String(value ?? '');
+    });
+
+    const rowNum = typeof (row as any).__rowNum__ === 'number' ? (row as any).__rowNum__ + 1 : index + 2;
+
+    return { values: cloned, rowNumber: rowNum };
+  });
+
+  return normalizeRecords(records);
+};
 
 const SupervisorBulkStudents: React.FC = () => {
   const navigate = useNavigate();
 
-  const [rows, setRows] = useState<Row[]>([
-    { key: crypto.randomUUID(), name: '', lastName: '', email: '', password: '' },
-  ]);
+  const [rows, setRows] = useState<Row[]>([emptyRow()]);
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importMessage, setImportMessage] = useState<string | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const addRow = () => {
-    setRows(prev => [...prev, { key: crypto.randomUUID(), name: '', lastName: '', email: '', password: '' }]);
+    setRows(prev => [...prev, emptyRow()]);
   };
 
   const removeRow = (key: string) => {
@@ -53,10 +331,25 @@ const SupervisorBulkStudents: React.FC = () => {
     return draft.map(r => {
       const errs: Row['errors'] = {};
 
-      if (r.email && !emailRx.test(r.email)) errs.email = 'Email inválido';
-      if (dupes.has(r.email.trim().toLowerCase())) errs.email = 'Email duplicado';
+      const trimmedName = r.name.trim();
+      const trimmedLastName = r.lastName.trim();
+      const trimmedEmail = r.email.trim();
 
-      if (!r.password || r.password.length < 6) errs.password = 'Mínimo 6 caracteres';
+      if (!trimmedName) errs.name = 'Nombre obligatorio';
+      if (!trimmedLastName) errs.lastName = 'Apellidos obligatorios';
+      if (!trimmedEmail) {
+        errs.email = 'Email obligatorio';
+      } else if (!emailRx.test(trimmedEmail)) {
+        errs.email = 'Email inválido';
+      } else if (dupes.has(trimmedEmail.toLowerCase())) {
+        errs.email = 'Email duplicado';
+      }
+
+      if (!r.password) {
+        errs.password = 'Contraseña obligatoria';
+      } else if (r.password.length < MIN_PASSWORD_LENGTH) {
+        errs.password = `Mínimo ${MIN_PASSWORD_LENGTH} caracteres`;
+      }
 
       return { ...r, errors: errs };
     });
@@ -64,7 +357,39 @@ const SupervisorBulkStudents: React.FC = () => {
 
   const validatedRows = useMemo(() => validate(rows), [rows]);
   const hasErrors = validatedRows.some(r => r.errors && Object.keys(r.errors).length > 0);
-  const allEmpty = rows.every(r => !r.name && !r.lastName && !r.email && !r.password);
+  const allEmpty = rows.every(r => isDraftEmpty(r));
+
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    setImportError(null);
+    setImportMessage(null);
+
+    try {
+      const imported = await readSpreadsheetFile(file);
+      setRows(prev => {
+        const preserved = prev.filter(row => !isDraftEmpty(row));
+        const mapped = imported.map(data => ({ key: crypto.randomUUID(), ...data }));
+        const next = [...preserved, ...mapped];
+        return next.length ? next : [emptyRow()];
+      });
+      setVisiblePasswords({});
+      const message = `Se importaron ${imported.length} fila(s) desde ${file.name}.`;
+      setImportMessage(message);
+      toast.success(message);
+    } catch (error: any) {
+      const message = error?.message || 'No se pudo leer el archivo proporcionado.';
+      setImportError(message);
+      toast.error(message);
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,7 +397,7 @@ const SupervisorBulkStudents: React.FC = () => {
     const checked = validate(rows);
     setRows(checked);
 
-    const allEmpty = checked.every(r => !r.name && !r.lastName && !r.email && !r.password);
+    const allEmpty = checked.every(r => isDraftEmpty(r));
     const hasErrors = checked.some(r => r.errors && Object.keys(r.errors).length > 0);
 
     if (allEmpty) {
@@ -86,12 +411,14 @@ const SupervisorBulkStudents: React.FC = () => {
 
     setSubmitting(true);
     try {
-      const payload: BatchStudent[] = checked.map(r => ({
-        name: r.name.trim(),
-        lastName: r.lastName.trim(),
-        email: r.email.trim(),
-        password: r.password,
-      }));
+      const payload: BatchStudent[] = checked
+        .filter(r => !isDraftEmpty(r))
+        .map(r => ({
+          name: r.name.trim(),
+          lastName: r.lastName.trim(),
+          email: r.email.trim(),
+          password: r.password,
+        }));
 
       const result = await batchCreateStudents(payload);
       const creados = result.created.length;
@@ -102,8 +429,9 @@ const SupervisorBulkStudents: React.FC = () => {
       if (yaExisten > 0) toast.warn(`Omitidos por existir previamente: ${result.skipped.exists.join(', ')}`);
       if (duplicados > 0) toast.warn(`Omitidos por duplicados en el lote: ${result.skipped.payloadDuplicates.join(', ')}`);
 
-      setRows([{ key: crypto.randomUUID(), name: '', lastName: '', email: '', password: '' }]);
+      setRows([emptyRow()]);
       setVisiblePasswords({});
+      setImportMessage(null);
     } catch (err: any) {
       toast.error(err.message || 'No se pudo completar el alta masiva');
     } finally {
@@ -132,6 +460,53 @@ const SupervisorBulkStudents: React.FC = () => {
             </div>
           </div>
         </div>
+
+        <section className="mb-8 rounded-2xl border border-gray-200 bg-white/90 p-4 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-gray-800">
+                <Upload size={18} />
+                <h2 className="text-lg font-semibold">Importar desde Excel</h2>
+              </div>
+              <p className="mt-1 text-sm text-gray-600">
+                Crea un archivo con las columnas <strong>Nombre</strong>, <strong>Apellidos</strong>,
+                <strong> Email</strong> y <strong>Contraseña</strong>. Puedes usar .xlsx, .xls o .csv exportado desde Excel.
+              </p>
+              <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-gray-600">
+                <li>Una fila por alumno.</li>
+                <li>Contraseñas con mínimo {MIN_PASSWORD_LENGTH} caracteres.</li>
+                <li>El email debe ser único dentro del archivo.</li>
+              </ul>
+            </div>
+            <div className="w-full max-w-xs space-y-2 sm:text-right">
+              <label
+                className={`inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-white shadow-md transition ${
+                  importing ? 'bg-indigo-400 opacity-80 cursor-wait' : 'bg-indigo-600 hover:bg-indigo-500'
+                }`}
+              >
+                <Upload size={16} />
+                {importing ? 'Leyendo archivo…' : 'Cargar Excel/CSV'}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  className="sr-only"
+                  onChange={handleImport}
+                  disabled={importing}
+                />
+              </label>
+              {importError && <p className="text-xs text-rose-600">{importError}</p>}
+              {!importError && importMessage && <p className="text-xs text-emerald-600">{importMessage}</p>}
+              <div className="flex items-start gap-2 text-xs text-gray-500">
+                <Info size={14} className="shrink-0" />
+                <p>
+                  Comprueba que la primera fila contiene los encabezados exactos de la plantilla. Las filas vacías se ignoran
+                  automáticamente.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <form onSubmit={handleSubmit}>
           <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
@@ -211,7 +586,7 @@ const SupervisorBulkStudents: React.FC = () => {
                           </button>
                         </div>
                         {r.errors?.password && (
-                          <p className="mt-1 text-xs text-gray-600">{r.errors.password}</p>
+                          <p className="mt-1 text-xs text-red-600">{r.errors.password}</p>
                         )}
                       </div>
 
@@ -307,7 +682,7 @@ const SupervisorBulkStudents: React.FC = () => {
                             </button>
                           </div>
                           {r.errors?.password && (
-                            <p className="mt-1 text-xs text-gray-600">{r.errors.password}</p>
+                            <p className="mt-1 text-xs text-red-600">{r.errors.password}</p>
                           )}
                         </div>
                       </div>
@@ -360,7 +735,7 @@ const SupervisorBulkStudents: React.FC = () => {
           Consejo: puedes rellenar unas cuantas filas y guardar, luego volver a añadir más.
         </p>
       </div>
-   </PageWithHeader>
+    </PageWithHeader>
   );
 };
 
