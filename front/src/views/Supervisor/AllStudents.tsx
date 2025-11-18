@@ -172,6 +172,35 @@ const SupervisorStudents: React.FC = () => {
     return `"${str}"`;
   };
 
+  type CsvColumn = {
+    label: string;
+    getValue: (data: {
+      student: StudentSummary;
+      sessionsCompleted: number;
+      examAvg: string;
+      learningAvg: string;
+      claimsApproved: number;
+      claimsSubmitted: number;
+      createdQuestions: number;
+      approvedQuestions: number;
+      badges: number;
+    }) => string | number;
+  };
+
+  const csvColumns: CsvColumn[] = [
+    { label: 'Nombre', getValue: ({ student }) => student.name || '' },
+    { label: 'Apellidos', getValue: ({ student }) => student.lastName || '' },
+    { label: 'Email', getValue: ({ student }) => student.email },
+    { label: 'Sesiones completadas', getValue: ({ sessionsCompleted }) => sessionsCompleted },
+    { label: 'Nota media examen', getValue: ({ examAvg }) => examAvg },
+    { label: 'Nota media learning', getValue: ({ learningAvg }) => learningAvg },
+    { label: 'Reclamaciones aprobadas', getValue: ({ claimsApproved }) => claimsApproved },
+    { label: 'Reclamaciones enviadas', getValue: ({ claimsSubmitted }) => claimsSubmitted },
+    { label: 'Preguntas creadas', getValue: ({ createdQuestions }) => createdQuestions },
+    { label: 'Preguntas aprobadas', getValue: ({ approvedQuestions }) => approvedQuestions },
+    { label: 'Insignias', getValue: ({ badges }) => badges },
+  ];
+
   const handleExportCsv = async () => {
     if (!filtered.length) {
       toast.info('No hay alumnos para exportar');
@@ -191,19 +220,20 @@ const SupervisorStudents: React.FC = () => {
 
           const createdCount = questions.length;
           const approvedQuestions = questions.filter((q: SupQuestionItem) => normalizeStatus(q.status) === 'APPROVED').length;
-          rows.push([
-            student.name || '',
-            student.lastName || '',
-            student.email,
-            String(overview?.sessionsCompleted ?? 0),
-            formatDecimal(overview?.examScoreAvg ?? null),
-            formatDecimal(overview?.accuracyLearningPct ?? null),
-            String(claimsStats?.approved ?? 0),
-            String(claimsStats?.submitted ?? 0),
-            String(createdCount),
-            String(approvedQuestions),
-            String((badges || []).length),
-          ]);
+          const rowValues = csvColumns.map((column) =>
+            column.getValue({
+              student,
+              sessionsCompleted: overview?.sessionsCompleted ?? 0,
+              examAvg: formatDecimal(overview?.examScoreAvg ?? null),
+              learningAvg: formatDecimal(overview?.accuracyLearningPct ?? null),
+              claimsApproved: claimsStats?.approved ?? 0,
+              claimsSubmitted: claimsStats?.submitted ?? 0,
+              createdQuestions: createdCount,
+              approvedQuestions,
+              badges: (badges || []).length,
+            }).toString()
+          );
+          rows.push(rowValues);
         } catch (err: any) {
           throw new Error(
             `No se pudo exportar al alumno ${student.email}: ${err?.message || 'Datos incompletos'}`
@@ -211,25 +241,14 @@ const SupervisorStudents: React.FC = () => {
         }
       }
 
-      const header = [
-        'Nombre',
-        'Apellidos',
-        'Email',
-        'Sesiones completadas',
-        'Nota media examen',
-        'Nota media learning',
-        'Reclamaciones aprobadas',
-        'Reclamaciones enviadas',
-        'Preguntas creadas',
-        'Preguntas aprobadas',
-        'Insignias',
-      ];
+      const header = csvColumns.map((column) => column.label);
 
       const csvContent = [header, ...rows]
         .map((cols) => cols.map(csvEscape).join(','))
         .join('\n');
 
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const csvWithBom = `\uFEFF${csvContent}`;
+      const blob = new Blob([csvWithBom], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
