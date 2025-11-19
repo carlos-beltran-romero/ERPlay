@@ -103,7 +103,7 @@ export class DiagramsService {
         'd.questionsCount',
         'd.questions',
         'q',
-        qb => qb.andWhere('q.status = :st', { st: ReviewStatus.APPROVED })
+        qb => qb.andWhere('q.status IN (:...st)', { st: [ReviewStatus.APPROVED, ReviewStatus.PENDING] })
       )
       .orderBy('d.createdAt', 'DESC')
       .getMany();

@@ -32,6 +32,7 @@ const VerifyClaimSchema = z.object({
   decision: z.enum(['approve', 'reject']),
   comment: z.string().max(2000).optional(),
   rejectOtherPending: z.boolean().optional(),
+  rejectSameOption: z.boolean().optional(),
 });
 
 /**
@@ -124,13 +125,14 @@ export const verifyClaim = async (req: AuthedReq, res: Response) => {
       res.status(403).json({ error: 'No autorizado' });
       return;
     }
-    const { decision, comment, rejectOtherPending } = VerifyClaimSchema.parse(req.body);
+    const { decision, comment, rejectOtherPending, rejectSameOption } = VerifyClaimSchema.parse(req.body);
     const result = await claimsService.decideClaim({
       claimId: req.params.id,
       reviewerId: req.user.id,
       decision,
       comment,
       rejectOtherPending,
+      rejectSameOption,
     });
     res.json(result);
   } catch (e: any) {

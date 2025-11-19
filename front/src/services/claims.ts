@@ -221,12 +221,17 @@ export async function verifyClaim(
   id: string,
   decision: 'approve' | 'reject',
   comment?: string,
-  opts?: { rejectOtherPending?: boolean }
+  opts?: { rejectOtherPending?: boolean; rejectSameOption?: boolean }
 ): Promise<void> {
   await apiJson<void>(`/api/claims/${id}/verify`, {
     method: 'POST',
     auth: true,
-    json: { decision, comment, rejectOtherPending: opts?.rejectOtherPending },
+    json: {
+      decision,
+      comment,
+      rejectOtherPending: opts?.rejectOtherPending,
+      rejectSameOption: opts?.rejectSameOption,
+    },
     fallbackError: 'No se pudo aplicar la revisión',
   });
 }

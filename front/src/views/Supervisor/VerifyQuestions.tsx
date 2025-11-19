@@ -24,6 +24,7 @@ import {
   Mail,
   Flag,
   ArrowLeft,
+  AlertTriangle,
 } from 'lucide-react';
 
 const letter = (i: number) => String.fromCharCode(65 + i);
@@ -90,6 +91,15 @@ const VerifyQuestions: React.FC = () => {
       }
   >(null);
 
+  const [bulkRejectPrompt, setBulkRejectPrompt] = useState<
+    | null
+    | {
+        claim: PendingClaim;
+        comment?: string;
+        sameOptionCount: number;
+      }
+  >(null);
+
   
   const [lightbox, setLightbox] = useState<{ src: string; title?: string } | null>(null);
 
@@ -115,23 +125,26 @@ const VerifyQuestions: React.FC = () => {
     setQLoading(true);
     setCLoading(true);
     try {
-      
       const [rawQuestions, rawClaims, pendingClaimsCount] = await Promise.all([
         listPendingQuestions(),
         listPendingClaims(),
         getPendingClaimsCount(),
       ]);
 
-      
-      const claimedIds = new Set(
-        rawClaims.map(c => c.questionId).filter(Boolean) as string[]
-      );
+      const claimCounts = rawClaims.reduce<Record<string, number>>((acc, claim) => {
+        if (claim.questionId) {
+          acc[claim.questionId] = (acc[claim.questionId] ?? 0) + 1;
+        }
+        return acc;
+      }, {});
 
-      
-      const filteredQ = rawQuestions.filter(q => !claimedIds.has(q.id));
+      const enrichedQ = rawQuestions.map((q) => ({
+        ...q,
+        claimCount: claimCounts[q.id] ?? 0,
+      }));
 
-      setPendingQ(filteredQ);
-      setQCount(filteredQ.length);
+      setPendingQ(enrichedQ);
+      setQCount(enrichedQ.length);
       setPendingC(rawClaims);
       setCCount(pendingClaimsCount);
     } catch (e: any) {
@@ -169,7 +182,7 @@ const VerifyQuestions: React.FC = () => {
     c: PendingClaim,
     decision: 'approve' | 'reject',
     comment?: string,
-    opts?: { rejectOtherPending?: boolean }
+    opts?: { rejectOtherPending?: boolean; rejectSameOption?: boolean }
   ) => {
     setCSubmitting(c.id);
     try {
@@ -192,19 +205,35 @@ const VerifyQuestions: React.FC = () => {
             if (sameOption) return false;
             if (opts.rejectOtherPending) return false;
           }
+          if (
+            decision === 'reject' &&
+            opts?.rejectSameOption &&
+            c.questionId &&
+            p.questionId === c.questionId &&
+            typeof p.chosenIndex === 'number' &&
+            typeof c.chosenIndex === 'number' &&
+            p.chosenIndex === c.chosenIndex
+          ) {
+            return false;
+          }
           return true;
         });
         setCCount(next.length);
+        setPendingQ(prevQuestions => {
+          const counts = next.reduce<Record<string, number>>((acc, claim) => {
+            if (claim.questionId) {
+              acc[claim.questionId] = (acc[claim.questionId] ?? 0) + 1;
+            }
+            return acc;
+          }, {});
+          return prevQuestions.map((pq) => ({
+            ...pq,
+            claimCount: counts[pq.id] ?? 0,
+          }));
+        });
         return next;
       });
 
-      if (c.questionId) {
-        setPendingQ(prev => {
-          const next = prev.filter(p => p.id !== c.questionId);
-          setQCount(next.length);
-          return next;
-        });
-      }
     } catch (e: any) {
       toast.error(e.message || 'No se pudo aplicar la revisión');
     } finally {
@@ -248,6 +277,39 @@ const VerifyQuestions: React.FC = () => {
       comment,
       sameOptionCount,
       otherOptionCount,
+    });
+  };
+
+  const onRejectClaim = (claim: PendingClaim, comment?: string) => {
+    if (!claim.questionId) {
+      onDecideClaim(claim, 'reject', comment);
+      return;
+    }
+
+    const siblings = pendingC.filter(
+      c => c.id !== claim.id && c.questionId === claim.questionId
+    );
+    const sameOptionCount = siblings.filter(
+      c =>
+        typeof c.chosenIndex === 'number' &&
+        typeof claim.chosenIndex === 'number' &&
+        c.chosenIndex === claim.chosenIndex
+    ).length;
+
+    if (!sameOptionCount) {
+      onDecideClaim(claim, 'reject', comment);
+      return;
+    }
+
+    setBulkRejectPrompt({ claim, comment, sameOptionCount });
+  };
+
+  const onConfirmBulkReject = (cascade: boolean) => {
+    if (!bulkRejectPrompt) return;
+    const { claim, comment } = bulkRejectPrompt;
+    setBulkRejectPrompt(null);
+    onDecideClaim(claim, 'reject', comment, {
+      rejectSameOption: cascade,
     });
   };
 
@@ -331,6 +393,8 @@ const VerifyQuestions: React.FC = () => {
                   const opts = q.options ?? [];
                   const correct = Math.min(Math.max(q.correctIndex ?? 0, 0), Math.max(0, opts.length - 1));
                   const hasImage = Boolean(q.diagram?.path);
+                  const claimCount = q.claimCount ?? 0;
+                  const claimLevel = claimCount >= 10 ? 'critical' : claimCount >= 5 ? 'warning' : claimCount > 0 ? 'info' : null;
 
                   return (
                     <div key={q.id} className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -357,6 +421,21 @@ const VerifyQuestions: React.FC = () => {
                         <div>
                           <div className="text-sm text-gray-500">Diagrama</div>
                           <div className="text-base font-semibold">{q.diagram?.title?.trim() || 'Sin título'}</div>
+                          {claimLevel && (
+                            <div className="mt-1 text-xs font-medium">
+                              <span
+                                className={`inline-flex items-center gap-1 rounded-full border px-3 py-0.5 ${
+                                  claimLevel === 'critical'
+                                    ? 'border-rose-200 bg-rose-50 text-rose-700'
+                                    : claimLevel === 'warning'
+                                    ? 'border-amber-200 bg-amber-50 text-amber-700'
+                                    : 'border-slate-200 bg-slate-50 text-slate-700'
+                                }`}
+                              >
+                                <AlertTriangle size={14} /> {claimCount} reclamaciones pendientes de resolución
+                              </span>
+                            </div>
+                          )}
                           <div className="mt-2 text-sm text-gray-600 inline-flex items-center gap-2">
                             <UserIcon size={16} />
                             <span>
@@ -637,7 +716,7 @@ const VerifyQuestions: React.FC = () => {
                           <button
                             onClick={() => {
                               const el = document.getElementById(`c-comment-${c.id}`) as HTMLTextAreaElement | null;
-                              onDecideClaim(c, 'reject', el?.value?.trim() || undefined);
+                              onRejectClaim(c, el?.value?.trim() || undefined);
                             }}
                             disabled={cSubmitting === c.id}
                             className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${
@@ -739,8 +818,38 @@ const VerifyQuestions: React.FC = () => {
             </div>
           </div>
         )}
+
+        {bulkRejectPrompt && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+              <h3 className="text-lg font-semibold">Rechazar respuestas idénticas</h3>
+              <p className="mt-3 text-sm text-gray-700">
+                Hay{' '}
+                <strong>{bulkRejectPrompt.sameOptionCount}</strong>{' '}
+                reclamaciones adicionales para esta pregunta que eligieron exactamente la misma opción que el alumno.
+              </p>
+              <p className="mt-3 text-sm text-gray-600">
+                ¿Quieres rechazarlas automáticamente sin escribir un motivo individual? Los estudiantes afectados serán notificados sin comentario adicional.
+              </p>
+              <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  onClick={() => onConfirmBulkReject(false)}
+                  className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  No, revisaré el resto manualmente
+                </button>
+                <button
+                  onClick={() => onConfirmBulkReject(true)}
+                  className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-500"
+                >
+                  Sí, rechazar todas sin motivo
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-   </PageWithHeader>
+    </PageWithHeader>
   );
 };
 

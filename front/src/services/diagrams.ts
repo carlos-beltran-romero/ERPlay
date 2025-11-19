@@ -73,7 +73,7 @@ export async function uploadDiagram(payload: {
  * @returns Array de diagramas ordenados por fecha descendente
  * @remarks
  * - path: URL pública resuelta con CDN/API_URL
- * - questionsCount: Incluye solo preguntas aprobadas
+ * - questionsCount: Incluye preguntas aprobadas y pendientes (no rechazadas)
  */
 export async function listDiagrams(): Promise<DiagramSummary[]> {
   const data = await apiJson<DiagramSummary[]>('/api/diagrams', {
