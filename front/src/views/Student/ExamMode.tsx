@@ -9,7 +9,7 @@ import {
   finishSession,
   type StartedSession,
 } from '../../services/tests';
-import { Clock, ChevronRight, Image as ImageIcon } from 'lucide-react';
+import { Clock, ChevronRight, Image as ImageIcon, AlertTriangle } from 'lucide-react';
 import { resolveAssetUrl } from '../../shared/utils/url';
 
 type ExamQuestion = {
@@ -17,6 +17,8 @@ type ExamQuestion = {
   options: string[];
   id?: string;
   __resultId: string;
+  status?: 'pending' | 'approved' | 'rejected';
+  claimCount?: number;
 };
 
 type ExamPayload = {
@@ -139,6 +141,8 @@ const ExamMode: React.FC = () => {
           options: q.options,
           id: q.questionId,
           __resultId: q.resultId,
+          status: q.status,
+          claimCount: q.claimCount,
         })),
       };
       sessionIdRef.current = data.sessionId;
@@ -260,6 +264,8 @@ const ExamMode: React.FC = () => {
   }
 
   const q = payload.questions[current];
+  const questionClaimCount = typeof q.claimCount === 'number' ? q.claimCount : 0;
+  const showClaimWarning = questionClaimCount > 10;
 
   return (
     <PageWithHeader>
@@ -310,6 +316,19 @@ const ExamMode: React.FC = () => {
         <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
           <div className="mb-2 text-sm text-gray-600">Pregunta {current + 1} de {qCount}</div>
           <div className="text-base font-medium whitespace-pre-wrap">{q.prompt}</div>
+          {showClaimWarning && (
+            <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium">
+              <span
+                className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 ${
+                  questionClaimCount >= 15
+                    ? 'border-rose-200 bg-rose-50 text-rose-700'
+                    : 'border-amber-200 bg-amber-50 text-amber-700'
+                }`}
+              >
+                <AlertTriangle size={14} /> Esta pregunta acumula {questionClaimCount} reclamaciones. Revísala con calma.
+              </span>
+            </div>
+          )}
 
           <div className="mt-4 space-y-2">
             {q.options.map((opt, oi) => {

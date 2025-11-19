@@ -12,6 +12,7 @@ import { TestResult } from '../models/TestResult';
 import { TestEvent } from '../models/TestEvent';
 import { User } from '../models/User';
 import { Brackets } from 'typeorm';
+import { Claim } from '../models/Claim';
 
 /** Parámetros para iniciar sesión */
 type StartSessionArgs = { userId: string; mode: TestMode; limit?: number };
@@ -65,6 +66,7 @@ export class TestSessionsService {
   private resultRepo = AppDataSource.getRepository(TestResult);
   private eventRepo = AppDataSource.getRepository(TestEvent);
   private userRepo = AppDataSource.getRepository(User);
+  private claimRepo = AppDataSource.getRepository(Claim);
 
   /**
    * Inicia una nueva sesión de test
@@ -83,25 +85,70 @@ export class TestSessionsService {
   async startSession({ userId, mode, limit = 10 }: StartSessionArgs) {
     const user = await this.userRepo.findOneByOrFail({ id: userId });
 
+    const allowedStatuses =
+      mode === 'learning' ? [ReviewStatus.APPROVED, ReviewStatus.PENDING] : [ReviewStatus.APPROVED];
+
     const rows = await this.diagramRepo
       .createQueryBuilder('d')
-      .innerJoin('d.questions', 'q', 'q.status = :st', { st: ReviewStatus.APPROVED })
+      .innerJoin('d.questions', 'q', 'q.status IN (:...st)', { st: allowedStatuses })
       .select('d.id', 'id')
       .groupBy('d.id')
       .getRawMany<{ id: string }>();
     if (!rows.length) throw new Error('No hay tests disponibles');
 
-    const diagramId = rows[Math.floor(Math.random() * rows.length)].id;
-    const diagram = await this.diagramRepo.findOne({
-      where: { id: diagramId },
-      relations: { questions: { options: true } },
-    });
-    if (!diagram) throw new Error('Test no encontrado');
+    const candidateIds = rows.map((r) => r.id);
+    let diagram: Diagram | null = null;
+    let eligibleQuestions: Question[] = [];
+    let claimCountsByQuestion: Record<string, number> = {};
+    const exclusionThreshold = 20;
 
-    const approved = (diagram.questions || []).filter((q) => q.status === ReviewStatus.APPROVED);
-    if (!approved.length) throw new Error('El test no tiene preguntas aprobadas');
+    while (candidateIds.length && !diagram) {
+      const idx = Math.floor(Math.random() * candidateIds.length);
+      const [diagramId] = candidateIds.splice(idx, 1);
+      if (!diagramId) continue;
+      const candidate = await this.diagramRepo.findOne({
+        where: { id: diagramId },
+        relations: { questions: { options: true } },
+      });
+      if (!candidate) continue;
 
-    const chosen = approved.sort(() => Math.random() - 0.5).slice(0, Math.min(limit, approved.length));
+      const scopedQuestions = (candidate.questions || []).filter((q) => allowedStatuses.includes(q.status));
+      if (!scopedQuestions.length) continue;
+
+      const ids = scopedQuestions.map((q) => q.id);
+      const claimRows = ids.length
+        ? await this.claimRepo
+            .createQueryBuilder('c')
+            .leftJoin('c.question', 'q')
+            .select('q.id', 'qid')
+            .addSelect('COUNT(*)', 'cnt')
+            .where('q.id IN (:...ids)', { ids })
+            .groupBy('q.id')
+            .getRawMany<{ qid: string; cnt: string | number }>()
+        : [];
+      const claimMap = claimRows.reduce<Record<string, number>>((acc, row) => {
+        if (row.qid) acc[String(row.qid)] = Number(row.cnt ?? 0);
+        return acc;
+      }, {});
+
+      const filtered = scopedQuestions.filter((q) => (claimMap[q.id] ?? 0) <= exclusionThreshold);
+      if (!filtered.length) continue;
+
+      diagram = candidate;
+      eligibleQuestions = filtered;
+      claimCountsByQuestion = filtered.reduce<Record<string, number>>((acc, q) => {
+        acc[q.id] = claimMap[q.id] ?? 0;
+        return acc;
+      }, {});
+    }
+
+    if (!diagram || !eligibleQuestions.length) {
+      throw new Error('No hay preguntas disponibles');
+    }
+
+    const chosen = eligibleQuestions
+      .sort(() => Math.random() - 0.5)
+      .slice(0, Math.min(limit, eligibleQuestions.length));
 
     const sess = await AppDataSource.transaction(async (m) => {
       const s = m.create(TestSession, {
@@ -154,6 +201,8 @@ export class TestSessionsService {
         options: r.optionsSnapshot,
         ...(mode === 'learning' ? { correctIndex: r.correctIndexAtTest } : {}),
         hint: r.question?.hint || undefined,
+        status: r.question?.status,
+        claimCount: claimCountsByQuestion[r.question?.id ?? ''] ?? 0,
       })),
     };
   }

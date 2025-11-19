@@ -9,10 +9,13 @@ import { resolveAssetUrl } from '../shared/utils/url';
 
 /** Pregunta asociada a un diagrama */
 export interface QuestionInput {
+  id?: string;
   prompt: string;
   options: string[];
   correctIndex: number;
   hint: string;
+  status?: 'pending' | 'approved' | 'rejected';
+  claimCount?: number;
 }
 
 /** Resumen de diagrama para listados */

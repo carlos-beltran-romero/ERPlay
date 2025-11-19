@@ -22,6 +22,8 @@ import {
   XCircle,
   Flag,
   Info,
+  ShieldAlert,
+  AlertTriangle,
 } from 'lucide-react';
 import { resolveAssetUrl } from '../../shared/utils/url';
 
@@ -30,8 +32,10 @@ type PracticeQuestion = {
   options: string[];
   correctIndex: number;
   hint?: string;
-  id?: string; 
+  id?: string;
   __resultId: string;
+  status?: 'pending' | 'approved' | 'rejected';
+  claimCount?: number;
 };
 
 type PracticePayload = {
@@ -120,10 +124,12 @@ const LearningMode: React.FC = () => {
         questions: data.questions.map((q) => ({
           prompt: q.prompt,
           options: q.options,
-          correctIndex: q.correctIndex!, 
+          correctIndex: q.correctIndex!,
           hint: q.hint,
           id: q.questionId,
           __resultId: q.resultId,
+          status: q.status,
+          claimCount: q.claimCount,
         })),
       };
 
@@ -370,6 +376,9 @@ const LearningMode: React.FC = () => {
   const q = payload.questions[current];
   const answered = selected[current] !== null;
   const isCorrect = answered && selected[current] === q.correctIndex;
+  const isPending = q.status === 'pending';
+  const questionClaimCount = typeof q.claimCount === 'number' ? q.claimCount : 0;
+  const showClaimWarning = questionClaimCount > 10;
 
   const canClaim =
     revealed[current] && selected[current] !== null && selected[current] !== q.correctIndex && !claimed[current];
@@ -464,6 +473,27 @@ const LearningMode: React.FC = () => {
               </div>
 
               <div className="text-base font-medium whitespace-pre-wrap">{q.prompt}</div>
+              {(isPending || showClaimWarning) && (
+                <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium">
+                  {isPending && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-700">
+                      <ShieldAlert size={14} /> Pendiente de validación del profesor
+                    </span>
+                  )}
+                  {showClaimWarning && (
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 ${
+                        questionClaimCount >= 15
+                          ? 'border-rose-200 bg-rose-50 text-rose-700'
+                          : 'border-amber-200 bg-amber-50 text-amber-700'
+                      }`}
+                    >
+                      <AlertTriangle size={14} />
+                      {questionClaimCount} reclamaciones reportadas. Revisa con cautela.
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Opciones */}
               <div className="mt-4 space-y-2">

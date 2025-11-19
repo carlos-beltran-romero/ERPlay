@@ -9,6 +9,7 @@ import { Diagram } from '../models/Diagram';
 import { Question, ReviewStatus } from '../models/Question';
 import { Option } from '../models/Option';
 import { User, UserRole } from '../models/User';
+import { Claim } from '../models/Claim';
 import fs from 'fs';
 import path from 'path';
 
@@ -29,6 +30,7 @@ export class DiagramsService {
   private questionRepo = AppDataSource.getRepository(Question);
   private optionRepo = AppDataSource.getRepository(Option);
   private userRepo = AppDataSource.getRepository(User);
+  private claimRepo = AppDataSource.getRepository(Claim);
 
   /**
    * Crea un nuevo diagrama con sus preguntas
@@ -120,24 +122,51 @@ export class DiagramsService {
     title: string;
     path: string;
     createdAt: Date;
-    questions: { prompt: string; hint: string; correctIndex: number; options: string[] }[];
+    questions: {
+      id: string;
+      prompt: string;
+      hint: string;
+      correctIndex: number;
+      options: string[];
+      status: ReviewStatus;
+      claimCount: number;
+    }[];
   }> {
     const diagram = await this.diagramRepo.findOne({ where: { id } });
     if (!diagram) throw new Error('Test no encontrado');
 
-    const approvedQs = await this.questionRepo.find({
-      where: { diagram: { id: diagram.id }, status: ReviewStatus.APPROVED },
+    const allQuestions = await this.questionRepo.find({
+      where: { diagram: { id: diagram.id } },
       relations: { options: true },
       order: { createdAt: 'ASC' },
     });
 
-    const questions = approvedQs.map(q => ({
+    const qIds = allQuestions.map(q => q.id);
+    const claimRows = qIds.length
+      ? await this.claimRepo
+          .createQueryBuilder('c')
+          .leftJoin('c.question', 'q')
+          .select('q.id', 'qid')
+          .addSelect('COUNT(*)', 'cnt')
+          .where('q.id IN (:...ids)', { ids: qIds })
+          .groupBy('q.id')
+          .getRawMany<{ qid: string; cnt: string | number }>()
+      : [];
+    const claimMap = claimRows.reduce<Record<string, number>>((acc, row) => {
+      if (row.qid) acc[String(row.qid)] = Number(row.cnt ?? 0);
+      return acc;
+    }, {});
+
+    const questions = allQuestions.map(q => ({
+      id: q.id,
       prompt: q.prompt,
       hint: q.hint,
       correctIndex: q.correctOptionIndex,
       options: [...(q.options || [])]
         .sort((a, b) => a.orderIndex - b.orderIndex)
         .map(o => o.text),
+      status: q.status,
+      claimCount: claimMap[q.id] ?? 0,
     }));
 
     return {
