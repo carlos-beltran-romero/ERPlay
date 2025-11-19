@@ -177,7 +177,7 @@ export async function getTrends(params: { userId: string; from?: string; to?: st
  * - Filtra preguntas con >= minAttempts intentos
  * - errorRatePct: Porcentaje de respuestas incorrectas
  * - commonChosenIndex: Índice del distractor más elegido (entre errores)
- * - title: Primeros 60 caracteres del enunciado
+ * - title: Enunciado de la pregunta
  */
 export async function getErrors(params: { userId: string; limit: number; minAttempts: number }) {
   const { userId, limit, minAttempts } = params;
@@ -190,7 +190,8 @@ export async function getErrors(params: { userId: string; limit: number; minAtte
     .where('u.id = :userId', { userId })
     .andWhere('r.question IS NOT NULL')
     .select('q.id', 'id')
-    .addSelect("COALESCE(SUBSTRING(q.prompt,1,60), 'Pregunta')", 'title')
+    .addSelect("COALESCE(q.prompt, 'Pregunta')", 'title')
+
     .addSelect('COUNT(*)', 'tot')
     .addSelect('SUM(CASE WHEN r.isCorrect = 0 THEN 1 ELSE 0 END)', 'ko')
     .groupBy('q.id')

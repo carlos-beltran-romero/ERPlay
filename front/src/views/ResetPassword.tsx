@@ -15,8 +15,8 @@ const ResetPassword: React.FC = () => {
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
 
-  const tooShort = password.length < MIN_PW; 
-  const showLengthError = submitted && tooShort; 
+  const tooShort = password.length < MIN_PW;
+  const showLengthError = submitted && tooShort;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +24,7 @@ const ResetPassword: React.FC = () => {
     setStatus('idle');
     setError(null);
 
-    if (tooShort) return; 
+    if (tooShort) return;
 
     try {
       await resetPassword(token, password);
@@ -37,7 +37,7 @@ const ResetPassword: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-[color:var(--color-body)] text-[color:var(--color-foreground)] transition-colors">
+    <div className="relative min-h-screen bg-[color:var(--color-body)] text-[color:var(--color-foreground)]">
       <div
         className="pointer-events-none absolute inset-0 opacity-40"
         style={{
@@ -51,7 +51,9 @@ const ResetPassword: React.FC = () => {
             <img src={iconoWeb} alt="ERPlay" className="h-16" />
           </div>
 
-          <h1 className="text-3xl font-semibold text-center">Restablecer contraseña</h1>
+          <h1 className="text-3xl font-semibold text-center text-[color:var(--color-foreground)] !transition-none">
+            Restablecer contraseña
+          </h1>
           <p className="mt-1 text-center text-sm text-[color:var(--color-muted)]">
             Introduce una nueva contraseña para tu cuenta.
           </p>
@@ -70,7 +72,10 @@ const ResetPassword: React.FC = () => {
           {status !== 'success' && (
             <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
               <div>
-                <label htmlFor="password" className="mb-1.5 block text-sm text-[color:var(--color-muted)]">
+                <label
+                  htmlFor="password"
+                  className="mb-1.5 block text-sm text-[color:var(--color-muted)]"
+                >
                   Nueva contraseña
                 </label>
                 <input
@@ -87,7 +92,9 @@ const ResetPassword: React.FC = () => {
                   required
                 />
                 {showLengthError && (
-                  <p className="mt-1 text-xs text-rose-500">La contraseña debe tener al menos {MIN_PW} caracteres.</p>
+                  <p className="mt-1 text-xs text-rose-500">
+                    La contraseña debe tener al menos {MIN_PW} caracteres.
+                  </p>
                 )}
               </div>
 

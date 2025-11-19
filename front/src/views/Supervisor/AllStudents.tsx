@@ -12,7 +12,6 @@ import {
 } from '../../services/supervisor';
 import { useNavigate } from 'react-router-dom';
 
-
 const normalize = (s: string) =>
   s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
 
@@ -21,10 +20,11 @@ type EditForm = {
   name: string;
   lastName: string;
   email: string;
-  password: string; 
+  password: string;
 };
 
-const PAGE_SIZE = 20; 
+const PAGE_SIZE = 20;
+const CSV_DELIMITER = ';'; // <- separador que Excel en español entiende como columnas
 
 const SupervisorStudents: React.FC = () => {
   const navigate = useNavigate();
@@ -35,15 +35,12 @@ const SupervisorStudents: React.FC = () => {
   const [editingOriginal, setEditingOriginal] = useState<EditForm | null>(null);
   const [saving, setSaving] = useState(false);
 
-
   const [confirmDelete, setConfirmDelete] = useState<StudentSummary | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
 
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [exporting, setExporting] = useState(false);
 
-  
   useEffect(() => {
     (async () => {
       try {
@@ -57,7 +54,6 @@ const SupervisorStudents: React.FC = () => {
     })();
   }, []);
 
-  
   const filtered = useMemo(() => {
     const q = normalize(query.trim());
     if (!q) return students;
@@ -67,12 +63,10 @@ const SupervisorStudents: React.FC = () => {
     });
   }, [students, query]);
 
-  
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
   }, [query, students]);
 
-  
   const openEdit = (s: StudentSummary) => {
     const base: EditForm = {
       id: s.id,
@@ -101,7 +95,6 @@ const SupervisorStudents: React.FC = () => {
     setEditingOriginal(null);
   };
 
-  
   ReactUseEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isEditDirty) { e.preventDefault(); e.returnValue = ''; }
@@ -110,7 +103,6 @@ const SupervisorStudents: React.FC = () => {
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [editing, isEditDirty]);
 
-  
   const handleSave = async () => {
     if (!editing) return;
     if (!editing.name.trim() || !editing.lastName.trim() || !editing.email.trim()) {
@@ -138,7 +130,6 @@ const SupervisorStudents: React.FC = () => {
     }
   };
 
-  
   const confirmDeleteNow = async () => {
     if (!confirmDelete) return;
     setDeletingId(confirmDelete.id);
@@ -163,7 +154,7 @@ const SupervisorStudents: React.FC = () => {
 
   const formatDecimal = (value?: number | null) => {
     if (value == null || Number.isNaN(value)) return '';
-    return Number(value).toFixed(2);
+    return Number(value).toFixed(2); // si quieres coma: .replace('.', ',')
   };
 
   const csvEscape = (value: string | number | null | undefined) => {
@@ -193,7 +184,7 @@ const SupervisorStudents: React.FC = () => {
     { label: 'Email', getValue: ({ student }) => student.email },
     { label: 'Sesiones completadas', getValue: ({ sessionsCompleted }) => sessionsCompleted },
     { label: 'Nota media examen', getValue: ({ examAvg }) => examAvg },
-    { label: 'Nota media learning', getValue: ({ learningAvg }) => learningAvg },
+    { label: '% Nota media learning', getValue: ({ learningAvg }) => learningAvg },
     { label: 'Reclamaciones aprobadas', getValue: ({ claimsApproved }) => claimsApproved },
     { label: 'Reclamaciones enviadas', getValue: ({ claimsSubmitted }) => claimsSubmitted },
     { label: 'Preguntas creadas', getValue: ({ createdQuestions }) => createdQuestions },
@@ -244,7 +235,7 @@ const SupervisorStudents: React.FC = () => {
       const header = csvColumns.map((column) => column.label);
 
       const csvContent = [header, ...rows]
-        .map((cols) => cols.map(csvEscape).join(','))
+        .map((cols) => cols.map(csvEscape).join(CSV_DELIMITER)) // <- aquí usamos ';'
         .join('\n');
 
       const csvWithBom = `\uFEFF${csvContent}`;
@@ -465,7 +456,7 @@ const SupervisorStudents: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">
+                    <label className="block text.sm text-gray-600 mb-1">
                       Apellidos *
                     </label>
                     <input
@@ -537,7 +528,7 @@ const SupervisorStudents: React.FC = () => {
             <div
               role="dialog"
               aria-modal="true"
-              className="w-full max-w-md rounded-2xl bg-white shadow-xl"
+              className="w.full max-w-md rounded-2xl bg-white shadow-xl"
             >
               <div className="flex items-center gap-3 border-b px-6 py-4">
                 <div className="rounded-lg bg-rose-50 p-2 text-rose-600">

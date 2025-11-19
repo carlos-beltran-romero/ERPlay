@@ -39,10 +39,12 @@ const ForgotPassword: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-[color:var(--color-body)] text-[color:var(--color-foreground)] transition-colors">
-      <div className="pointer-events-none absolute inset-0 opacity-40"
+    <div className="relative min-h-screen bg-[color:var(--color-body)] text-[color:var(--color-foreground)]">
+      <div
+        className="pointer-events-none absolute inset-0 opacity-40"
         style={{
-          background: 'radial-gradient(circle at 15% 20%, rgba(99,102,241,0.2), transparent 55%), radial-gradient(circle at 80% 0%, rgba(59,130,246,0.15), transparent 50%)'
+          background:
+            'radial-gradient(circle at 15% 20%, rgba(99,102,241,0.2), transparent 55%), radial-gradient(circle at 80% 0%, rgba(59,130,246,0.15), transparent 50%)',
         }}
       />
       <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
@@ -50,7 +52,9 @@ const ForgotPassword: React.FC = () => {
           <div className="flex justify-center mb-6">
             <img src={iconoWeb} alt="ERLean" className="h-20" />
           </div>
-          <h2 className="text-3xl font-semibold text-center">Recuperar contraseña</h2>
+          <h2 className="text-3xl font-semibold text-center text-[color:var(--color-foreground)] !transition-none">
+            Recuperar contraseña
+          </h2>
           <p className="mt-2 text-center text-[color:var(--color-muted)]">
             Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
           </p>
@@ -61,19 +65,24 @@ const ForgotPassword: React.FC = () => {
             </p>
           )}
           {status === 'error' && error && (
-            <p className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-center text-sm text-rose-700">{error}</p>
+            <p className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-center text-sm text-rose-700">
+              {error}
+            </p>
           )}
 
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="email" className="mb-2 block text-sm font-medium text-[color:var(--color-muted)]">
+              <label
+                htmlFor="email"
+                className="mb-2 block text-sm font-medium text-[color:var(--color-muted)]"
+              >
                 Correo electrónico
               </label>
               <input
                 type="email"
                 id="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={e => setEmail(e.target.value)}
                 placeholder="tucorreo@ejemplo.com"
                 className="w-full rounded-2xl border border-[color:var(--color-border)] bg-[color:var(--color-surface)] px-5 py-3 text-[16px] text-[color:var(--color-foreground)] placeholder:text-[color:var(--color-muted-soft)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)]"
                 required
