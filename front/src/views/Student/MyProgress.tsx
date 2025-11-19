@@ -3,7 +3,6 @@ import PageWithHeader from "../../components/layout/PageWithHeader";
 import { toast } from "react-toastify";
 import badgeCompleted from "../../assets/completed.png";
 import { useNavigate } from "react-router-dom";
-import { useDelayedFlag } from "../../shared/hooks/useDelayedFlag";
 
 import {
   getOverview,
@@ -86,27 +85,44 @@ const KPI: React.FC<KPIProps> = ({ icon, label, value }) => (
   </Card>
 );
 
+const MIN_HALF_TOGGLE = 120;
+
 const ExpandableText: React.FC<{
   text: string;
   className?: string;
-  limit?: number;
-}> = ({ text, className, limit = 140 }) => {
+  limit?: number; // opcional, por compatibilidad
+}> = ({ text, className, limit }) => {
+  const raw = String(text || "");
+  const value = raw.trim();
+  const minToHalf = typeof limit === "number" ? limit : MIN_HALF_TOGGLE;
+
+  const needsToggle = value.length > minToHalf;
+  const halfIndex = Math.ceil(value.length / 2);
   const [expanded, setExpanded] = useState(false);
-  const value = (text || "").trim();
-  const needsToggle = value.length > limit;
+
+  if (!needsToggle) {
+    return (
+      <span
+        className={`block whitespace-pre-wrap break-words ${className || ""}`}
+      >
+        {value}
+      </span>
+    );
+  }
 
   return (
-    <span className={`block whitespace-pre-wrap break-words ${className || ""}`}>
-      {needsToggle && !expanded ? `${value.slice(0, limit)}…` : value}
-      {needsToggle && (
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="ml-2 text-xs font-medium text-indigo-600 hover:text-indigo-700"
-        >
-          {expanded ? "Ver menos" : "Ver más"}
-        </button>
-      )}
+    <span
+      className={`block whitespace-pre-wrap break-words ${className || ""}`}
+    >
+      {expanded ? value : value.slice(0, halfIndex)}
+      {!expanded && "…"}
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="ml-2 text-xs font-medium text-indigo-600 hover:text-indigo-700"
+      >
+        {expanded ? "Ver menos" : "Ver más"}
+      </button>
     </span>
   );
 };
@@ -433,7 +449,6 @@ const MyProgress: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const showLoading = useDelayedFlag(loading);
 
   const [overview, setOverview] = useState<Overview | null>(null);
   const [trends, setTrends] = useState<TrendPoint[]>([]);
@@ -503,7 +518,7 @@ const MyProgress: React.FC = () => {
     return c;
   }, [myQuestions]);
 
-  if (showLoading) {
+  if (loading) {
     return (
       <PageWithHeader>
         <div className="mx-auto w-full max-w-6xl p-6">Cargando…</div>
@@ -801,7 +816,7 @@ const MyProgress: React.FC = () => {
                       <ExpandableText
                         text={e.title}
                         className="leading-snug"
-                        limit={160}
+                        limit={100}
                       />
                     </div>
                     <div className="text-sm">

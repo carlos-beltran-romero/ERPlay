@@ -462,7 +462,6 @@ const StudentDetail: React.FC = () => {
     "progress"
   );
   const [loading, setLoading] = useState(true);
-
   const [student, setStudent] = useState<SupStudent | null>(null);
   const [ov, setOv] = useState<SupOverview | null>(null);
   const [trends, setTrends] = useState<SupTrendPoint[]>([]);
@@ -471,7 +470,6 @@ const StudentDetail: React.FC = () => {
   const [myQuestions, setMyQuestions] = useState<SupQuestionItem[]>([]);
   const [tests, setTests] = useState<SupSessionSummary[]>([]);
   const [claims, setClaims] = useState<SupClaimItem[]>([]);
-  const showLoading = useDelayedFlag(loading);
 
   
   const [progRows, setProgRows] = useState<WeeklyProgressRow[]>([]);
@@ -683,7 +681,7 @@ const StudentDetail: React.FC = () => {
     return found || progRows[0];
   }, [progRows, studentId]);
 
-  if (showLoading) {
+  if (loading) {
     return (
       <PageWithHeader>
         <div className="mx-auto w-full max-w-6xl p-6">Cargando…</div>
