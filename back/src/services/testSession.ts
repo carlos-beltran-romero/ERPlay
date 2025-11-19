@@ -12,7 +12,7 @@ import { TestResult } from '../models/TestResult';
 import { TestEvent } from '../models/TestEvent';
 import { User } from '../models/User';
 import { Brackets } from 'typeorm';
-import { Claim } from '../models/Claim';
+import { Claim, ClaimStatus } from '../models/Claim';
 
 /** Parámetros para iniciar sesión */
 type StartSessionArgs = { userId: string; mode: TestMode; limit?: number };
@@ -123,6 +123,7 @@ export class TestSessionsService {
             .select('q.id', 'qid')
             .addSelect('COUNT(*)', 'cnt')
             .where('q.id IN (:...ids)', { ids })
+            .andWhere('c.status = :pending', { pending: ClaimStatus.PENDING })
             .groupBy('q.id')
             .getRawMany<{ qid: string; cnt: string | number }>()
         : [];

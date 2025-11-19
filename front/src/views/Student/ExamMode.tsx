@@ -325,7 +325,7 @@ const ExamMode: React.FC = () => {
                     : 'border-amber-200 bg-amber-50 text-amber-700'
                 }`}
               >
-                <AlertTriangle size={14} /> Esta pregunta acumula {questionClaimCount} reclamaciones. Revísala con calma.
+                <AlertTriangle size={14} /> Esta pregunta acumula {questionClaimCount} reclamaciones pendientes. Revísala con calma.
               </span>
             </div>
           )}

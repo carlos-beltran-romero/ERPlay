@@ -489,7 +489,7 @@ const LearningMode: React.FC = () => {
                       }`}
                     >
                       <AlertTriangle size={14} />
-                      {questionClaimCount} reclamaciones reportadas. Revisa con cautela.
+                      {questionClaimCount} reclamaciones pendientes de resolución. Revisa con cautela.
                     </span>
                   )}
                 </div>

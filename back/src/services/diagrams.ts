@@ -9,7 +9,7 @@ import { Diagram } from '../models/Diagram';
 import { Question, ReviewStatus } from '../models/Question';
 import { Option } from '../models/Option';
 import { User, UserRole } from '../models/User';
-import { Claim } from '../models/Claim';
+import { Claim, ClaimStatus } from '../models/Claim';
 import fs from 'fs';
 import path from 'path';
 
@@ -149,6 +149,7 @@ export class DiagramsService {
           .select('q.id', 'qid')
           .addSelect('COUNT(*)', 'cnt')
           .where('q.id IN (:...ids)', { ids: qIds })
+          .andWhere('c.status = :pending', { pending: ClaimStatus.PENDING })
           .groupBy('q.id')
           .getRawMany<{ qid: string; cnt: string | number }>()
       : [];

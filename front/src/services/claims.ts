@@ -220,12 +220,13 @@ export async function getPendingClaimsCount(): Promise<number> {
 export async function verifyClaim(
   id: string,
   decision: 'approve' | 'reject',
-  comment?: string
+  comment?: string,
+  opts?: { rejectOtherPending?: boolean }
 ): Promise<void> {
   await apiJson<void>(`/api/claims/${id}/verify`, {
     method: 'POST',
     auth: true,
-    json: { decision, comment },
+    json: { decision, comment, rejectOtherPending: opts?.rejectOtherPending },
     fallbackError: 'No se pudo aplicar la revisión',
   });
 }

@@ -54,15 +54,17 @@ const EditDiagram: React.FC = () => {
         const d = await getDiagram(id);
         setTitle(d.title || '');
         setImagePreview(d.path || '');
-        const qNorm = (d.questions || []).map((q: any) => ({
-          prompt: q.prompt || '',
-          hint: q.hint || '',
-          options: Array.isArray(q.options) ? q.options : [],
-          correctIndex: typeof q.correctIndex === 'number' ? q.correctIndex : 0,
-          id: q.id,
-          status: typeof q.status === 'string' ? q.status : undefined,
-          claimCount: typeof q.claimCount === 'number' ? q.claimCount : undefined,
-        }));
+        const qNorm = (d.questions || [])
+          .filter((q: any) => String(q.status || '').toLowerCase() !== 'rejected')
+          .map((q: any) => ({
+            prompt: q.prompt || '',
+            hint: q.hint || '',
+            options: Array.isArray(q.options) ? q.options : [],
+            correctIndex: typeof q.correctIndex === 'number' ? q.correctIndex : 0,
+            id: q.id,
+            status: typeof q.status === 'string' ? q.status : undefined,
+            claimCount: typeof q.claimCount === 'number' ? q.claimCount : undefined,
+          }));
         setQuestions(qNorm);
 
         initialSnapRef.current = JSON.stringify({
@@ -196,7 +198,7 @@ const EditDiagram: React.FC = () => {
                         : 'border-amber-200 bg-amber-50 text-amber-700'
                     }`}
                   >
-                    <AlertTriangle size={14} /> {claimCount} reclamaciones
+                    <AlertTriangle size={14} /> {claimCount} reclamaciones pendientes
                   </span>
                 )}
               </div>

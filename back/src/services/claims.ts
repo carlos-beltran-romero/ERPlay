@@ -14,6 +14,7 @@ import { Question, ReviewStatus } from '../models/Question';
 import { TestResult } from '../models/TestResult';
 import { User, UserRole } from '../models/User';
 import { escapeHtml, letterFromIndex, renderCardEmail } from './shared/emailTemplates';
+import { EntityManager } from 'typeorm';
 
 const transporter = defaultMailer;
 
@@ -28,6 +29,17 @@ function arraysEqualText(a: string[], b: string[]) {
   for (let i = 0; i < a.length; i++) if (norm(a[i]) !== norm(b[i])) return false;
   return true;
 }
+
+type ClaimDecisionNotification = {
+  to: string;
+  status: ClaimStatus;
+  diagramTitle: string;
+  prompt: string;
+  chosenIndex: number;
+  correctIndexNow: number;
+  options: string[];
+  reviewerComment?: string | null;
+};
 
 /**
  * Servicio de reclamaciones
@@ -250,9 +262,12 @@ export class ClaimsService {
     reviewerId: string;
     decision: 'approve' | 'reject';
     comment?: string;
+    rejectOtherPending?: boolean;
   }) {
     const reviewer = await this.userRepo.findOneByOrFail({ id: params.reviewerId });
     if (reviewer.role !== UserRole.SUPERVISOR) throw createHttpError(403, 'No autorizado');
+
+    const notifications: ClaimDecisionNotification[] = [];
 
     await AppDataSource.transaction(async (m) => {
       const claim = await m.getRepository(Claim).findOne({
@@ -273,9 +288,11 @@ export class ClaimsService {
           })
         : null;
 
+      const now = new Date();
+
       claim.reviewer = reviewer;
       claim.reviewerComment = params.comment?.trim() || null;
-      claim.reviewedAt = new Date();
+      claim.reviewedAt = now;
 
       if (params.decision === 'approve') {
         claim.status = ClaimStatus.APPROVED;
@@ -304,27 +321,100 @@ export class ClaimsService {
 
       await m.save(claim);
 
-      const correctIndexNow =
-        claim.status === ClaimStatus.APPROVED
-          ? claim.chosenIndex
-          : claim.correctIndexAtSubmission;
+      notifications.push(this.buildNotificationPayload(claim));
 
-      await this.notifyStudentDecision({
-        to: claim.student.email,
-        status: claim.status,
-        diagramTitle: claim.diagram?.title ?? 'Diagrama',
-        prompt: claim.promptSnapshot,
-        chosenIndex: claim.chosenIndex,
-        correctIndexNow,
-        options: claim.optionsSnapshot ?? [],
-        reviewerComment: claim.reviewerComment || undefined,
-      });
+      if (params.decision === 'approve' && q) {
+        const cascaded = await this.resolveSiblingClaims({
+          manager: m,
+          reviewer,
+          questionId: q.id,
+          approvedChosenIndex: claim.chosenIndex,
+          rejectOtherPending: Boolean(params.rejectOtherPending),
+          excludeClaimId: claim.id,
+        });
+        notifications.push(...cascaded);
+      }
     });
+
+    for (const note of notifications) {
+      if (!note.to) continue;
+      await this.notifyStudentDecision({
+        to: note.to,
+        status: note.status,
+        diagramTitle: note.diagramTitle,
+        prompt: note.prompt,
+        chosenIndex: note.chosenIndex,
+        correctIndexNow: note.correctIndexNow,
+        options: note.options,
+        reviewerComment: note.reviewerComment || undefined,
+      });
+    }
 
     return {
       id: params.claimId,
       status: params.decision === 'approve' ? ClaimStatus.APPROVED : ClaimStatus.REJECTED,
     };
+  }
+
+  private buildNotificationPayload(claim: Claim): ClaimDecisionNotification {
+    const correctIndexNow =
+      claim.status === ClaimStatus.APPROVED
+        ? claim.chosenIndex
+        : claim.correctIndexAtSubmission;
+
+    return {
+      to: claim.student.email,
+      status: claim.status,
+      diagramTitle: claim.diagram?.title ?? 'Diagrama',
+      prompt: claim.promptSnapshot,
+      chosenIndex: claim.chosenIndex,
+      correctIndexNow,
+      options: claim.optionsSnapshot ?? [],
+      reviewerComment: claim.reviewerComment ?? undefined,
+    };
+  }
+
+  private async resolveSiblingClaims(params: {
+    manager: EntityManager;
+    reviewer: User;
+    questionId: string;
+    approvedChosenIndex: number;
+    rejectOtherPending: boolean;
+    excludeClaimId: string;
+  }): Promise<ClaimDecisionNotification[]> {
+    const repo = params.manager.getRepository(Claim);
+    const siblings = await repo.find({
+      where: { question: { id: params.questionId }, status: ClaimStatus.PENDING },
+      relations: { student: true, diagram: true },
+      lock: { mode: 'pessimistic_write' },
+    });
+
+    const filtered = siblings.filter(c => c.id !== params.excludeClaimId);
+    if (!filtered.length) return [];
+
+    const notifications: ClaimDecisionNotification[] = [];
+    const now = new Date();
+
+    for (const claim of filtered) {
+      const sameOption = claim.chosenIndex === params.approvedChosenIndex;
+
+      if (sameOption) {
+        claim.status = ClaimStatus.APPROVED;
+      } else if (!params.rejectOtherPending) {
+        continue;
+      } else {
+        claim.status = ClaimStatus.REJECTED;
+      }
+
+      claim.reviewer = params.reviewer;
+      claim.reviewedAt = now;
+      claim.reviewerComment = null;
+
+      await repo.save(claim);
+      notifications.push(this.buildNotificationPayload(claim));
+    }
+
+    return notifications;
   }
 
   private async notifySupervisorsNewClaim(claim: Claim) {

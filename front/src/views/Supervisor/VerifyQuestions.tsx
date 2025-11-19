@@ -80,6 +80,15 @@ const VerifyQuestions: React.FC = () => {
   const [pendingC, setPendingC] = useState<PendingClaim[]>([]);
   const [cCount, setCCount] = useState<number>(0);
   const [cSubmitting, setCSubmitting] = useState<string | null>(null);
+  const [cascadePrompt, setCascadePrompt] = useState<
+    | null
+    | {
+        claim: PendingClaim;
+        comment?: string;
+        sameOptionCount: number;
+        otherOptionCount: number;
+      }
+  >(null);
 
   
   const [lightbox, setLightbox] = useState<{ src: string; title?: string } | null>(null);
@@ -156,14 +165,35 @@ const VerifyQuestions: React.FC = () => {
   };
 
   
-  const onDecideClaim = async (c: PendingClaim, decision: 'approve' | 'reject', comment?: string) => {
+  const onDecideClaim = async (
+    c: PendingClaim,
+    decision: 'approve' | 'reject',
+    comment?: string,
+    opts?: { rejectOtherPending?: boolean }
+  ) => {
     setCSubmitting(c.id);
     try {
-      await verifyClaim(c.id, decision, comment);
+      await verifyClaim(c.id, decision, comment, opts);
       toast.success(decision === 'approve' ? 'Reclamación aprobada' : 'Reclamación rechazada');
 
       setPendingC(prev => {
-        const next = prev.filter(p => p.id !== c.id);
+        const next = prev.filter(p => {
+          if (p.id === c.id) return false;
+          if (
+            decision === 'approve' &&
+            opts &&
+            c.questionId &&
+            p.questionId === c.questionId
+          ) {
+            const sameOption =
+              typeof p.chosenIndex === 'number' &&
+              typeof c.chosenIndex === 'number' &&
+              p.chosenIndex === c.chosenIndex;
+            if (sameOption) return false;
+            if (opts.rejectOtherPending) return false;
+          }
+          return true;
+        });
         setCCount(next.length);
         return next;
       });
@@ -180,6 +210,45 @@ const VerifyQuestions: React.FC = () => {
     } finally {
       setCSubmitting(null);
     }
+  };
+
+  const onConfirmCascade = (rejectOthers: boolean) => {
+    if (!cascadePrompt) return;
+    const { claim, comment } = cascadePrompt;
+    setCascadePrompt(null);
+    onDecideClaim(claim, 'approve', comment, {
+      rejectOtherPending: rejectOthers,
+    });
+  };
+
+  const onApproveClaim = (claim: PendingClaim, comment?: string) => {
+    if (!claim.questionId) {
+      onDecideClaim(claim, 'approve', comment);
+      return;
+    }
+
+    const siblings = pendingC.filter(
+      c => c.id !== claim.id && c.questionId === claim.questionId
+    );
+    if (!siblings.length) {
+      onDecideClaim(claim, 'approve', comment);
+      return;
+    }
+
+    const sameOptionCount = siblings.filter(
+      c =>
+        typeof c.chosenIndex === 'number' &&
+        typeof claim.chosenIndex === 'number' &&
+        c.chosenIndex === claim.chosenIndex
+    ).length;
+    const otherOptionCount = siblings.length - sameOptionCount;
+
+    setCascadePrompt({
+      claim,
+      comment,
+      sameOptionCount,
+      otherOptionCount,
+    });
   };
 
   const Header = () => (
@@ -584,7 +653,7 @@ const VerifyQuestions: React.FC = () => {
                           <button
                             onClick={() => {
                               const el = document.getElementById(`c-comment-${c.id}`) as HTMLTextAreaElement | null;
-                              onDecideClaim(c, 'approve', el?.value?.trim() || undefined);
+                              onApproveClaim(c, el?.value?.trim() || undefined);
                             }}
                             disabled={cSubmitting === c.id}
                             className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${
@@ -620,6 +689,53 @@ const VerifyQuestions: React.FC = () => {
               {lightbox.title && (
                 <div className="mt-3 text-center text-sm text-white/90">{lightbox.title}</div>
               )}
+            </div>
+          </div>
+        )}
+
+        {cascadePrompt && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+              <h3 className="text-lg font-semibold">Resolver reclamaciones similares</h3>
+              <p className="mt-3 text-sm text-gray-700">
+                Hay{' '}
+                <strong>
+                  {cascadePrompt.sameOptionCount + cascadePrompt.otherOptionCount}
+                </strong>{' '}
+                reclamaciones adicionales sobre esta pregunta.
+              </p>
+              <ul className="mt-3 space-y-2 text-sm text-gray-600">
+                <li>
+                  •{' '}
+                  <strong>{cascadePrompt.sameOptionCount}</strong> eligieron la misma
+                  respuesta que este alumno. Se aprobarán automáticamente.
+                </li>
+                <li>
+                  •{' '}
+                  <strong>{cascadePrompt.otherOptionCount}</strong> eligieron una
+                  respuesta distinta.
+                </li>
+              </ul>
+              <p className="mt-4 text-sm text-gray-600">
+                ¿Quieres rechazar automáticamente (sin comentario) las reclamaciones que
+                eligieron una respuesta distinta? Es la opción recomendada para cerrar el
+                resto rápidamente.
+              </p>
+
+              <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  onClick={() => onConfirmCascade(false)}
+                  className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Mantener pendientes las otras respuestas
+                </button>
+                <button
+                  onClick={() => onConfirmCascade(true)}
+                  className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-500"
+                >
+                  Rechazar y cerrar el resto
+                </button>
+              </div>
             </div>
           </div>
         )}
