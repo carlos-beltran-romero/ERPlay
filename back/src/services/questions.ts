@@ -13,8 +13,31 @@ import { Option } from '../models/Option';
 import { Question, ReviewStatus } from '../models/Question';
 import { User, UserRole } from '../models/User';
 import { escapeHtml, letterFromIndex, renderCardEmail } from './shared/emailTemplates';
+import fs from 'fs/promises';
+import path from 'path';
 
 const transporter = defaultMailer;
+
+const autoApproveFile = path.join(process.cwd(), 'back', 'uploads', 'auto-approve-questions.json');
+let autoApproveCache: boolean | null = null;
+
+async function loadAutoApproveFlag(): Promise<boolean> {
+  if (autoApproveCache !== null) return autoApproveCache;
+  try {
+    const raw = await fs.readFile(autoApproveFile, 'utf-8');
+    const parsed = JSON.parse(raw);
+    autoApproveCache = Boolean(parsed?.autoApprove === true);
+  } catch {
+    autoApproveCache = false;
+  }
+  return autoApproveCache;
+}
+
+async function persistAutoApproveFlag(enabled: boolean) {
+  autoApproveCache = enabled;
+  await fs.mkdir(path.dirname(autoApproveFile), { recursive: true });
+  await fs.writeFile(autoApproveFile, JSON.stringify({ autoApprove: enabled }), 'utf-8');
+}
 
 /** Parámetros de entrada para crear pregunta */
 type CreateQuestionParams = {
@@ -35,6 +58,15 @@ export class QuestionsService {
   private optionRepo = AppDataSource.getRepository(Option);
   private diagramRepo = AppDataSource.getRepository(Diagram);
   private userRepo = AppDataSource.getRepository(User);
+
+  async isAutoApproveEnabled(): Promise<boolean> {
+    return loadAutoApproveFlag();
+  }
+
+  async setAutoApprove(enabled: boolean): Promise<boolean> {
+    await persistAutoApproveFlag(enabled);
+    return enabled;
+  }
 
   /**
    * Crea una nueva pregunta propuesta por estudiante o supervisor
@@ -63,8 +95,9 @@ export class QuestionsService {
       throw createHttpError(400, 'Índice correcto inválido');
     }
 
+    const autoMode = await this.isAutoApproveEnabled();
     const initialStatus =
-      creator.role === UserRole.SUPERVISOR ? ReviewStatus.APPROVED : ReviewStatus.PENDING;
+      creator.role === UserRole.SUPERVISOR || autoMode ? ReviewStatus.APPROVED : ReviewStatus.PENDING;
 
     const q = await AppDataSource.transaction(async (manager) => {
       const question = manager.create(Question, {

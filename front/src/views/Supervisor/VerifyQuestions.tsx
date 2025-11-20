@@ -6,6 +6,8 @@ import { useDelayedFlag } from '../../shared/hooks/useDelayedFlag';
 import {
   listPendingQuestions,
   verifyQuestion,
+  getAutoApproveMode,
+  setAutoApproveMode,
   type PendingQuestion,
 } from '../../services/questions';
 import {
@@ -75,6 +77,10 @@ const VerifyQuestions: React.FC = () => {
   const [qCount, setQCount] = useState<number>(0);
   const [qSubmitting, setQSubmitting] = useState<string | null>(null);
   const [approvingAll, setApprovingAll] = useState(false);
+  const [showApproveAllModal, setShowApproveAllModal] = useState(false);
+  const [autoApprove, setAutoApprove] = useState(false);
+  const [autoLoading, setAutoLoading] = useState(true);
+  const [autoSaving, setAutoSaving] = useState(false);
 
 
   const [cLoading, setCLoading] = useState(true);
@@ -116,11 +122,12 @@ const VerifyQuestions: React.FC = () => {
     setQLoading(true);
     setCLoading(true);
     try {
-      
-      const [rawQuestions, rawClaims, pendingClaimsCount] = await Promise.all([
+
+      const [rawQuestions, rawClaims, pendingClaimsCount, autoFlag] = await Promise.all([
         listPendingQuestions(),
         listPendingClaims(),
         getPendingClaimsCount(),
+        getAutoApproveMode(),
       ]);
 
       
@@ -135,11 +142,13 @@ const VerifyQuestions: React.FC = () => {
       setQCount(filteredQ.length);
       setPendingC(rawClaims);
       setCCount(pendingClaimsCount);
+      setAutoApprove(Boolean(autoFlag));
     } catch (e: any) {
       toast.error(e.message || 'No se pudo cargar la revisión');
     } finally {
       setQLoading(false);
       setCLoading(false);
+      setAutoLoading(false);
     }
   };
 
@@ -150,7 +159,6 @@ const VerifyQuestions: React.FC = () => {
 
   const approveAllQuestions = async () => {
     if (pendingQ.length === 0) return;
-    if (!window.confirm('¿Quieres aprobar todas las nuevas preguntas pendientes?')) return;
     setApprovingAll(true);
     try {
       await Promise.all(pendingQ.map((q) => verifyQuestion(q.id, 'approve')));
@@ -161,6 +169,24 @@ const VerifyQuestions: React.FC = () => {
       toast.error(e.message || 'No se pudieron aprobar todas las preguntas');
     } finally {
       setApprovingAll(false);
+      setShowApproveAllModal(false);
+    }
+  };
+
+  const onToggleAutoApprove = async (checked: boolean) => {
+    setAutoSaving(true);
+    try {
+      await setAutoApproveMode(checked);
+      setAutoApprove(checked);
+      toast.success(
+        checked
+          ? 'Modo automático activado: las nuevas preguntas se aprobarán solas.'
+          : 'Modo automático desactivado. Ahora debes revisar cada pregunta.'
+      );
+    } catch (e: any) {
+      toast.error(e.message || 'No se pudo actualizar el modo automático');
+    } finally {
+      setAutoSaving(false);
     }
   };
 
@@ -293,18 +319,39 @@ const VerifyQuestions: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-5">
-                <div className="flex justify-end">
-                  <button
-                    onClick={approveAllQuestions}
-                    disabled={approvingAll}
-                    className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium shadow-sm ${
-                      approvingAll
-                        ? 'bg-emerald-300 text-white cursor-not-allowed'
-                        : 'bg-emerald-600 text-white hover:bg-emerald-500'
-                    }`}
-                  >
-                    <CheckCircle2 size={16} /> Aceptar todas
-                  </button>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800">
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4"
+                      checked={autoApprove}
+                      disabled={autoLoading || autoSaving}
+                      onChange={(e) => onToggleAutoApprove(e.target.checked)}
+                    />
+                    <span>
+                      <strong>Modo automático</strong>
+                      <br />
+                      <span className="text-gray-600">
+                        {autoApprove
+                          ? 'Las preguntas nuevas se aprobarán en cuanto lleguen.'
+                          : 'Revisa manualmente las preguntas pendientes.'}
+                      </span>
+                    </span>
+                  </label>
+
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setShowApproveAllModal(true)}
+                      disabled={approvingAll}
+                      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium shadow-sm ${
+                        approvingAll
+                          ? 'bg-emerald-300 text-white cursor-not-allowed'
+                          : 'bg-emerald-600 text-white hover:bg-emerald-500'
+                      }`}
+                    >
+                      <CheckCircle2 size={16} /> Aceptar todas
+                    </button>
+                  </div>
                 </div>
                 {pendingQ.map((q) => {
                   const opts = q.options ?? [];
@@ -650,6 +697,45 @@ const VerifyQuestions: React.FC = () => {
               </div>
             )}
           </>
+        )}
+
+        {showApproveAllModal && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+            onClick={() => {
+              if (!approvingAll) setShowApproveAllModal(false);
+            }}
+          >
+            <div
+              className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-semibold text-gray-900">Aprobar todas las preguntas</h3>
+              <p className="mt-2 text-sm text-gray-700 leading-relaxed">
+                Se aprobarán todas las preguntas nuevas pendientes. ¿Deseas continuar?
+              </p>
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  onClick={() => setShowApproveAllModal(false)}
+                  disabled={approvingAll}
+                  className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={approveAllQuestions}
+                  disabled={approvingAll}
+                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-white ${
+                    approvingAll
+                      ? 'bg-emerald-300 cursor-not-allowed'
+                      : 'bg-emerald-600 hover:bg-emerald-500'
+                  }`}
+                >
+                  <CheckCircle2 size={16} /> Confirmar
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {claimModal && (

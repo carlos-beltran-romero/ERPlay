@@ -68,6 +68,23 @@ export async function getPendingCount(): Promise<number> {
   return Number(data?.count ?? 0);
 }
 
+export async function getAutoApproveMode(): Promise<boolean> {
+  const data = await apiJson<any>('/api/questions/settings/auto-approve', {
+    auth: true,
+    fallbackError: 'No se pudo leer el modo automático',
+  });
+  return Boolean(data?.enabled);
+}
+
+export async function setAutoApproveMode(enabled: boolean): Promise<void> {
+  await apiJson<void>('/api/questions/settings/auto-approve', {
+    method: 'POST',
+    auth: true,
+    json: { enabled },
+    fallbackError: 'No se pudo actualizar el modo automático',
+  });
+}
+
 /**
  * Lista preguntas pendientes de revisión
  * Solo accesible para supervisores

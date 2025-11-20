@@ -309,8 +309,12 @@ export class ClaimsService {
           })
         : [];
 
-      const sameSolution = related.filter(c => this.solutionKey(c) === this.solutionKey(claim));
-      const otherSolutions = related.filter(c => this.solutionKey(c) !== this.solutionKey(claim));
+      const sameSolution = related.filter(
+        (c) => c.chosenIndex === claim.chosenIndex || this.solutionKey(c) === this.solutionKey(claim)
+      );
+      const otherSolutions = related.filter(
+        (c) => c.chosenIndex !== claim.chosenIndex && this.solutionKey(c) !== this.solutionKey(claim)
+      );
 
       const resolveClaim = (c: Claim, status: ClaimStatus, reviewerComment?: string | null) => {
         c.status = status;

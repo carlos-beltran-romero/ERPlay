@@ -13,6 +13,8 @@ import {
   listPending,
   verifyQuestion,
   listMine,
+  getAutoApproveMode,
+  setAutoApproveMode,
 } from '../controllers/questions';
 
 const router = Router();
@@ -37,6 +39,9 @@ router.get('/pending/count', authenticate, authorize('supervisor'), getPendingCo
  * @access Privado (supervisor)
  */
 router.get('/pending', authenticate, authorize('supervisor'), listPending);
+
+router.get('/settings/auto-approve', authenticate, authorize('supervisor'), getAutoApproveMode);
+router.post('/settings/auto-approve', authenticate, authorize('supervisor'), setAutoApproveMode);
 
 /**
  * POST /api/questions/:id/verify

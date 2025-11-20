@@ -30,6 +30,10 @@ const VerifySchema = z.object({
   comment: z.string().max(1000).optional(),
 });
 
+const ToggleAutoApproveSchema = z.object({
+  enabled: z.boolean(),
+});
+
 const questionsService = new QuestionsService();
 
 /**
@@ -120,6 +124,21 @@ export const verifyQuestion = asyncHandler(
     res.json({ message: "Revisión aplicada" });
   }
 );
+
+export const getAutoApproveMode = asyncHandler(async (_req: Request, res: Response) => {
+  const enabled = await questionsService.isAutoApproveEnabled();
+  res.json({ enabled });
+});
+
+export const setAutoApproveMode = asyncHandler(async (req: Request, res: Response) => {
+  const user = ensureAuthenticated(req);
+  if (user.role !== UserRole.SUPERVISOR) {
+    throw createHttpError(403, 'No autorizado');
+  }
+  const { enabled } = ToggleAutoApproveSchema.parse(req.body);
+  const flag = await questionsService.setAutoApprove(enabled);
+  res.json({ enabled: flag });
+});
 
 /**
  * Lista las preguntas creadas por el usuario actual
