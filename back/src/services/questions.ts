@@ -13,6 +13,7 @@ import { Option } from '../models/Option';
 import { Question, ReviewStatus } from '../models/Question';
 import { User, UserRole } from '../models/User';
 import { escapeHtml, letterFromIndex, renderCardEmail } from './shared/emailTemplates';
+import { ClaimsService } from './claims';
 
 const transporter = defaultMailer;
 
@@ -35,6 +36,7 @@ export class QuestionsService {
   private optionRepo = AppDataSource.getRepository(Option);
   private diagramRepo = AppDataSource.getRepository(Diagram);
   private userRepo = AppDataSource.getRepository(User);
+  private claimsService = new ClaimsService();
 
   /**
    * Crea una nueva pregunta propuesta por estudiante o supervisor
@@ -184,6 +186,11 @@ export class QuestionsService {
     q.reviewedAt = new Date();
 
     await this.questionRepo.save(q);
+    await this.claimsService.resolvePendingClaimsAfterQuestionReview({
+      questionId: q.id,
+      reviewer,
+      decision: params.decision,
+    });
     if (q.creator?.email) {
       await this.notifyStudentDecision({
         to: q.creator.email,

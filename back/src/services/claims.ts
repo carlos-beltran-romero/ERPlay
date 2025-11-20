@@ -91,6 +91,7 @@ export class ClaimsService {
     const claim = await AppDataSource.transaction(async (m) => {
       const qRepo = m.getRepository(Question);
       const rRepo = m.getRepository(TestResult);
+      const cRepo = m.getRepository(Claim);
 
       let testResult: TestResult | null = null;
       if (params.testResultId) {
@@ -103,7 +104,7 @@ export class ClaimsService {
           throw createHttpError(400, 'Resultado no válido para reclamar');
         }
         
-        const dup = await m.getRepository(Claim).findOne({
+        const dup = await cRepo.findOne({
           where: { testResult: { id: testResult.id } },
         });
         if (dup) return dup;
@@ -153,6 +154,17 @@ export class ClaimsService {
       }
 
       if (q) {
+        const samePending = await cRepo.findOne({
+          where: {
+            student: { id: params.studentId },
+            question: { id: q.id },
+            status: ClaimStatus.PENDING,
+          },
+        });
+        if (samePending) {
+          throw createHttpError(409, 'Ya tienes una reclamación pendiente sobre esta pregunta');
+        }
+
         q.status = ReviewStatus.PENDING;
         await m.save(q);
       }
@@ -610,5 +622,59 @@ export class ClaimsService {
       subject: approved ? 'Tu reclamación ha sido aprobada' : 'Tu reclamación ha sido revisada',
       html,
     });
+  }
+
+  /**
+   * Marca automáticamente como resueltas las reclamaciones pendientes asociadas a
+   * una pregunta cuando el supervisor aprueba o rechaza la propuesta original.
+   */
+  async resolvePendingClaimsAfterQuestionReview(params: {
+    questionId: string;
+    reviewer: User;
+    decision: 'approve' | 'reject';
+  }) {
+    const notifications: ClaimDecisionNotification[] = [];
+
+    await AppDataSource.transaction(async (m) => {
+      const repo = m.getRepository(Claim);
+      const claims = await repo.find({
+        where: { question: { id: params.questionId }, status: ClaimStatus.PENDING },
+        relations: { student: true, diagram: true },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!claims.length) return;
+
+      const now = new Date();
+      const commentWhenApproved =
+        'La pregunta propuesta ha sido validada por el profesor, por lo que la reclamación se descarta.';
+      const commentWhenRejected =
+        'La pregunta propuesta ha sido rechazada por el profesor, por lo que tu reclamación queda aprobada.';
+
+      for (const claim of claims) {
+        claim.status =
+          params.decision === 'approve' ? ClaimStatus.REJECTED : ClaimStatus.APPROVED;
+        claim.reviewer = params.reviewer;
+        claim.reviewedAt = now;
+        claim.reviewerComment =
+          params.decision === 'approve' ? commentWhenApproved : commentWhenRejected;
+
+        await repo.save(claim);
+        notifications.push(this.buildNotificationPayload(claim));
+      }
+    });
+
+    for (const note of notifications) {
+      if (!note.to) continue;
+      await this.notifyStudentDecision({
+        to: note.to,
+        status: note.status,
+        diagramTitle: note.diagramTitle,
+        prompt: note.prompt,
+        chosenIndex: note.chosenIndex,
+        correctIndexNow: note.correctIndexNow,
+        options: note.options,
+        reviewerComment: note.reviewerComment,
+      });
+    }
   }
 }
