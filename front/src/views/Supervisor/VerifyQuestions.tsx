@@ -157,24 +157,18 @@ const VerifyQuestions: React.FC = () => {
 
   
   const onDecideClaim = async (c: PendingClaim, decision: 'approve' | 'reject', comment?: string) => {
+    const rejectOthers =
+      decision === 'approve'
+        ? window.confirm(
+            '¿Quieres rechazar automáticamente las reclamaciones de esta pregunta que propongan otra solución? Se enviará un rechazo con motivo vacío.'
+          )
+        : false;
+
     setCSubmitting(c.id);
     try {
-      await verifyClaim(c.id, decision, comment);
+      await verifyClaim(c.id, decision, comment, { rejectOtherSolutions: rejectOthers });
       toast.success(decision === 'approve' ? 'Reclamación aprobada' : 'Reclamación rechazada');
-
-      setPendingC(prev => {
-        const next = prev.filter(p => p.id !== c.id);
-        setCCount(next.length);
-        return next;
-      });
-
-      if (c.questionId) {
-        setPendingQ(prev => {
-          const next = prev.filter(p => p.id !== c.questionId);
-          setQCount(next.length);
-          return next;
-        });
-      }
+      await loadAll();
     } catch (e: any) {
       toast.error(e.message || 'No se pudo aplicar la revisión');
     } finally {

@@ -7,6 +7,7 @@
 import { AppDataSource } from '../data-source';
 import { Diagram } from '../models/Diagram';
 import { Question, ReviewStatus } from '../models/Question';
+import { Claim, ClaimStatus } from '../models/Claim';
 
 /**
  * Servicio de exámenes
@@ -14,6 +15,7 @@ import { Question, ReviewStatus } from '../models/Question';
  */
 export class ExamsService {
   private diagramRepo = AppDataSource.getRepository(Diagram);
+  private claimRepo = AppDataSource.getRepository(Claim);
 
   /**
    * Genera un examen con diagrama aleatorio y preguntas aprobadas
@@ -34,8 +36,13 @@ export class ExamsService {
     const rows = await this.diagramRepo
       .createQueryBuilder('d')
       .innerJoin('d.questions', 'q', 'q.status = :st', { st: ReviewStatus.APPROVED })
-      .select('d.id', 'id')
+      .leftJoin(Claim, 'c', 'c.question_id = q.id AND c.status = :pending', {
+        pending: ClaimStatus.PENDING,
+      })
+      .select('DISTINCT d.id', 'id')
       .groupBy('d.id')
+      .addGroupBy('q.id')
+      .having('COUNT(c.id) < 1')
       .getRawMany<{ id: string }>();
 
     if (!rows.length) throw new Error('No hay tests disponibles');
@@ -51,11 +58,27 @@ export class ExamsService {
     const approved = (diagram.questions || []).filter(
       (q) => q.status === ReviewStatus.APPROVED
     );
-    if (!approved.length) throw new Error('El test no tiene preguntas aprobadas');
 
-    const shuffled = approved
+    const pendingMap = new Map<string, number>();
+    if (approved.length) {
+      const rows = await this.claimRepo
+        .createQueryBuilder('c')
+        .select('c.question_id', 'qid')
+        .addSelect('COUNT(*)', 'pending')
+        .where('c.status = :st', { st: ClaimStatus.PENDING })
+        .andWhere('c.question_id IN (:...ids)', { ids: approved.map((q) => q.id) })
+        .groupBy('c.question_id')
+        .getRawMany<{ qid: string; pending: string }>();
+
+      rows.forEach((r) => pendingMap.set(r.qid, Number(r.pending ?? 0)));
+    }
+
+    const eligible = approved.filter((q) => (pendingMap.get(q.id) ?? 0) < 1);
+    if (!eligible.length) throw new Error('El test no tiene preguntas disponibles');
+
+    const shuffled = eligible
       .sort(() => Math.random() - 0.5)
-      .slice(0, Math.min(limit, approved.length));
+      .slice(0, Math.min(limit, eligible.length));
 
     const questions = shuffled.map((q) => {
       const options = [...(q.options || [])]

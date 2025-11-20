@@ -7,6 +7,7 @@
 import { AppDataSource } from '../data-source';
 import { Diagram } from '../models/Diagram';
 import { Question, ReviewStatus } from '../models/Question';
+import { Claim, ClaimStatus } from '../models/Claim';
 import { TestSession, TestMode } from '../models/TestSession';
 import { TestResult } from '../models/TestResult';
 import { TestEvent } from '../models/TestEvent';
@@ -65,6 +66,7 @@ export class TestSessionsService {
   private resultRepo = AppDataSource.getRepository(TestResult);
   private eventRepo = AppDataSource.getRepository(TestEvent);
   private userRepo = AppDataSource.getRepository(User);
+  private claimRepo = AppDataSource.getRepository(Claim);
 
   /**
    * Inicia una nueva sesión de test
@@ -83,11 +85,18 @@ export class TestSessionsService {
   async startSession({ userId, mode, limit = 10 }: StartSessionArgs) {
     const user = await this.userRepo.findOneByOrFail({ id: userId });
 
+    const pendingLimit = mode === 'exam' ? 1 : 10;
+
     const rows = await this.diagramRepo
       .createQueryBuilder('d')
       .innerJoin('d.questions', 'q', 'q.status = :st', { st: ReviewStatus.APPROVED })
-      .select('d.id', 'id')
+      .leftJoin(Claim, 'c', 'c.question_id = q.id AND c.status = :pending', {
+        pending: ClaimStatus.PENDING,
+      })
+      .select('DISTINCT d.id', 'id')
       .groupBy('d.id')
+      .addGroupBy('q.id')
+      .having('COUNT(c.id) < :limit', { limit: pendingLimit })
       .getRawMany<{ id: string }>();
     if (!rows.length) throw new Error('No hay tests disponibles');
 
@@ -99,9 +108,26 @@ export class TestSessionsService {
     if (!diagram) throw new Error('Test no encontrado');
 
     const approved = (diagram.questions || []).filter((q) => q.status === ReviewStatus.APPROVED);
-    if (!approved.length) throw new Error('El test no tiene preguntas aprobadas');
 
-    const chosen = approved.sort(() => Math.random() - 0.5).slice(0, Math.min(limit, approved.length));
+    const pendingMap = new Map<string, number>();
+    if (approved.length) {
+      const rows = await this.claimRepo
+        .createQueryBuilder('c')
+        .select('c.question_id', 'qid')
+        .addSelect('COUNT(*)', 'pending')
+        .where('c.status = :st', { st: ClaimStatus.PENDING })
+        .andWhere('c.question_id IN (:...ids)', { ids: approved.map((q) => q.id) })
+        .groupBy('c.question_id')
+        .getRawMany<{ qid: string; pending: string }>();
+
+      rows.forEach((r) => pendingMap.set(r.qid, Number(r.pending ?? 0)));
+    }
+
+    const eligible = approved.filter((q) => (pendingMap.get(q.id) ?? 0) < pendingLimit);
+
+    if (!eligible.length) throw new Error('El test no tiene preguntas disponibles');
+
+    const chosen = eligible.sort(() => Math.random() - 0.5).slice(0, Math.min(limit, eligible.length));
 
     const sess = await AppDataSource.transaction(async (m) => {
       const s = m.create(TestSession, {
@@ -152,6 +178,7 @@ export class TestSessionsService {
         questionId: r.question?.id,
         prompt: r.promptSnapshot,
         options: r.optionsSnapshot,
+        pendingClaims: pendingMap.get(r.question?.id ?? '') ?? 0,
         ...(mode === 'learning' ? { correctIndex: r.correctIndexAtTest } : {}),
         hint: r.question?.hint || undefined,
       })),

@@ -30,7 +30,8 @@ type PracticeQuestion = {
   options: string[];
   correctIndex: number;
   hint?: string;
-  id?: string; 
+  id?: string;
+  pendingClaims?: number;
   __resultId: string;
 };
 
@@ -120,9 +121,10 @@ const LearningMode: React.FC = () => {
         questions: data.questions.map((q) => ({
           prompt: q.prompt,
           options: q.options,
-          correctIndex: q.correctIndex!, 
+          correctIndex: q.correctIndex!,
           hint: q.hint,
           id: q.questionId,
+          pendingClaims: q.pendingClaims,
           __resultId: q.resultId,
         })),
       };
@@ -370,6 +372,8 @@ const LearningMode: React.FC = () => {
   const q = payload.questions[current];
   const answered = selected[current] !== null;
   const isCorrect = answered && selected[current] === q.correctIndex;
+  const pendingClaims = q.pendingClaims ?? 0;
+  const showClaimWarning = pendingClaims >= 5;
 
   const canClaim =
     revealed[current] && selected[current] !== null && selected[current] !== q.correctIndex && !claimed[current];
@@ -441,12 +445,11 @@ const LearningMode: React.FC = () => {
         {/* Diagrama */}
         <div className="mt-5 flex justify-center">
           {payload.diagram.path ? (
-           <img
-           src={resolveAssetUrl(payload.diagram.path) || undefined}
-           alt={payload.diagram.title}
-           className="max-h-[28rem] w-full rounded-lg border object-contain"
-         />
-         
+            <img
+              src={resolveAssetUrl(payload.diagram.path) || undefined}
+              alt={payload.diagram.title}
+              className="max-h-[28rem] w-full rounded-lg border object-contain"
+            />
           ) : (
             <div className="inline-flex items-center gap-2 text-sm text-gray-500">
               <ImageIcon size={16} /> Sin imagen
@@ -464,6 +467,13 @@ const LearningMode: React.FC = () => {
               </div>
 
               <div className="text-base font-medium whitespace-pre-wrap">{q.prompt}</div>
+
+              {showClaimWarning && (
+                <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                  Atención: esta pregunta tiene {pendingClaims} reclamaciones pendientes. Úsala con precaución mientras se
+                  revisa.
+                </div>
+              )}
 
               {/* Opciones */}
               <div className="mt-4 space-y-2">

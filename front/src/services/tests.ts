@@ -20,6 +20,7 @@ export type StartedSession = {
     options: string[];
     hint?: string;
     correctIndex?: number;
+    pendingClaims?: number;
   }>;
 };
 

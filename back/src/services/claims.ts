@@ -40,6 +40,11 @@ export class ClaimsService {
   private userRepo = AppDataSource.getRepository(User);
   private resultRepo = AppDataSource.getRepository(TestResult);
 
+  private solutionKey(claim: Claim) {
+    const chosenText = (claim.optionsSnapshot ?? [])[claim.chosenIndex] ?? '';
+    return `${claim.question?.id ?? 'q'}|${norm(chosenText)}|${claim.chosenIndex}`;
+  }
+
   /**
    * Crea una nueva reclamación
    * Valida integridad, evita duplicados y notifica a supervisores
@@ -141,8 +146,18 @@ export class ClaimsService {
       }
 
       if (q) {
-        q.status = ReviewStatus.PENDING;
-        await m.save(q);
+        const pendingDup = await m.getRepository(Claim).findOne({
+          where: {
+            status: ClaimStatus.PENDING,
+            student: { id: student.id },
+            question: { id: q.id },
+          },
+          lock: { mode: 'pessimistic_write' },
+        });
+
+        if (pendingDup) {
+          throw createHttpError(409, 'Ya tienes una reclamación pendiente para esta pregunta');
+        }
       }
 
       const c = m.create(Claim, {
@@ -250,9 +265,12 @@ export class ClaimsService {
     reviewerId: string;
     decision: 'approve' | 'reject';
     comment?: string;
+    rejectOtherSolutions?: boolean;
   }) {
     const reviewer = await this.userRepo.findOneByOrFail({ id: params.reviewerId });
     if (reviewer.role !== UserRole.SUPERVISOR) throw createHttpError(403, 'No autorizado');
+
+    const notifications: Claim[] = [];
 
     await AppDataSource.transaction(async (m) => {
       const claim = await m.getRepository(Claim).findOne({
@@ -277,8 +295,34 @@ export class ClaimsService {
       claim.reviewerComment = params.comment?.trim() || null;
       claim.reviewedAt = new Date();
 
+      const related = claim.question
+        ? await m.getRepository(Claim).find({
+            where: { question: { id: claim.question.id }, status: ClaimStatus.PENDING },
+            relations: { student: true, diagram: true },
+            lock: { mode: 'pessimistic_write' },
+          })
+        : [];
+
+      const sameSolution = related.filter(c => this.solutionKey(c) === this.solutionKey(claim));
+      const otherSolutions = related.filter(c => this.solutionKey(c) !== this.solutionKey(claim));
+
+      const resolveClaim = (c: Claim, status: ClaimStatus, reviewerComment?: string | null) => {
+        c.status = status;
+        c.reviewer = reviewer;
+        c.reviewerComment = reviewerComment ?? null;
+        c.reviewedAt = new Date();
+        notifications.push(c);
+      };
+
       if (params.decision === 'approve') {
-        claim.status = ClaimStatus.APPROVED;
+        resolveClaim(claim, ClaimStatus.APPROVED, params.comment?.trim() || null);
+        sameSolution.forEach((c) => {
+          if (c.id !== claim.id) resolveClaim(c, ClaimStatus.APPROVED, params.comment?.trim() || null);
+        });
+
+        if (params.rejectOtherSolutions) {
+          otherSolutions.forEach((c) => resolveClaim(c, ClaimStatus.REJECTED, null));
+        }
 
         if (q) {
           const chosenText = (claim.optionsSnapshot ?? [])[claim.chosenIndex];
@@ -295,15 +339,21 @@ export class ClaimsService {
           await m.save(q);
         }
       } else {
-        claim.status = ClaimStatus.REJECTED;
+        resolveClaim(claim, ClaimStatus.REJECTED, params.comment?.trim() || null);
+        sameSolution.forEach((c) => {
+          if (c.id !== claim.id) resolveClaim(c, ClaimStatus.REJECTED, params.comment?.trim() || null);
+        });
+
         if (q) {
           q.status = ReviewStatus.APPROVED;
           await m.save(q);
         }
       }
 
-      await m.save(claim);
+      await m.save(notifications);
+    });
 
+    for (const claim of notifications) {
       const correctIndexNow =
         claim.status === ClaimStatus.APPROVED
           ? claim.chosenIndex
@@ -319,7 +369,7 @@ export class ClaimsService {
         options: claim.optionsSnapshot ?? [],
         reviewerComment: claim.reviewerComment || undefined,
       });
-    });
+    }
 
     return {
       id: params.claimId,
