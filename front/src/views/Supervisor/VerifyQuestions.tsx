@@ -313,10 +313,6 @@ const VerifyQuestions: React.FC = () => {
           <>
             {qShowLoading ? (
               <div className="rounded-2xl border border-gray-200 bg-white p-6 text-gray-600">Cargando…</div>
-            ) : pendingQ.length === 0 ? (
-              <div className="rounded-2xl border border-gray-200 bg-white p-6 text-gray-600">
-                No hay preguntas pendientes.
-              </div>
             ) : (
               <div className="space-y-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -341,10 +337,10 @@ const VerifyQuestions: React.FC = () => {
 
                   <div className="flex justify-end">
                     <button
-                      onClick={() => setShowApproveAllModal(true)}
-                      disabled={approvingAll}
+                      onClick={() => pendingQ.length && setShowApproveAllModal(true)}
+                      disabled={approvingAll || pendingQ.length === 0}
                       className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium shadow-sm ${
-                        approvingAll
+                        approvingAll || pendingQ.length === 0
                           ? 'bg-emerald-300 text-white cursor-not-allowed'
                           : 'bg-emerald-600 text-white hover:bg-emerald-500'
                       }`}
@@ -353,30 +349,36 @@ const VerifyQuestions: React.FC = () => {
                     </button>
                   </div>
                 </div>
-                {pendingQ.map((q) => {
-                  const opts = q.options ?? [];
-                  const correct = Math.min(Math.max(q.correctIndex ?? 0, 0), Math.max(0, opts.length - 1));
-                  const hasImage = Boolean(q.diagram?.path);
 
-                  return (
-                    <div key={q.id} className="rounded-2xl border border-gray-200 bg-white p-5">
-                      {/* Imagen grande primero en móvil */}
-                      {hasImage && (
-                        <div className="md:hidden mb-3">
-                          <img
-                            src={q.diagram!.path!}
-                            alt={q.diagram?.title || 'Diagrama'}
-                            title="Toca para ampliar"
-                            className="w-full max-h-64 object-contain rounded-xl border bg-white"
-                            onClick={() =>
-                              setLightbox({
-                                src: q.diagram!.path!,
-                                title: q.diagram?.title,
-                              })
-                            }
-                          />
-                        </div>
-                      )}
+                {pendingQ.length === 0 ? (
+                  <div className="rounded-2xl border border-gray-200 bg-white p-6 text-gray-600">
+                    No hay preguntas pendientes.
+                  </div>
+                ) : (
+                  pendingQ.map((q) => {
+                    const opts = q.options ?? [];
+                    const correct = Math.min(Math.max(q.correctIndex ?? 0, 0), Math.max(0, opts.length - 1));
+                    const hasImage = Boolean(q.diagram?.path);
+
+                    return (
+                      <div key={q.id} className="rounded-2xl border border-gray-200 bg-white p-5">
+                        {/* Imagen grande primero en móvil */}
+                        {hasImage && (
+                          <div className="md:hidden mb-3">
+                            <img
+                              src={q.diagram!.path!}
+                              alt={q.diagram?.title || 'Diagrama'}
+                              title="Toca para ampliar"
+                              className="w-full max-h-64 object-contain rounded-xl border bg-white"
+                              onClick={() =>
+                                setLightbox({
+                                  src: q.diagram!.path!,
+                                  title: q.diagram?.title,
+                                })
+                              }
+                            />
+                          </div>
+                        )}
 
                       {/* Cabecera con título del diagrama y autor */}
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">

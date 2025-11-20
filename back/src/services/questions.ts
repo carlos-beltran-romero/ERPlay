@@ -28,7 +28,7 @@ async function loadAutoApproveFlag(): Promise<boolean> {
     const parsed = JSON.parse(raw);
     autoApproveCache = Boolean(parsed?.autoApprove === true);
   } catch {
-    autoApproveCache = false;
+    autoApproveCache = true;
   }
   return autoApproveCache;
 }
@@ -119,6 +119,8 @@ export class QuestionsService {
     });
     if (initialStatus === ReviewStatus.PENDING) {
       await this.notifySupervisorsNewPending(q.id);
+    } else if (autoMode && creator.role !== UserRole.SUPERVISOR && creator.email) {
+      await this.notifyStudentAutoApproved({ to: creator.email, prompt: q.prompt });
     }
 
     return { id: q.id, status: q.status };
@@ -490,6 +492,49 @@ export class QuestionsService {
       from: '"ERPlay Revisión" <no-reply@erplay.com>',
       to: args.to,
       subject: approved ? 'Tu pregunta ha sido aprobada' : 'Tu pregunta ha sido revisada',
+      html,
+    });
+  }
+
+  private async notifyStudentAutoApproved(args: { to: string; prompt: string }) {
+    const frontURL = (env.FRONTEND_URL ?? env.APP_URL ?? '').replace(/\/+$/, '');
+    const myQuestionsURL = frontURL ? `${frontURL}/student/questions` : '';
+
+    const body = `
+      <div style="font-size:14px;line-height:1.6">
+        <div style="margin-bottom:12px">
+          <span style="display:inline-block;padding:4px 10px;border-radius:999px;background:#D1FAE5;color:#065F46;border:1px solid #A7F3D0;font-size:12px;font-weight:700;">✓ INCLUIDA</span>
+        </div>
+
+        <div style="margin:8px 0 6px 0;font-size:12px;color:#6b7280;">Pregunta</div>
+        <div style="padding:12px;border:1px solid #e5e7eb;border-radius:10px;background:#F9FAFB">
+          ${escapeHtml(args.prompt)}
+        </div>
+
+        ${
+          myQuestionsURL
+            ? `<div style="margin-top:18px;">
+                <a href="${myQuestionsURL}" style="display:inline-block;padding:12px 18px;border-radius:10px;background:#4f46e5;color:#fff;text-decoration:none;font-weight:600">Ver mis preguntas</a>
+              </div>`
+            : ''
+        }
+
+        <p style="margin-top:14px;color:#16a34a;font-size:14px;">
+          Tu pregunta se ha incluido automáticamente en el banco de preguntas.
+        </p>
+      </div>
+    `;
+
+    const html = renderCardEmail({
+      title: 'Tu pregunta está en el banco',
+      bodyHtml: body,
+      accent: '#D1FAE5',
+    });
+
+    await transporter.sendMail({
+      from: '"ERPlay Revisión" <no-reply@erplay.com>',
+      to: args.to,
+      subject: 'Tu pregunta se ha incluido en el banco de preguntas',
       html,
     });
   }
