@@ -174,9 +174,9 @@ const EditDiagram: React.FC = () => {
   }, [title, questions]);
 
   const renderQuestionCard = (q: QuestionForm, qi: number) => {
+    const pending = q.status?.toLowerCase() === 'pending';
     const claimCount = typeof q.claimCount === 'number' ? q.claimCount : 0;
-    const pending = q.status?.toLowerCase() === 'pending' && claimCount === 0;
-    const claimLevel = claimCount >= 10 ? 'critical' : claimCount >= 5 ? 'warning' : null;
+    const claimLevel = claimCount >= 15 ? 'critical' : claimCount >= 5 ? 'warning' : null;
 
     return (
       <div key={qi} className="rounded-2xl border border-gray-200 bg-white p-4">
@@ -198,7 +198,7 @@ const EditDiagram: React.FC = () => {
                         : 'border-amber-200 bg-amber-50 text-amber-700'
                     }`}
                   >
-                    <AlertTriangle size={14} /> {claimCount} reclamaciones pendientes de resolución
+                    <AlertTriangle size={14} /> {claimCount} reclamaciones pendientes
                   </span>
                 )}
               </div>

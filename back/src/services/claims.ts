@@ -275,7 +275,6 @@ export class ClaimsService {
     decision: 'approve' | 'reject';
     comment?: string;
     rejectOtherPending?: boolean;
-    rejectSameOption?: boolean;
   }) {
     const reviewer = await this.userRepo.findOneByOrFail({ id: params.reviewerId });
     if (reviewer.role !== UserRole.SUPERVISOR) throw createHttpError(403, 'No autorizado');
@@ -346,15 +345,6 @@ export class ClaimsService {
           excludeClaimId: claim.id,
         });
         notifications.push(...cascaded);
-      } else if (params.decision === 'reject' && q && params.rejectSameOption) {
-        const cascadedRejects = await this.rejectSiblingClaimsWithSameOption({
-          manager: m,
-          reviewer,
-          questionId: q.id,
-          chosenIndex: claim.chosenIndex,
-          excludeClaimId: claim.id,
-        });
-        notifications.push(...cascadedRejects);
       }
     });
 
@@ -428,41 +418,6 @@ export class ClaimsService {
         claim.status = ClaimStatus.REJECTED;
       }
 
-      claim.reviewer = params.reviewer;
-      claim.reviewedAt = now;
-      claim.reviewerComment = null;
-
-      await repo.save(claim);
-      notifications.push(this.buildNotificationPayload(claim));
-    }
-
-    return notifications;
-  }
-
-  private async rejectSiblingClaimsWithSameOption(params: {
-    manager: EntityManager;
-    reviewer: User;
-    questionId: string;
-    chosenIndex: number;
-    excludeClaimId: string;
-  }): Promise<ClaimDecisionNotification[]> {
-    const repo = params.manager.getRepository(Claim);
-    const siblings = await repo.find({
-      where: { question: { id: params.questionId }, status: ClaimStatus.PENDING },
-      relations: { student: true, diagram: true },
-      lock: { mode: 'pessimistic_write' },
-    });
-
-    if (!siblings.length) return [];
-
-    const now = new Date();
-    const notifications: ClaimDecisionNotification[] = [];
-
-    for (const claim of siblings) {
-      if (claim.id === params.excludeClaimId) continue;
-      if (claim.chosenIndex !== params.chosenIndex) continue;
-
-      claim.status = ClaimStatus.REJECTED;
       claim.reviewer = params.reviewer;
       claim.reviewedAt = now;
       claim.reviewerComment = null;

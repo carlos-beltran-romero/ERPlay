@@ -100,7 +100,7 @@ export class TestSessionsService {
     let diagram: Diagram | null = null;
     let eligibleQuestions: Question[] = [];
     let claimCountsByQuestion: Record<string, number> = {};
-    const removalThreshold = 10;
+    const exclusionThreshold = 20;
 
     while (candidateIds.length && !diagram) {
       const idx = Math.floor(Math.random() * candidateIds.length);
@@ -132,7 +132,7 @@ export class TestSessionsService {
         return acc;
       }, {});
 
-      const filtered = scopedQuestions.filter((q) => (claimMap[q.id] ?? 0) < removalThreshold);
+      const filtered = scopedQuestions.filter((q) => (claimMap[q.id] ?? 0) <= exclusionThreshold);
       if (!filtered.length) continue;
 
       diagram = candidate;

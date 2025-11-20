@@ -17,7 +17,6 @@ export interface PendingQuestion {
   createdAt?: string;
   creator?: { id: string; email: string; name?: string };
   diagram?: { id: string; title: string; path: string };
-  claimCount?: number;
 }
 
 /** Pregunta propia del estudiante con estado de revisión */

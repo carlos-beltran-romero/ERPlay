@@ -376,9 +376,9 @@ const LearningMode: React.FC = () => {
   const q = payload.questions[current];
   const answered = selected[current] !== null;
   const isCorrect = answered && selected[current] === q.correctIndex;
+  const isPending = q.status === 'pending';
   const questionClaimCount = typeof q.claimCount === 'number' ? q.claimCount : 0;
-  const isPending = q.status === 'pending' && questionClaimCount === 0;
-  const showClaimWarning = questionClaimCount >= 5;
+  const showClaimWarning = questionClaimCount > 10;
 
   const canClaim =
     revealed[current] && selected[current] !== null && selected[current] !== q.correctIndex && !claimed[current];
@@ -483,7 +483,7 @@ const LearningMode: React.FC = () => {
                   {showClaimWarning && (
                     <span
                       className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 ${
-                        questionClaimCount >= 10
+                        questionClaimCount >= 15
                           ? 'border-rose-200 bg-rose-50 text-rose-700'
                           : 'border-amber-200 bg-amber-50 text-amber-700'
                       }`}
