@@ -79,7 +79,12 @@ export class ClaimsService {
     if (params.correctIndex < 0 || params.correctIndex >= params.options.length) {
       throw createHttpError(400, 'Índice correcto inválido');
     }
-    if (!params.explanation?.trim()) throw createHttpError(400, 'La explicación es obligatoria');
+    if (!params.explanation?.trim()) {
+      throw createHttpError(400, 'Explica brevemente tu reclamación (mínimo 10 caracteres).');
+    }
+    if (params.explanation.trim().length < 10) {
+      throw createHttpError(400, 'Explica brevemente tu reclamación (mínimo 10 caracteres).');
+    }
 
     const claim = await AppDataSource.transaction(async (m) => {
       const qRepo = m.getRepository(Question);
@@ -266,6 +271,7 @@ export class ClaimsService {
     decision: 'approve' | 'reject';
     comment?: string;
     rejectOtherSolutions?: boolean;
+    rejectSameSolution?: boolean;
   }) {
     const reviewer = await this.userRepo.findOneByOrFail({ id: params.reviewerId });
     if (reviewer.role !== UserRole.SUPERVISOR) throw createHttpError(403, 'No autorizado');
@@ -340,9 +346,11 @@ export class ClaimsService {
         }
       } else {
         resolveClaim(claim, ClaimStatus.REJECTED, params.comment?.trim() || null);
-        sameSolution.forEach((c) => {
-          if (c.id !== claim.id) resolveClaim(c, ClaimStatus.REJECTED, params.comment?.trim() || null);
-        });
+        if (params.rejectSameSolution !== false) {
+          sameSolution.forEach((c) => {
+            if (c.id !== claim.id) resolveClaim(c, ClaimStatus.REJECTED, params.comment?.trim() || null);
+          });
+        }
 
         if (q) {
           q.status = ReviewStatus.APPROVED;

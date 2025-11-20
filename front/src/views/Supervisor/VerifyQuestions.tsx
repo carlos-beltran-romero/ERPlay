@@ -74,14 +74,24 @@ const VerifyQuestions: React.FC = () => {
   const [pendingQ, setPendingQ] = useState<PendingQuestion[]>([]);
   const [qCount, setQCount] = useState<number>(0);
   const [qSubmitting, setQSubmitting] = useState<string | null>(null);
+  const [approvingAll, setApprovingAll] = useState(false);
 
-  
+
   const [cLoading, setCLoading] = useState(true);
   const [pendingC, setPendingC] = useState<PendingClaim[]>([]);
   const [cCount, setCCount] = useState<number>(0);
   const [cSubmitting, setCSubmitting] = useState<string | null>(null);
 
-  
+
+  const [claimModal, setClaimModal] = useState<{
+    claim: PendingClaim;
+    decision: 'approve' | 'reject';
+    comment?: string;
+    rejectOtherSolutions?: boolean;
+    rejectSameSolution?: boolean;
+  } | null>(null);
+
+
   const [lightbox, setLightbox] = useState<{ src: string; title?: string } | null>(null);
 
 
@@ -137,7 +147,24 @@ const VerifyQuestions: React.FC = () => {
     loadAll();
   }, []);
 
-  
+
+  const approveAllQuestions = async () => {
+    if (pendingQ.length === 0) return;
+    if (!window.confirm('¿Quieres aprobar todas las nuevas preguntas pendientes?')) return;
+    setApprovingAll(true);
+    try {
+      await Promise.all(pendingQ.map((q) => verifyQuestion(q.id, 'approve')));
+      toast.success('Todas las preguntas nuevas han sido aprobadas.');
+      setPendingQ([]);
+      setQCount(0);
+    } catch (e: any) {
+      toast.error(e.message || 'No se pudieron aprobar todas las preguntas');
+    } finally {
+      setApprovingAll(false);
+    }
+  };
+
+
   const onDecideQuestion = async (q: PendingQuestion, decision: 'approve' | 'reject', comment?: string) => {
     setQSubmitting(q.id);
     try {
@@ -155,25 +182,39 @@ const VerifyQuestions: React.FC = () => {
     }
   };
 
-  
-  const onDecideClaim = async (c: PendingClaim, decision: 'approve' | 'reject', comment?: string) => {
-    const rejectOthers =
-      decision === 'approve'
-        ? window.confirm(
-            '¿Quieres rechazar automáticamente las reclamaciones de esta pregunta que propongan otra solución? Se enviará un rechazo con motivo vacío.'
-          )
-        : false;
-
-    setCSubmitting(c.id);
+  const submitClaimDecision = async (payload: {
+    claim: PendingClaim;
+    decision: 'approve' | 'reject';
+    comment?: string;
+    rejectOtherSolutions?: boolean;
+    rejectSameSolution?: boolean;
+  }) => {
+    setCSubmitting(payload.claim.id);
     try {
-      await verifyClaim(c.id, decision, comment, { rejectOtherSolutions: rejectOthers });
-      toast.success(decision === 'approve' ? 'Reclamación aprobada' : 'Reclamación rechazada');
+      await verifyClaim(payload.claim.id, payload.decision, payload.comment, {
+        rejectOtherSolutions: payload.rejectOtherSolutions,
+        rejectSameSolution: payload.rejectSameSolution,
+      });
+      toast.success(payload.decision === 'approve' ? 'Reclamación aprobada' : 'Reclamación rechazada');
+      setClaimModal(null);
       await loadAll();
     } catch (e: any) {
       toast.error(e.message || 'No se pudo aplicar la revisión');
     } finally {
       setCSubmitting(null);
     }
+  };
+
+  const openClaimModal = (claim: PendingClaim, decision: 'approve' | 'reject') => {
+    const el = document.getElementById(`c-comment-${claim.id}`) as HTMLTextAreaElement | null;
+    const comment = el?.value?.trim() || undefined;
+    setClaimModal({
+      claim,
+      decision,
+      comment,
+      rejectOtherSolutions: decision === 'approve',
+      rejectSameSolution: true,
+    });
   };
 
   const Header = () => (
@@ -252,6 +293,19 @@ const VerifyQuestions: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-5">
+                <div className="flex justify-end">
+                  <button
+                    onClick={approveAllQuestions}
+                    disabled={approvingAll}
+                    className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium shadow-sm ${
+                      approvingAll
+                        ? 'bg-emerald-300 text-white cursor-not-allowed'
+                        : 'bg-emerald-600 text-white hover:bg-emerald-500'
+                    }`}
+                  >
+                    <CheckCircle2 size={16} /> Aceptar todas
+                  </button>
+                </div>
                 {pendingQ.map((q) => {
                   const opts = q.options ?? [];
                   const correct = Math.min(Math.max(q.correctIndex ?? 0, 0), Math.max(0, opts.length - 1));
@@ -561,8 +615,7 @@ const VerifyQuestions: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => {
-                              const el = document.getElementById(`c-comment-${c.id}`) as HTMLTextAreaElement | null;
-                              onDecideClaim(c, 'reject', el?.value?.trim() || undefined);
+                              openClaimModal(c, 'reject');
                             }}
                             disabled={cSubmitting === c.id}
                             className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${
@@ -577,8 +630,7 @@ const VerifyQuestions: React.FC = () => {
 
                           <button
                             onClick={() => {
-                              const el = document.getElementById(`c-comment-${c.id}`) as HTMLTextAreaElement | null;
-                              onDecideClaim(c, 'approve', el?.value?.trim() || undefined);
+                              openClaimModal(c, 'approve');
                             }}
                             disabled={cSubmitting === c.id}
                             className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${
@@ -598,6 +650,98 @@ const VerifyQuestions: React.FC = () => {
               </div>
             )}
           </>
+        )}
+
+        {claimModal && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+            onClick={() => {
+              if (!cSubmitting) setClaimModal(null);
+            }}
+          >
+            <div
+              className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-semibold text-gray-900">Confirmar revisión</h3>
+              <p className="mt-2 text-sm text-gray-700 leading-relaxed">
+                {claimModal.decision === 'approve'
+                  ? 'Se aprobarán todas las reclamaciones que propongan la misma solución.'
+                  : 'Puedes rechazar solo esta reclamación o también las que eligieron la misma opción en la pregunta.'}
+              </p>
+
+              <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800">
+                <div className="text-gray-500 text-xs uppercase tracking-wide">Pregunta</div>
+                <div className="mt-1 font-medium text-gray-900 whitespace-pre-wrap break-words">
+                  {claimModal.claim.question?.prompt || 'Sin enunciado'}
+                </div>
+              </div>
+
+              {claimModal.decision === 'approve' && (
+                <label className="mt-4 flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4"
+                    checked={Boolean(claimModal.rejectOtherSolutions)}
+                    onChange={(e) =>
+                      setClaimModal((prev) =>
+                        prev ? { ...prev, rejectOtherSolutions: e.target.checked } : prev
+                      )
+                    }
+                  />
+                  <span>
+                    <strong>Rechazar automáticamente las reclamaciones con otra solución.</strong>
+                    <br />
+                    <span className="text-gray-600">Se enviará el rechazo con motivo vacío.</span>
+                  </span>
+                </label>
+              )}
+
+              {claimModal.decision === 'reject' && (
+                <label className="mt-4 flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4"
+                    checked={claimModal.rejectSameSolution !== false}
+                    onChange={(e) =>
+                      setClaimModal((prev) =>
+                        prev ? { ...prev, rejectSameSolution: e.target.checked } : prev
+                      )
+                    }
+                  />
+                  <span>
+                    <strong>Rechazar también las reclamaciones con la misma opción elegida.</strong>
+                    <br />
+                    <span className="text-gray-600">Si se desmarca, solo se rechaza la reclamación seleccionada.</span>
+                  </span>
+                </label>
+              )}
+
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  onClick={() => setClaimModal(null)}
+                  disabled={cSubmitting === claimModal.claim.id}
+                  className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => submitClaimDecision(claimModal)}
+                  disabled={cSubmitting === claimModal.claim.id}
+                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-white ${
+                    cSubmitting === claimModal.claim.id
+                      ? 'bg-indigo-300 cursor-not-allowed'
+                      : claimModal.decision === 'approve'
+                      ? 'bg-emerald-600 hover:bg-emerald-500'
+                      : 'bg-rose-600 hover:bg-rose-500'
+                  }`}
+                >
+                  {claimModal.decision === 'approve' ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
+                  {claimModal.decision === 'approve' ? 'Aprobar reclamación' : 'Rechazar reclamación'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {lightbox && (

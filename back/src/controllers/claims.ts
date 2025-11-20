@@ -25,13 +25,16 @@ const CreateClaimSchema = z.object({
   options: z.array(z.string().min(1)).min(2, 'Mínimo 2 opciones'),
   chosenIndex: z.number().int().nonnegative(),
   correctIndex: z.number().int().nonnegative(),
-  explanation: z.string().min(5, 'La explicación es obligatoria'),
+  explanation: z
+    .string()
+    .min(10, 'Explica brevemente tu reclamación (mínimo 10 caracteres)'),
 });
 
 const VerifyClaimSchema = z.object({
   decision: z.enum(['approve', 'reject']),
   comment: z.string().max(2000).optional(),
   rejectOtherSolutions: z.boolean().optional(),
+  rejectSameSolution: z.boolean().optional(),
 });
 
 /**
@@ -124,13 +127,14 @@ export const verifyClaim = async (req: AuthedReq, res: Response) => {
       res.status(403).json({ error: 'No autorizado' });
       return;
     }
-    const { decision, comment, rejectOtherSolutions } = VerifyClaimSchema.parse(req.body);
+    const { decision, comment, rejectOtherSolutions, rejectSameSolution } = VerifyClaimSchema.parse(req.body);
     const result = await claimsService.decideClaim({
       claimId: req.params.id,
       reviewerId: req.user.id,
       decision,
       comment,
       rejectOtherSolutions,
+      rejectSameSolution,
     });
     res.json(result);
   } catch (e: any) {

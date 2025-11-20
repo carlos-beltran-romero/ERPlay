@@ -390,17 +390,22 @@ const LearningMode: React.FC = () => {
   const submitClaim = async () => {
     if (!payload || !canClaim) return;
     const chosenIndex = selected[current] as number;
+    const explanation = claimText.trim();
+    if (explanation.length < 10) {
+      toast.error('Explica brevemente tu reclamación (mínimo 10 caracteres).');
+      return;
+    }
     try {
       setSubmittingClaim(true);
       await createClaim({
-        testResultId: payload.questions[current].__resultId, 
-        questionId: q.id, 
+        testResultId: payload.questions[current].__resultId,
+        questionId: q.id,
         diagramId: payload.diagram.id,
         prompt: q.prompt,
         options: q.options,
         chosenIndex,
         correctIndex: q.correctIndex,
-        explanation: claimText.trim(),
+        explanation,
       });
       toast.success('Reclamación enviada. Un profesor la revisará.');
       setShowClaim(false);
