@@ -8,12 +8,10 @@ import { resolveAssetUrl } from "../../shared/utils/url";
 import {
   Plus,
   Search,
-  X,
   CheckCircle2,
   Clock,
+  X,
   Image as ImageIcon,
-  MessageSquare,
-  Filter,
   Flag,
   ArrowLeft,
 } from "lucide-react";
@@ -22,11 +20,8 @@ import {
 type MyQuestion = {
   id: string;
   prompt: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
-  reviewComment?: string | null;
   diagram?: { id: string; title: string; path?: string };
   createdAt?: string;
-  reviewedAt?: string | null;
   options?: string[];
   correctIndex?: number;
 };
@@ -53,19 +48,18 @@ const MIN_HALF_TOGGLE = 120;
 const MIN_HALF_TOGGLE_OPT = 80;
 
 
-const STATUS_LABEL = {
-  PENDING: "Pendiente",
-  APPROVED: "Aprobada",
-  REJECTED: "Rechazada",
-} as const;
-
-
 const letter = (i?: number) =>
   typeof i === "number" && i >= 0 ? String.fromCharCode(65 + i) : "—";
 
 
 const fmtDate = (iso?: string) =>
   iso ? new Date(iso).toLocaleDateString() : "";
+
+const CLAIM_STATUS_LABEL = {
+  PENDING: "Pendiente",
+  APPROVED: "Aprobada",
+  REJECTED: "Rechazada",
+} as const;
 
 interface ExpandableTextProps {
   text: string;
@@ -102,37 +96,29 @@ const ExpandableText: React.FC<ExpandableTextProps> = ({
   );
 };
 
-interface StatusBadgeProps {
-  status: MyQuestion["status"] | MyClaim["status"];
-}
-
-
-const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
+const StatusBadge: React.FC<{ status: MyClaim["status"] }> = ({ status }) => {
   const common =
     "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium";
+
   if (status === "PENDING") {
     return (
-      <span
-        className={`${common} bg-amber-50 text-amber-700 border border-amber-200`}
-      >
-        <Clock size={12} /> {STATUS_LABEL[status]}
+      <span className={`${common} border border-amber-200 bg-amber-50 text-amber-700`}>
+        <Clock size={12} /> {CLAIM_STATUS_LABEL[status]}
       </span>
     );
   }
+
   if (status === "APPROVED") {
     return (
-      <span
-        className={`${common} bg-emerald-50 text-emerald-700 border border-emerald-200`}
-      >
-        <CheckCircle2 size={12} /> {STATUS_LABEL[status]}
+      <span className={`${common} border border-emerald-200 bg-emerald-50 text-emerald-700`}>
+        <CheckCircle2 size={12} /> {CLAIM_STATUS_LABEL[status]}
       </span>
     );
   }
+
   return (
-    <span
-      className={`${common} bg-rose-50 text-rose-700 border border-rose-200`}
-    >
-      <X size={12} /> {STATUS_LABEL[status]}
+    <span className={`${common} border border-rose-200 bg-rose-50 text-rose-700`}>
+      <X size={12} /> {CLAIM_STATUS_LABEL[status]}
     </span>
   );
 };
@@ -151,9 +137,6 @@ const MyQuestionsView: React.FC = () => {
 
   const [items, setItems] = useState<MyQuestion[]>([]);
   const [queryQ, setQueryQ] = useState("");
-  const [statusFilterQ, setStatusFilterQ] = useState<
-    "ALL" | MyQuestion["status"]
-  >("ALL");
   const [visibleQ, setVisibleQ] = useState(PAGE_SIZE);
 
   const [claims, setClaims] = useState<MyClaim[]>([]);
@@ -184,15 +167,13 @@ const MyQuestionsView: React.FC = () => {
   const filteredQ = useMemo(() => {
     const q = queryQ.trim().toLowerCase();
     return items.filter((item) => {
-      const okStatus =
-        statusFilterQ === "ALL" ? true : item.status === statusFilterQ;
       const inText =
         !q ||
         item.prompt?.toLowerCase().includes(q) ||
         item.diagram?.title?.toLowerCase().includes(q);
-      return okStatus && inText;
+      return inText;
     });
-  }, [items, queryQ, statusFilterQ]);
+  }, [items, queryQ]);
 
   const filteredC = useMemo(() => {
     const q = queryC.trim().toLowerCase();
@@ -209,7 +190,7 @@ const MyQuestionsView: React.FC = () => {
 
   useEffect(() => {
     setVisibleQ(PAGE_SIZE);
-  }, [queryQ, statusFilterQ, items]);
+  }, [queryQ, items]);
 
   useEffect(() => {
     setVisibleC(PAGE_SIZE);
@@ -273,20 +254,6 @@ const MyQuestionsView: React.FC = () => {
                     className="w-full rounded-xl border border-gray-300 pl-9 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
                   />
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <Filter size={18} className="text-gray-500" />
-                  <select
-                    value={statusFilterQ}
-                    onChange={(e) => setStatusFilterQ(e.target.value as any)}
-                    className="rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                  >
-                    <option value="ALL">Todos</option>
-                    <option value="PENDING">Pendiente</option>
-                    <option value="APPROVED">Aprobada</option>
-                    <option value="REJECTED">Rechazada</option>
-                  </select>
-                </div>
               </div>
 
               <div>
@@ -300,13 +267,11 @@ const MyQuestionsView: React.FC = () => {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
-              <div className="hidden md:grid grid-cols-12 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700">
-                <div className="col-span-1">Diagrama</div>
-                <div className="col-span-6">Enunciado</div>
-                <div className="col-span-2">Estado</div>
-                <div className="col-span-3">Resolución</div>
-              </div>
+              <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+                <div className="hidden md:grid grid-cols-12 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700">
+                  <div className="col-span-1">Diagrama</div>
+                  <div className="col-span-11">Pregunta</div>
+                </div>
 
               {loading ? (
                 <div className="p-6 text-gray-500">Cargando…</div>
@@ -345,7 +310,7 @@ const MyQuestionsView: React.FC = () => {
                               )}
                             </div>
 
-                            <div className="col-span-6 min-w-0">
+                          <div className="col-span-11 min-w-0">
                               <ExpandableText
                                 text={q.prompt || ""}
                                 className="font-medium"
@@ -395,22 +360,6 @@ const MyQuestionsView: React.FC = () => {
                                     })}
                                   </div>
                                 )}
-                            </div>
-
-                            <div className="col-span-2">
-                              <StatusBadge status={q.status} />
-                            </div>
-
-                            <div className="col-span-3">
-                              {q.status === "REJECTED" &&
-                              q.reviewComment?.trim() ? (
-                                <div className="inline-flex items-start gap-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                                  <MessageSquare size={14} className="mt-0.5" />
-                                  <span className="whitespace-pre-wrap break-words">
-                                    {q.reviewComment}
-                                  </span>
-                                </div>
-                              ) : null}
                             </div>
                           </div>
 
@@ -488,18 +437,6 @@ const MyQuestionsView: React.FC = () => {
                               </div>
                             )}
 
-                            <div className="mt-2 flex items-start justify-between gap-3">
-                              <StatusBadge status={q.status} />
-                              {q.status === "REJECTED" &&
-                              q.reviewComment?.trim() ? (
-                                <div className="inline-flex items-start gap-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-700">
-                                  <MessageSquare size={14} className="mt-0.5" />
-                                  <span className="whitespace-pre-wrap break-words">
-                                    {q.reviewComment}
-                                  </span>
-                                </div>
-                              ) : null}
-                            </div>
                           </div>
                         </div>
                       );

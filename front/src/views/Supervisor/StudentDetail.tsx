@@ -569,14 +569,18 @@ const StudentDetail: React.FC = () => {
     [trends]
   );
   const qCounts = useMemo(() => {
-    const c = { approved: 0, rejected: 0, pending: 0 };
-    for (const q of myQuestions) {
-      const st = normStatus((q as any).status);
-      if (st === "APPROVED") c.approved++;
-      else if (st === "REJECTED") c.rejected++;
-      else c.pending++;
-    }
-    return c;
+    const diagramIds = new Set<string>();
+    let totalOptions = 0;
+
+    myQuestions.forEach((q: any) => {
+      if (q.diagram?.id) diagramIds.add(String(q.diagram.id));
+      if (Array.isArray(q.options)) totalOptions += q.options.length;
+    });
+
+    const total = myQuestions.length;
+    const avgOptions = total ? Math.round((totalOptions / total) * 10) / 10 : 0;
+
+    return { total, diagrams: diagramIds.size, avgOptions };
   }, [myQuestions]);
 
   const filteredTests = useMemo(() => {
@@ -959,42 +963,35 @@ const StudentDetail: React.FC = () => {
                       </div>
                       <div className="min-w-0">
                         <div className="text-xs uppercase text-gray-500">
-                          Aprobadas
+                          Total creadas
                         </div>
                         <div className="text-2xl font-semibold leading-tight">
-                          {qCounts.approved}
+                          {qCounts.total}
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 p-3 rounded-xl  ">
-                      <div className="shrink-0 p-2.5 rounded-xl bg-rose-50 text-rose-700">
-                        <XCircle className="h-5 w-5" />
+                      <div className="shrink-0 p-2.5 rounded-xl bg-indigo-50 text-indigo-700">
+                        <Target className="h-5 w-5" />
                       </div>
                       <div className="min-w-0">
                         <div className="text-xs uppercase text-gray-500">
-                          Rechazadas
+                          Diagramas cubiertos
                         </div>
                         <div className="text-2xl font-semibold leading-tight">
-                          {qCounts.rejected}
+                          {qCounts.diagrams}
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 p-3 rounded-xl   sm:col-span-2 lg:col-span-1">
-                      <Donut
-                        value={
-                          qCounts.approved + qCounts.rejected
-                            ? (qCounts.approved /
-                                (qCounts.approved + qCounts.rejected)) *
-                              100
-                            : 0
-                        }
-                      />
+                      <div className="shrink-0 p-2.5 rounded-xl bg-slate-50 text-slate-700">
+                        <Gauge className="h-5 w-5" />
+                      </div>
                       <div className="min-w-0">
-                        <div className="text-sm font-medium">
-                          Tasa de aprobación
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          Aprobadas / Revisadas
+                        <div className="text-sm font-medium">Opciones promedio</div>
+                        <div className="text-xs text-gray-500">Por pregunta</div>
+                        <div className="text-lg font-semibold leading-tight">
+                          {qCounts.total ? qCounts.avgOptions : "—"}
                         </div>
                       </div>
                     </div>
@@ -1205,10 +1202,8 @@ const StudentDetail: React.FC = () => {
                   {/* Cabecera desktop */}
                   <div className="hidden md:grid grid-cols-12 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700">
                     <div className="col-span-1">Diagrama</div>
-                    <div className="col-span-5">Enunciado</div>
-                    <div className="col-span-3">Opciones</div>
-                    <div className="col-span-1 text-center">Estado</div>
-                    <div className="col-span-2">Resolución</div>
+                    <div className="col-span-6">Enunciado</div>
+                    <div className="col-span-5">Opciones</div>
                   </div>
 
                   {myQuestions.slice(0, visibleQ).map((q) => {
@@ -1248,7 +1243,7 @@ const StudentDetail: React.FC = () => {
                           </div>
 
                           {/* Enunciado */}
-                          <div className="col-span-5 min-w-0">
+                          <div className="col-span-6 min-w-0">
                             <ExpandableText
                               text={qi.prompt || ""}
                               className="font-medium"
@@ -1262,7 +1257,7 @@ const StudentDetail: React.FC = () => {
                           </div>
 
                           {/* Opciones */}
-                          <div className="col-span-3">
+                          <div className="col-span-5">
                             {options.length ? (
                               <div className="space-y-1">
                                 {options.map((opt, i) => (
@@ -1297,18 +1292,6 @@ const StudentDetail: React.FC = () => {
                             ) : (
                               <div className="text-sm text-gray-500">—</div>
                             )}
-                          </div>
-
-                          {/* Estado */}
-                          <div className="col-span-1 flex items-center justify-center">
-                            <StatusBadge status={qi.status} />
-                          </div>
-
-                          {/* Resolución (solo si rechazada) */}
-                          <div className="col-span-2">
-                            {normStatus(qi.status) === "REJECTED"
-                              ? renderResolution(qi.reviewComment)
-                              : null}
                           </div>
                         </div>
 
@@ -1384,19 +1367,6 @@ const StudentDetail: React.FC = () => {
                             </div>
                           ) : null}
 
-                          {/* Estado + Resolución */}
-                          <div className="mt-2 flex items-start justify-between gap-3">
-                            <StatusBadge status={qi.status} />
-                            {normStatus(qi.status) === "REJECTED" &&
-                            qi.reviewComment?.trim() ? (
-                              <div className="inline-flex items-start gap-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-700">
-                                <MessageSquare size={14} className="mt-0.5" />
-                                <span className="whitespace-pre-wrap break-words">
-                                  {qi.reviewComment}
-                                </span>
-                              </div>
-                            ) : null}
-                          </div>
                         </div>
                       </div>
                     );

@@ -39,15 +39,14 @@ export class QuestionsService {
   /**
    * Crea una nueva pregunta propuesta por estudiante o supervisor
    * Las preguntas de supervisores se aprueban automáticamente
-   * 
+   *
    * @param params - Datos de la pregunta y creador
    * @returns ID y estado inicial de la pregunta
    * @throws {HttpError} 400 si faltan datos o son inválidos
    * @remarks
-   * - Supervisores: status = APPROVED (sin revisión)
-   * - Estudiantes: status = PENDING → notifica a supervisores por email
+   * - Todas las preguntas quedan disponibles de inmediato (sin revisión)
    */
-  async createQuestion(params: CreateQuestionParams): Promise<{ id: string; status: ReviewStatus }> {
+  async createQuestion(params: CreateQuestionParams): Promise<{ id: string }> {
     const diagram = await this.diagramRepo.findOneByOrFail({ id: params.diagramId });
     const creator = await this.userRepo.findOneByOrFail({ id: params.creatorId });
 
@@ -63,8 +62,7 @@ export class QuestionsService {
       throw createHttpError(400, 'Índice correcto inválido');
     }
 
-    const initialStatus =
-      creator.role === UserRole.SUPERVISOR ? ReviewStatus.APPROVED : ReviewStatus.PENDING;
+    const initialStatus = ReviewStatus.APPROVED;
 
     const q = await AppDataSource.transaction(async (manager) => {
       const question = manager.create(Question, {
@@ -84,11 +82,7 @@ export class QuestionsService {
 
       return question;
     });
-    if (initialStatus === ReviewStatus.PENDING) {
-      await this.notifySupervisorsNewPending(q.id);
-    }
-
-    return { id: q.id, status: q.status };
+    return { id: q.id };
   }
 
   /**
@@ -210,10 +204,7 @@ export class QuestionsService {
     Array<{
       id: string;
       prompt: string;
-      status: ReviewStatus;
-      reviewComment: string | null;
       createdAt: Date;
-      reviewedAt: Date | null;
       diagram?: { id: string; title: string; path: string | null };
       options: string[];
       correctIndex: number;
@@ -234,10 +225,7 @@ export class QuestionsService {
       return {
         id: r.id,
         prompt: r.prompt,
-        status: r.status,
-        reviewComment: r.reviewComment ?? null,
         createdAt: r.createdAt,
-        reviewedAt: r.reviewedAt ?? null,
         diagram: r.diagram
           ? { id: r.diagram.id, title: r.diagram.title, path: r.diagram.path ?? null }
           : undefined,

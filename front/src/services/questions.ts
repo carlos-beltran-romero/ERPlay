@@ -1,6 +1,6 @@
 /**
  * Módulo de servicios de preguntas
- * Gestiona creación, revisión y consulta de preguntas propuestas por estudiantes
+ * Gestiona creación y consulta de preguntas propuestas por estudiantes
  * @module front/services/questions
  */
 
@@ -20,41 +20,15 @@ export interface PendingQuestion {
   claimCount?: number;
 }
 
-/** Pregunta propia del estudiante con estado de revisión */
+/** Pregunta propia del estudiante */
 type MyQuestion = {
   id: string;
   prompt: string;
-  status: 'PENDING'|'APPROVED'|'REJECTED';
-  reviewComment?: string|null;
   diagram?: { id: string; title: string; path?: string };
   createdAt?: string;
-  reviewedAt?: string|null;
   options?: string[];
   correctIndex?: number;
 };
-
-/**
- * Normaliza estado de revisión desde formatos heterogéneos
- * @param v - Valor crudo del backend (string/number/boolean)
- * @returns Estado normalizado
- * @remarks Maneja formatos legacy (0=pending, 1=approved, 2=rejected)
- * @internal
- */
-function normalizeReviewStatus(v: any): 'PENDING' | 'APPROVED' | 'REJECTED' {
-  if (typeof v === 'string') {
-    const s = v.toUpperCase();
-    if (s.includes('PEND')) return 'PENDING';
-    if (s.includes('APPROV')) return 'APPROVED';
-    if (s.includes('REJECT')) return 'REJECTED';
-  }
-  if (typeof v === 'number') {
-    if (v === 0) return 'PENDING';
-    if (v === 1) return 'APPROVED';
-    if (v === 2) return 'REJECTED';
-  }
-  if (typeof v === 'boolean') return v ? 'APPROVED' : 'PENDING';
-  return 'PENDING';
-}
 
 /**
  * Obtiene contador de preguntas pendientes de revisión
@@ -164,8 +138,7 @@ export async function verifyQuestion(
 
 /**
  * Lista preguntas creadas por el estudiante autenticado
- * @returns Array de preguntas con estado de revisión y comentarios del supervisor
- * @remarks Incluye todas las preguntas (pendientes, aprobadas, rechazadas)
+ * @returns Array de preguntas disponibles en el banco
  */
 export async function listMyQuestions(): Promise<MyQuestion[]> {
   const data = await apiJson<any[]>('/api/questions/mine', {
@@ -174,10 +147,6 @@ export async function listMyQuestions(): Promise<MyQuestion[]> {
   });
 
   return (Array.isArray(data) ? data : []).map((q: any) => {
-    const status = normalizeReviewStatus(
-      q.status ?? q.reviewStatus ?? q.state ?? (typeof q.verified === 'boolean' ? q.verified : undefined)
-    ) as MyQuestion['status'];
-
     let options: string[] = [];
     if (Array.isArray(q.options)) {
       if (q.options.length && typeof q.options[0] === 'string') {
@@ -218,11 +187,8 @@ export async function listMyQuestions(): Promise<MyQuestion[]> {
     return {
       id: String(q.id),
       prompt: String(q.prompt ?? ''),
-      status,
-      reviewComment: q.reviewComment ?? null,
       diagram,
       createdAt: q.createdAt,
-      reviewedAt: q.reviewedAt ?? null,
       options,
       correctIndex,
     } as MyQuestion;
@@ -234,7 +200,7 @@ export async function listMyQuestions(): Promise<MyQuestion[]> {
  * El estudiante propone pregunta asociada a un diagrama
  * 
  * @param payload - Datos de la pregunta (prompt, opciones, correctIndex)
- * @returns ID y estado inicial (siempre PENDING)
+ * @returns ID de la pregunta creada
  * @throws {Error} Si el diagrama no existe o falta información requerida
  * @remarks Requiere mínimo 2 opciones y correctIndex válido
  */
@@ -244,7 +210,7 @@ export async function createQuestion(payload: {
   hint: string;
   options: string[];
   correctIndex: number;
-}): Promise<{ id: string; status: 'PENDING' | 'APPROVED' | 'REJECTED' }> {
+}): Promise<{ id: string }> {
   return apiJson(`/api/questions`, {
     method: 'POST',
     auth: true,

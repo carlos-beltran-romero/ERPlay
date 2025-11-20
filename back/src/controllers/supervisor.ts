@@ -233,10 +233,7 @@ export async function listCreatedQuestions(req: Request, res: Response) {
     const out = rows.slice(0, limit).map((q) => ({
       id: q.id,
       prompt: q.prompt,
-      status: q.status,
-      reviewComment: q.reviewComment ?? null,
       createdAt: q.createdAt,
-      reviewedAt: q.reviewedAt ?? null,
       diagram: q.diagram
         ? {
             id: q.diagram.id,

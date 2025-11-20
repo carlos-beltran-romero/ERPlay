@@ -153,8 +153,13 @@ export class ClaimsService {
       }
 
       if (q) {
-        q.status = ReviewStatus.PENDING;
-        await m.save(q);
+        const existingPending = await m.getRepository(Claim).findOne({
+          where: { student: { id: student.id }, question: { id: q.id }, status: ClaimStatus.PENDING },
+          lock: { mode: 'pessimistic_read' },
+        });
+        if (existingPending) {
+          throw createHttpError(409, 'Ya tienes una reclamación pendiente para esta pregunta');
+        }
       }
 
       const c = m.create(Claim, {

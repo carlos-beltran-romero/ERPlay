@@ -22,7 +22,6 @@ import {
   XCircle,
   Flag,
   Info,
-  ShieldAlert,
   AlertTriangle,
 } from 'lucide-react';
 import { resolveAssetUrl } from '../../shared/utils/url';
@@ -377,7 +376,6 @@ const LearningMode: React.FC = () => {
   const answered = selected[current] !== null;
   const isCorrect = answered && selected[current] === q.correctIndex;
   const questionClaimCount = typeof q.claimCount === 'number' ? q.claimCount : 0;
-  const isPending = q.status === 'pending' && questionClaimCount === 0;
   const showClaimWarning = questionClaimCount >= 5;
 
   const canClaim =
@@ -473,25 +471,17 @@ const LearningMode: React.FC = () => {
               </div>
 
               <div className="text-base font-medium whitespace-pre-wrap">{q.prompt}</div>
-              {(isPending || showClaimWarning) && (
+              {showClaimWarning && (
                 <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium">
-                  {isPending && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-700">
-                      <ShieldAlert size={14} /> Pendiente de validación del profesor
-                    </span>
-                  )}
-                  {showClaimWarning && (
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 ${
-                        questionClaimCount >= 10
-                          ? 'border-rose-200 bg-rose-50 text-rose-700'
-                          : 'border-amber-200 bg-amber-50 text-amber-700'
-                      }`}
-                    >
-                      <AlertTriangle size={14} />
-                      {questionClaimCount} reclamaciones pendientes de resolución. Revisa con cautela.
-                    </span>
-                  )}
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 ${
+                      questionClaimCount >= 10
+                        ? 'border-rose-200 bg-rose-50 text-rose-700'
+                        : 'border-amber-200 bg-amber-50 text-amber-700'
+                    }`}
+                  >
+                    <AlertTriangle size={14} /> Cuidado: tiene {questionClaimCount} reclamaciones pendientes.
+                  </span>
                 </div>
               )}
 

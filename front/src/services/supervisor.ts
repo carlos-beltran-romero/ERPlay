@@ -94,14 +94,14 @@ export type SupErrorItem = {
 /** Estadísticas de reclamaciones */
 export type SupClaimsStats = { submitted: number; approved: number };
 
-/** Pregunta creada por estudiante con estado de revisión */
+/** Pregunta creada por estudiante */
 export type SupQuestionItem = {
   id: string;
   prompt: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'pending' | 'approved' | 'rejected';
   diagram?: { id: string; title: string; path?: string };
   createdAt?: string;
-  reviewedAt?: string | null;
+  options?: string[];
+  correctIndex?: number;
 };
 
 /** Resumen de sesión de test */
@@ -220,12 +220,6 @@ export async function supGetCreatedQuestions(
     ? data
     : [];
   return rows.map((q: any) => {
-    const status =
-      (q.status ??
-        q.reviewStatus ??
-        q.state ??
-        (typeof q.verified === 'boolean' ? (q.verified ? 'APPROVED' : 'PENDING') : 'PENDING')) as any;
-
     let options: string[] = [];
     if (Array.isArray(q.options)) {
       if (q.options.length && typeof q.options[0] === 'string') {
@@ -251,8 +245,6 @@ export async function supGetCreatedQuestions(
     return {
       id: String(q.id),
       prompt: String(q.prompt ?? ''),
-      status,
-      reviewComment: q.reviewComment ?? null,
       diagram: q.diagram
         ? {
             id: String(q.diagram.id ?? ''),
@@ -264,7 +256,6 @@ export async function supGetCreatedQuestions(
           }
         : undefined,
       createdAt: q.createdAt,
-      reviewedAt: q.reviewedAt ?? null,
       options,
       correctIndex,
     };

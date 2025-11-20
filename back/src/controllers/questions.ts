@@ -146,10 +146,7 @@ export const listMine = asyncHandler(async (req: Request, res: Response) => {
     return {
       id: row.id,
       prompt: row.prompt,
-      status: row.status,
-      reviewComment: row.reviewComment ?? null,
       createdAt: row.createdAt,
-      reviewedAt: row.reviewedAt ?? null,
       diagram: row.diagram
         ? {
             id: row.diagram.id,

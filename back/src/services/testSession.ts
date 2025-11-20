@@ -85,8 +85,7 @@ export class TestSessionsService {
   async startSession({ userId, mode, limit = 10 }: StartSessionArgs) {
     const user = await this.userRepo.findOneByOrFail({ id: userId });
 
-    const allowedStatuses =
-      mode === 'learning' ? [ReviewStatus.APPROVED, ReviewStatus.PENDING] : [ReviewStatus.APPROVED];
+    const allowedStatuses = [ReviewStatus.APPROVED];
 
     const rows = await this.diagramRepo
       .createQueryBuilder('d')
@@ -100,7 +99,7 @@ export class TestSessionsService {
     let diagram: Diagram | null = null;
     let eligibleQuestions: Question[] = [];
     let claimCountsByQuestion: Record<string, number> = {};
-    const removalThreshold = 10;
+    const removalThreshold = mode === 'learning' ? 10 : 3;
 
     while (candidateIds.length && !diagram) {
       const idx = Math.floor(Math.random() * candidateIds.length);
@@ -202,7 +201,6 @@ export class TestSessionsService {
         options: r.optionsSnapshot,
         ...(mode === 'learning' ? { correctIndex: r.correctIndexAtTest } : {}),
         hint: r.question?.hint || undefined,
-        status: r.question?.status,
         claimCount: claimCountsByQuestion[r.question?.id ?? ''] ?? 0,
       })),
     };

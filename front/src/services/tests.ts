@@ -20,7 +20,6 @@ export type StartedSession = {
     options: string[];
     hint?: string;
     correctIndex?: number;
-    status?: 'pending' | 'approved' | 'rejected';
     claimCount?: number;
   }>;
 };
