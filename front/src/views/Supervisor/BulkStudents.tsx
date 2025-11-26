@@ -15,6 +15,15 @@ type Row = {
   errors?: { name?: string; lastName?: string; email?: string; password?: string };
 };
 
+type AdminForm = {
+  name: string;
+  lastName: string;
+  email: string;
+  password: string;
+  submitting: boolean;
+  errors: Partial<Record<RowField, string>>;
+};
+
 const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 6;
 
@@ -47,6 +56,15 @@ const emptyRow = (role: Row['role'] = 'alumno'): Row => ({
   password: '',
   role,
 });
+
+const emptyAdminForm: AdminForm = {
+  name: '',
+  lastName: '',
+  email: '',
+  password: '',
+  submitting: false,
+  errors: {},
+};
 
 const isDraftEmpty = (draft: Pick<Row, RowField>) =>
   !draft.name && !draft.lastName && !draft.email && !draft.password;
@@ -310,13 +328,11 @@ const SupervisorBulkStudents: React.FC = () => {
   const [importMessage, setImportMessage] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [showAdminModal, setShowAdminModal] = useState(false);
+  const [adminForm, setAdminForm] = useState<AdminForm>(emptyAdminForm);
 
   const addRow = () => {
     setRows(prev => [...prev, emptyRow()]);
-  };
-
-  const addAdminRow = () => {
-    setRows(prev => [...prev, emptyRow('supervisor')]);
   };
 
   const removeRow = (key: string) => {
@@ -326,6 +342,20 @@ const SupervisorBulkStudents: React.FC = () => {
       delete next[key];
       return next;
     });
+  };
+
+  const openAdminModal = () => {
+    setAdminForm(emptyAdminForm);
+    setShowAdminModal(true);
+  };
+
+  const closeAdminModal = () => {
+    setAdminForm(emptyAdminForm);
+    setShowAdminModal(false);
+  };
+
+  const updateAdminField = (field: RowField, value: string) => {
+    setAdminForm(prev => ({ ...prev, [field]: value, errors: { ...prev.errors, [field]: undefined } }));
   };
 
   const updateCell = (key: string, field: keyof Row, value: string) => {
@@ -342,6 +372,16 @@ const SupervisorBulkStudents: React.FC = () => {
 
   const togglePasswordVisibility = (key: string) => {
     setVisiblePasswords(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const validateAdminForm = (draft: AdminForm) => {
+    const errors: Partial<Record<RowField, string>> = {};
+    if (!draft.name.trim()) errors.name = 'El nombre es obligatorio.';
+    if (!draft.lastName.trim()) errors.lastName = 'Los apellidos son obligatorios.';
+    if (!draft.email.trim() || !emailRx.test(draft.email)) errors.email = 'Email inválido.';
+    if (draft.password.length < MIN_PASSWORD_LENGTH)
+      errors.password = `Mínimo ${MIN_PASSWORD_LENGTH} caracteres.`;
+    return errors;
   };
 
   const validate = (draft: Row[]) => {
@@ -460,9 +500,147 @@ const SupervisorBulkStudents: React.FC = () => {
     }
   };
 
+  const handleAdminSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const errors = validateAdminForm(adminForm);
+    if (Object.keys(errors).length) {
+      setAdminForm(prev => ({ ...prev, errors }));
+      return;
+    }
+
+    setAdminForm(prev => ({ ...prev, submitting: true }));
+    try {
+      await batchCreateStudents([
+        {
+          name: adminForm.name.trim(),
+          lastName: adminForm.lastName.trim(),
+          email: adminForm.email.trim(),
+          password: adminForm.password,
+          role: 'supervisor',
+        },
+      ]);
+      toast.success('Admin registrado correctamente.');
+      closeAdminModal();
+    } catch (err: any) {
+      toast.error(err?.message || 'No se pudo registrar el admin.');
+      setAdminForm(prev => ({ ...prev, submitting: false }));
+    }
+  };
+
   return (
     <PageWithHeader>
       <div className="mx-auto w-full max-w-6xl p-6">
+        {showAdminModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+            <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl">
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-amber-700">Nuevo administrador</p>
+                  <h2 className="text-xl font-semibold text-gray-900">Registrar admin</h2>
+                  <p className="text-sm text-gray-600">
+                    Completa los datos para crear una cuenta con permisos de administrador.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeAdminModal}
+                  className="rounded-full p-2 text-gray-500 hover:bg-gray-100"
+                  aria-label="Cerrar"
+                >
+                  <Trash2 size={18} className="rotate-45" />
+                </button>
+              </div>
+
+              <form onSubmit={handleAdminSubmit} className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-600">Nombre *</label>
+                    <input
+                      value={adminForm.name}
+                      onChange={e => updateAdminField('name', e.target.value)}
+                      className={`w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
+                        adminForm.errors.name ? 'border-red-400' : 'border-gray-300'
+                      }`}
+                      placeholder="Nombre"
+                    />
+                    {adminForm.errors.name && (
+                      <p className="mt-1 text-xs text-red-600">{adminForm.errors.name}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-600">Apellidos *</label>
+                    <input
+                      value={adminForm.lastName}
+                      onChange={e => updateAdminField('lastName', e.target.value)}
+                      className={`w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
+                        adminForm.errors.lastName ? 'border-red-400' : 'border-gray-300'
+                      }`}
+                      placeholder="Apellidos"
+                    />
+                    {adminForm.errors.lastName && (
+                      <p className="mt-1 text-xs text-red-600">{adminForm.errors.lastName}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-600">Email *</label>
+                    <input
+                      value={adminForm.email}
+                      onChange={e => updateAdminField('email', e.target.value)}
+                      className={`w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
+                        adminForm.errors.email ? 'border-red-400' : 'border-gray-300'
+                      }`}
+                      type="email"
+                      placeholder="admin@ejemplo.com"
+                    />
+                    {adminForm.errors.email && (
+                      <p className="mt-1 text-xs text-red-600">{adminForm.errors.email}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-600">Contraseña *</label>
+                    <input
+                      value={adminForm.password}
+                      onChange={e => updateAdminField('password', e.target.value)}
+                      className={`w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
+                        adminForm.errors.password ? 'border-red-400' : 'border-gray-300'
+                      }`}
+                      type="password"
+                      placeholder="Contraseña"
+                    />
+                    {adminForm.errors.password && (
+                      <p className="mt-1 text-xs text-red-600">{adminForm.errors.password}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={closeAdminModal}
+                    className="inline-flex items-center justify-center rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={adminForm.submitting}
+                    className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-white ${
+                      adminForm.submitting ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-500'
+                    }`}
+                  >
+                    {adminForm.submitting ? 'Registrando…' : 'Registrar admin'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* Header con Arrow Left */}
         <div className="mb-6 flex items-start justify-between">
           <div className="flex items-start gap-3">
@@ -752,11 +930,11 @@ const SupervisorBulkStudents: React.FC = () => {
 
             <button
               type="button"
-              onClick={addAdminRow}
+              onClick={openAdminModal}
               className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-800 hover:bg-amber-100"
             >
               <Plus size={18} />
-              Añadir admin
+              Registrar admin
             </button>
 
             <button
