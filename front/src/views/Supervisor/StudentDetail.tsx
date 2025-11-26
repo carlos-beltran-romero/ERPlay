@@ -2,7 +2,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PageWithHeader from "../../components/layout/PageWithHeader";
-import { useDelayedFlag } from "../../shared/hooks/useDelayedFlag";
 import { toast } from "react-toastify";
 import badgeCompleted from "../../assets/completed.png";
 import {

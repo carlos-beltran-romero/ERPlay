@@ -186,12 +186,6 @@ async function safeParseJson(res: Response): Promise<unknown> {
 /**
  * Renueva access token usando refresh token
  */
-export function isJwtExpired(token?: string | null, skewMs = CLOCK_SKEW_MS): boolean {
-  const exp = decodeJwtExp(token ?? undefined);
-  if (!exp) return false;
-  return Date.now() + skewMs >= exp;
-}
-
 async function refreshAccessToken(): Promise<string | null> {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return null;
