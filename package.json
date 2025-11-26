@@ -3,10 +3,12 @@
     "react-router-dom": "^7.6.2"
   },
   "devDependencies": {
-    "typedoc": "^0.28.14"
+    "typedoc": "^0.28.14",
+    "sonarqube-scanner": "^3.1.0"
   },
   "scripts": {
     "docs": "typedoc",
-    "docs:serve": "npx http-server docs -o"
+    "docs:serve": "npx http-server docs -o",
+    "sonar:scan": "node sonar-scan.js"
   }
 }
