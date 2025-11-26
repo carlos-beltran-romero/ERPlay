@@ -9,6 +9,8 @@ import {
 } from 'react';
 import { getProfile, type UserProfile } from '../services/users';
 import { setCachedProfile, getCachedProfile, clearProfileCache } from '../services/authCache';
+import { getAccessToken, getRefreshToken, isJwtExpired } from '../services/http';
+import { refresh } from '../services/auth';
 
 /**
  * Valor expuesto por {@link AuthProvider} con el estado de autenticación.
@@ -73,17 +75,31 @@ export function AuthProvider({ children }: PropsWithChildren<unknown>) {
       return;
     }
 
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
+    const accessToken = getAccessToken();
+    const refreshToken = getRefreshToken();
+
+    if (!accessToken && !refreshToken) {
       setLoading(false);
       setProfileState(null);
       clearProfileCache();
       return;
     }
 
-    refreshProfile().catch(() => {
-      setLoading(false);
-    });
+    const recoverSession = async () => {
+      try {
+        if ((!accessToken || isJwtExpired(accessToken)) && refreshToken) {
+          await refresh();
+        }
+        await refreshProfile();
+      } catch {
+        setProfileState(null);
+        clearProfileCache();
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    recoverSession();
   }, [initialProfile, refreshProfile]);
 
   const value = useMemo<AuthContextValue>(

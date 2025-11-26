@@ -42,6 +42,27 @@ export type ApiRequestInit = RequestInit & {
 };
 
 let refreshingPromise: Promise<string | null> | null = null;
+const CLOCK_SKEW_MS = 30_000;
+
+export function decodeJwtExp(token?: string | null): number | null {
+  if (!token) return null;
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+
+  try {
+    const payload = JSON.parse(atob(parts[1]));
+    if (typeof payload.exp !== 'number') return null;
+    return payload.exp * 1000;
+  } catch {
+    return null;
+  }
+}
+
+export function isJwtExpired(token?: string | null, skewMs = CLOCK_SKEW_MS): boolean {
+  const exp = decodeJwtExp(token ?? undefined);
+  if (!exp) return false;
+  return Date.now() + skewMs >= exp;
+}
 
 function toNetworkApiError(error: unknown): ApiError {
   const cause = (error as any)?.cause ?? error;
@@ -81,6 +102,10 @@ export function getAccessToken(): string | null {
 
 export function getRefreshToken(): string | null {
   return localStorage.getItem(REFRESH_TOKEN_KEY);
+}
+
+export function getAccessTokenExpiry(): number | null {
+  return decodeJwtExp(getAccessToken());
 }
 
 /**
@@ -161,6 +186,12 @@ async function safeParseJson(res: Response): Promise<unknown> {
 /**
  * Renueva access token usando refresh token
  */
+export function isJwtExpired(token?: string | null, skewMs = CLOCK_SKEW_MS): boolean {
+  const exp = decodeJwtExp(token ?? undefined);
+  if (!exp) return false;
+  return Date.now() + skewMs >= exp;
+}
+
 async function refreshAccessToken(): Promise<string | null> {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return null;
@@ -186,6 +217,15 @@ async function refreshAccessToken(): Promise<string | null> {
   return access;
 }
 
+async function hydrateAccessToken(): Promise<string | null> {
+  const current = getAccessToken();
+  if (!current || isJwtExpired(current)) {
+    return ensureFreshToken();
+  }
+
+  return current;
+}
+
 /**
  * Gestiona refresh de token con singleton pattern
  */
@@ -205,6 +245,7 @@ export async function apiRequest(path: string, init: ApiRequestInit = {}): Promi
   const { auth = false, json, fallbackError, ...rest } = init;
   const url = resolveUrl(path);
   const base: RequestInit = { ...rest };
+  const upfrontToken = auth ? await runWithNetworkGuard(() => hydrateAccessToken()) : undefined;
 
   if (json !== undefined) {
     base.body = JSON.stringify(json);
@@ -216,7 +257,9 @@ export async function apiRequest(path: string, init: ApiRequestInit = {}): Promi
   }
 
   const attempt = async (tokenOverride?: string) => {
-    const prepared = auth ? withAuth(base, tokenOverride) : { ...base, headers: new Headers(base.headers ?? {}) };
+    const prepared = auth
+      ? withAuth(base, tokenOverride ?? upfrontToken ?? undefined)
+      : { ...base, headers: new Headers(base.headers ?? {}) };
     return fetch(url, prepared);
   };
 
