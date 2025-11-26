@@ -18,7 +18,6 @@ import {
   ArrowLeft,
 } from "lucide-react";
 
-
 type MyQuestion = {
   id: string;
   prompt: string;
@@ -30,7 +29,6 @@ type MyQuestion = {
   options?: string[];
   correctIndex?: number;
 };
-
 
 type MyClaim = {
   id: string;
@@ -45,13 +43,11 @@ type MyClaim = {
   options?: string[];
 };
 
-
 const PAGE_SIZE = 15;
 
 const MIN_HALF_TOGGLE = 120;
 
 const MIN_HALF_TOGGLE_OPT = 80;
-
 
 const STATUS_LABEL = {
   PENDING: "Pendiente",
@@ -59,10 +55,8 @@ const STATUS_LABEL = {
   REJECTED: "Rechazada",
 } as const;
 
-
 const letter = (i?: number) =>
   typeof i === "number" && i >= 0 ? String.fromCodePoint(65 + i) : "—";
-
 
 const fmtDate = (iso?: string) =>
   iso ? new Date(iso).toLocaleDateString() : "";
@@ -72,7 +66,6 @@ interface ExpandableTextProps {
   minToHalf?: number;
   className?: string;
 }
-
 
 const ExpandableText: React.FC<ExpandableTextProps> = ({
   text,
@@ -106,7 +99,6 @@ interface StatusBadgeProps {
   status: MyQuestion["status"] | MyClaim["status"];
 }
 
-
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   const common =
     "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium";
@@ -136,7 +128,6 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
     </span>
   );
 };
-
 
 const MyQuestionsView: React.FC = () => {
   const navigate = useNavigate();
@@ -326,18 +317,27 @@ const MyQuestionsView: React.FC = () => {
                           <div className="hidden md:grid grid-cols-12 gap-3 items-start">
                             <div className="col-span-1">
                               {diagramSrc ? (
-                                <img
-                                  src={diagramSrc}
-                                  alt={q.diagram?.title ?? "Diagrama"}
-                                  title="Haz clic para ampliar"
-                                  className="h-12 w-12 object-cover rounded border cursor-zoom-in"
+                                <button
+                                  type="button"
                                   onClick={() =>
                                     setPreviewImg({
                                       src: diagramSrc,
                                       title: q.diagram?.title || "Diagrama",
                                     })
                                   }
-                                />
+                                  className="h-12 w-12 rounded border overflow-hidden cursor-zoom-in"
+                                  aria-label={
+                                    q.diagram?.title
+                                      ? `Ampliar diagrama: ${q.diagram.title}`
+                                      : "Ampliar diagrama"
+                                  }
+                                >
+                                  <img
+                                    src={diagramSrc}
+                                    alt={q.diagram?.title ?? "Diagrama"}
+                                    className="h-full w-full object-cover"
+                                  />
+                                </button>
                               ) : (
                                 <div className="h-12 w-12 grid place-items-center rounded border text-gray-400">
                                   <ImageIcon size={16} />
@@ -417,20 +417,29 @@ const MyQuestionsView: React.FC = () => {
                           <div className="md:hidden">
                             <div className="mb-3 rounded-xl border bg-white overflow-hidden">
                               <div className="relative w-full pt-[56.25%]">
-                                {" "}
                                 {diagramSrc ? (
-                                  <img
-                                    src={diagramSrc}
-                                    alt={q.diagram?.title ?? "Diagrama"}
-                                    title="Toca para ampliar"
-                                    className="absolute inset-0 h-full w-full object-contain bg-white"
+                                  <button
+                                    type="button"
                                     onClick={() =>
                                       setPreviewImg({
                                         src: diagramSrc,
                                         title: q.diagram?.title || "Diagrama",
                                       })
                                     }
-                                  />
+                                    className="absolute inset-0 w-full h-full bg-white"
+                                    aria-label={
+                                      q.diagram?.title
+                                        ? `Ampliar diagrama: ${q.diagram.title}`
+                                        : "Ampliar diagrama"
+                                    }
+                                  >
+                                    <img
+                                      src={diagramSrc}
+                                      alt={q.diagram?.title ?? "Diagrama"}
+                                      title="Toca para ampliar"
+                                      className="h-full w-full object-contain"
+                                    />
+                                  </button>
                                 ) : (
                                   <div className="absolute inset-0 grid place-items-center text-gray-400">
                                     <ImageIcon size={18} />
@@ -597,18 +606,27 @@ const MyQuestionsView: React.FC = () => {
                           <div className="hidden md:grid grid-cols-12 gap-3 items-start">
                             <div className="col-span-1">
                               {diagramSrc ? (
-                                <img
-                                  src={diagramSrc}
-                                  alt={c.diagram?.title ?? "Diagrama"}
-                                  title="Haz clic para ampliar"
-                                  className="h-12 w-12 object-cover rounded border cursor-zoom-in"
+                                <button
+                                  type="button"
                                   onClick={() =>
                                     setPreviewImg({
                                       src: diagramSrc,
                                       title: c.diagram?.title || "Diagrama",
                                     })
                                   }
-                                />
+                                  className="h-12 w-12 rounded border overflow-hidden cursor-zoom-in"
+                                  aria-label={
+                                    c.diagram?.title
+                                      ? `Ampliar diagrama: ${c.diagram.title}`
+                                      : "Ampliar diagrama"
+                                  }
+                                >
+                                  <img
+                                    src={diagramSrc}
+                                    alt={c.diagram?.title ?? "Diagrama"}
+                                    className="h-full w-full object-cover"
+                                  />
+                                </button>
                               ) : (
                                 <div className="h-12 w-12 grid place-items-center rounded border text-gray-400">
                                   <ImageIcon size={16} />
@@ -673,18 +691,28 @@ const MyQuestionsView: React.FC = () => {
                           <div className="md:hidden">
                             <div className="mb-2">
                               {diagramSrc ? (
-                                <img
-                                  src={diagramSrc}
-                                  alt={c.diagram?.title ?? "Diagrama"}
-                                  title="Toca para ampliar"
-                                  className="w-full max-h-64 object-contain rounded-xl border bg-white"
+                                <button
+                                  type="button"
                                   onClick={() =>
                                     setPreviewImg({
                                       src: diagramSrc,
                                       title: c.diagram?.title || "Diagrama",
                                     })
                                   }
-                                />
+                                  className="w-full max-h-64 rounded-xl border bg-white"
+                                  aria-label={
+                                    c.diagram?.title
+                                      ? `Ampliar diagrama: ${c.diagram.title}`
+                                      : "Ampliar diagrama"
+                                  }
+                                >
+                                  <img
+                                    src={diagramSrc}
+                                    alt={c.diagram?.title ?? "Diagrama"}
+                                    title="Toca para ampliar"
+                                    className="w-full max-h-64 object-contain rounded-xl"
+                                  />
+                                </button>
                               ) : (
                                 <div className="w-full h-40 grid place-items-center rounded-xl border text-gray-400 bg-white">
                                   <ImageIcon size={18} />
@@ -784,12 +812,11 @@ const MyQuestionsView: React.FC = () => {
         {previewImg && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
-            onClick={() => setPreviewImg(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Vista previa del diagrama: ${previewImg.title}`}
           >
-            <div
-              className="relative max-h-[90vh] max-w-[95vw] rounded-lg bg-white p-3 shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="relative max-h-[90vh] max-w-[95vw] rounded-lg bg-white p-3 shadow-2xl">
               <button
                 onClick={() => setPreviewImg(null)}
                 className="absolute right-2 top-2 rounded p-1 text-gray-600 hover:bg-gray-100"
@@ -811,7 +838,7 @@ const MyQuestionsView: React.FC = () => {
           </div>
         )}
       </div>
-   </PageWithHeader>
+    </PageWithHeader>
   );
 };
 

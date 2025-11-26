@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import PageWithHeader from '../../components/layout/PageWithHeader';
-import { toast } from 'react-toastify';
-import { useDelayedFlag } from '../../shared/hooks/useDelayedFlag';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import PageWithHeader from "../../components/layout/PageWithHeader";
+import { toast } from "react-toastify";
+import { useDelayedFlag } from "../../shared/hooks/useDelayedFlag";
 
 import {
   startTestSession,
@@ -9,9 +9,9 @@ import {
   logEvent as logTestEvent,
   finishSession,
   type StartedSession,
-} from '../../services/tests';
-import { createClaim } from '../../services/claims';
-import { useNavigate } from 'react-router-dom';
+} from "../../services/tests";
+import { createClaim } from "../../services/claims";
+import { useNavigate } from "react-router-dom";
 import {
   Image as ImageIcon,
   Lightbulb,
@@ -22,8 +22,8 @@ import {
   XCircle,
   Flag,
   Info,
-} from 'lucide-react';
-import { resolveAssetUrl } from '../../shared/utils/url';
+} from "lucide-react";
+import { resolveAssetUrl } from "../../shared/utils/url";
 
 type PracticeQuestion = {
   prompt: string;
@@ -45,11 +45,11 @@ const N_QUESTIONS = 10;
 const LearningMode: React.FC = () => {
   const navigate = useNavigate();
 
-  const [sessionId, setSessionId] = useState<string>('');
+  const [sessionId, setSessionId] = useState<string>("");
   const [finished, setFinished] = useState(false);
 
-  const [, setPerQSeconds] = useState<number[]>([]); 
-  const lastTickRef = useRef<number | null>(null); 
+  const [, setPerQSeconds] = useState<number[]>([]);
+  const lastTickRef = useRef<number | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [payload, setPayload] = useState<PracticePayload | null>(null);
@@ -63,7 +63,7 @@ const LearningMode: React.FC = () => {
   const [started, setStarted] = useState(false);
 
   const [showClaim, setShowClaim] = useState(false);
-  const [claimText, setClaimText] = useState('');
+  const [claimText, setClaimText] = useState("");
   const [submittingClaim, setSubmittingClaim] = useState(false);
 
   const computeDeltaAndReset = () => {
@@ -72,7 +72,10 @@ const LearningMode: React.FC = () => {
       lastTickRef.current = now;
       return 0;
     }
-    const deltaSec = Math.max(0, Math.floor((now - lastTickRef.current) / 1000));
+    const deltaSec = Math.max(
+      0,
+      Math.floor((now - lastTickRef.current) / 1000)
+    );
     lastTickRef.current = now;
     setPerQSeconds((prev) => {
       const next = prev.slice();
@@ -95,9 +98,7 @@ const LearningMode: React.FC = () => {
     }
   };
 
-  
   const loadPractice = async () => {
-    
     try {
       if (sessionId && !finished) {
         await flushCurrentTime();
@@ -113,9 +114,11 @@ const LearningMode: React.FC = () => {
     lastTickRef.current = null;
 
     try {
-      const data: StartedSession = await startTestSession({ mode: 'learning', limit: N_QUESTIONS });
+      const data: StartedSession = await startTestSession({
+        mode: "learning",
+        limit: N_QUESTIONS,
+      });
 
-      
       const mapped: PracticePayload = {
         diagram: data.diagram,
         questions: data.questions.map((q) => ({
@@ -138,16 +141,14 @@ const LearningMode: React.FC = () => {
       setClaimed(new Array(mapped.questions.length).fill(false));
       setPerQSeconds(new Array(mapped.questions.length).fill(0));
     } catch (e: any) {
-      toast.error(e.message || 'No se pudo iniciar la práctica');
-      navigate('/student/play-menu', { replace: true });
+      toast.error(e.message || "No se pudo iniciar la práctica");
+      navigate("/student/play-menu", { replace: true });
     } finally {
       setLoading(false);
     }
   };
 
   const didInitRef = useRef(false);
-
-
 
   useEffect(() => {
     if (didInitRef.current) return;
@@ -163,21 +164,19 @@ const LearningMode: React.FC = () => {
         } catch {}
       })();
     };
-    
   }, []);
 
-  
   const onStart = async () => {
     setStarted(true);
-    
+
     lastTickRef.current = Date.now();
     try {
       if (sessionId) {
-        await logTestEvent(sessionId, { type: 'start_session' });
-        
+        await logTestEvent(sessionId, { type: "start_session" });
+
         if (payload?.questions[0]?.__resultId) {
           await logTestEvent(sessionId, {
-            type: 'view_question',
+            type: "view_question",
             resultId: payload.questions[0].__resultId,
             payload: { index: 0 },
           });
@@ -188,32 +187,35 @@ const LearningMode: React.FC = () => {
     }
   };
 
-  
   useEffect(() => {
     (async () => {
       if (!started || !payload || !sessionId) return;
-      
+
       lastTickRef.current = Date.now();
       try {
         const rid = payload.questions[current].__resultId;
-        await logTestEvent(sessionId, { type: 'view_question', resultId: rid, payload: { index: current } });
+        await logTestEvent(sessionId, {
+          type: "view_question",
+          resultId: rid,
+          payload: { index: current },
+        });
       } catch {
         /* ignore */
       }
     })();
-    
   }, [current, started]);
 
   const qCount = payload?.questions.length ?? 0;
-  const answeredCount = useMemo(() => selected.filter((v) => v !== null).length, [selected]);
+  const answeredCount = useMemo(
+    () => selected.filter((v) => v !== null).length,
+    [selected]
+  );
 
-  
   const choose = async (idx: number, opt: number) => {
     if (!payload || !sessionId) return;
-    
+
     if (selected[idx] !== null) return;
 
-    
     const delta = computeDeltaAndReset();
     const rid = payload.questions[idx].__resultId;
 
@@ -224,15 +226,12 @@ const LearningMode: React.FC = () => {
         timeSpentSecondsDelta: delta,
       });
       await logTestEvent(sessionId, {
-        type: 'submit_answer',
+        type: "submit_answer",
         resultId: rid,
         payload: { selectedIndex: opt },
       });
-    } catch {
-      
-    }
+    } catch {}
 
-    
     setSelected((prev) => {
       const next = prev.slice();
       next[idx] = opt;
@@ -245,7 +244,6 @@ const LearningMode: React.FC = () => {
       return next;
     });
 
-    
     lastTickRef.current = Date.now();
   };
 
@@ -266,20 +264,18 @@ const LearningMode: React.FC = () => {
       return next;
     });
 
-    
     const willShow = !hintShown[idx];
     if (willShow) {
       try {
         const rid = payload.questions[idx].__resultId;
         await patchTestResult(sessionId, rid, { usedHint: true });
-        await logTestEvent(sessionId, { type: 'show_hint', resultId: rid });
+        await logTestEvent(sessionId, { type: "show_hint", resultId: rid });
       } catch {
         /* ignore */
       }
     }
   };
 
-  
   const prevQ = async () => {
     if (!payload) return;
     await flushCurrentTime();
@@ -291,13 +287,14 @@ const LearningMode: React.FC = () => {
     setCurrent((c) => Math.min(qCount - 1, c + 1));
   };
 
-  
   const correctCount = useMemo(() => {
     if (!payload) return 0;
-    return payload.questions.reduce((acc, q, i) => acc + (selected[i] === q.correctIndex ? 1 : 0), 0);
+    return payload.questions.reduce(
+      (acc, q, i) => acc + (selected[i] === q.correctIndex ? 1 : 0),
+      0
+    );
   }, [payload, selected]);
 
-  
   const finishAndBack = async () => {
     try {
       if (sessionId && !finished) {
@@ -308,18 +305,17 @@ const LearningMode: React.FC = () => {
     } catch {
       /* ignore */
     } finally {
-      navigate('/student/dashboard');
+      navigate("/student/dashboard");
     }
   };
 
-  
   const showLoading = useDelayedFlag(loading);
 
   if (showLoading) {
     return (
       <PageWithHeader>
         <div className="p-6 text-gray-600">Cargando práctica…</div>
-     </PageWithHeader>
+      </PageWithHeader>
     );
   }
 
@@ -327,7 +323,7 @@ const LearningMode: React.FC = () => {
     return (
       <PageWithHeader>
         <div className="p-6 text-gray-600">No se pudo cargar la práctica.</div>
-     </PageWithHeader>
+      </PageWithHeader>
     );
   }
 
@@ -337,14 +333,19 @@ const LearningMode: React.FC = () => {
         <div className="mx-auto w-full max-w-3xl p-6">
           <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
             <h1 className="text-2xl font-semibold">Modo Aprendizaje</h1>
-            <p className="mt-2 text-gray-600">Lee estas indicaciones antes de comenzar:</p>
+            <p className="mt-2 text-gray-600">
+              Lee estas indicaciones antes de comenzar:
+            </p>
             <ul className="mt-4 list-disc pl-6 space-y-2 text-gray-700">
               <li>Sin límite de tiempo: practica a tu ritmo.</li>
               <li>Feedback inmediato tras seleccionar tu respuesta.</li>
-              <li>Usa <strong>Pista</strong> para ver una ayuda contextual.</li>
               <li>
-                <strong>Reclamaciones:</strong> solo si fallas esa pregunta, podrás justificar por qué tu opción sería
-                la correcta para revisión del profesor.
+                Usa <strong>Pista</strong> para ver una ayuda contextual.
+              </li>
+              <li>
+                <strong>Reclamaciones:</strong> solo si fallas esa pregunta,
+                podrás justificar por qué tu opción sería la correcta para
+                revisión del profesor.
               </li>
             </ul>
 
@@ -365,7 +366,7 @@ const LearningMode: React.FC = () => {
             </div>
           </div>
         </div>
-     </PageWithHeader>
+      </PageWithHeader>
     );
   }
 
@@ -376,14 +377,17 @@ const LearningMode: React.FC = () => {
   const showClaimWarning = pendingClaims >= 5;
 
   const canClaim =
-    revealed[current] && selected[current] !== null && selected[current] !== q.correctIndex && !claimed[current];
+    revealed[current] &&
+    selected[current] !== null &&
+    selected[current] !== q.correctIndex &&
+    !claimed[current];
 
   const openClaim = () => {
     if (!canClaim) {
-      toast.info('Solo puedes reclamar una pregunta que hayas respondido mal.');
+      toast.info("Solo puedes reclamar una pregunta que hayas respondido mal.");
       return;
     }
-    setClaimText('');
+    setClaimText("");
     setShowClaim(true);
   };
 
@@ -392,7 +396,7 @@ const LearningMode: React.FC = () => {
     const chosenIndex = selected[current] as number;
     const explanation = claimText.trim();
     if (explanation.length < 10) {
-      toast.error('Explica brevemente tu reclamación (mínimo 10 caracteres).');
+      toast.error("Explica brevemente tu reclamación (mínimo 10 caracteres).");
       return;
     }
     try {
@@ -407,7 +411,7 @@ const LearningMode: React.FC = () => {
         correctIndex: q.correctIndex,
         explanation,
       });
-      toast.success('Reclamación enviada. Un profesor la revisará.');
+      toast.success("Reclamación enviada. Un profesor la revisará.");
       setShowClaim(false);
       setClaimed((prev) => {
         const next = prev.slice();
@@ -415,7 +419,7 @@ const LearningMode: React.FC = () => {
         return next;
       });
     } catch (e: any) {
-      toast.error(e.message || 'No se pudo enviar la reclamación');
+      toast.error(e.message || "No se pudo enviar la reclamación");
     } finally {
       setSubmittingClaim(false);
     }
@@ -471,12 +475,14 @@ const LearningMode: React.FC = () => {
                 Pregunta {current + 1} de {qCount}
               </div>
 
-              <div className="text-base font-medium whitespace-pre-wrap">{q.prompt}</div>
+              <div className="text-base font-medium whitespace-pre-wrap">
+                {q.prompt}
+              </div>
 
               {showClaimWarning && (
                 <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-                  Atención: esta pregunta tiene {pendingClaims} reclamaciones pendientes. Úsala con precaución mientras se
-                  revisa.
+                  Atención: esta pregunta tiene {pendingClaims} reclamaciones
+                  pendientes. Úsala con precaución mientras se revisa.
                 </div>
               )}
 
@@ -488,21 +494,25 @@ const LearningMode: React.FC = () => {
                   const isChosen = chosen === oi;
                   const isRight = oi === q.correctIndex;
 
-                  let boxClasses = 'rounded-xl border px-3 py-2 transition';
+                  let boxClasses = "rounded-xl border px-3 py-2 transition";
                   let icon: React.ReactNode = null;
 
                   if (show) {
                     if (isRight) {
-                      boxClasses += ' border-emerald-400 bg-emerald-50';
-                      icon = <CheckCircle2 size={16} className="text-emerald-700" />;
+                      boxClasses += " border-emerald-400 bg-emerald-50";
+                      icon = (
+                        <CheckCircle2 size={16} className="text-emerald-700" />
+                      );
                     } else if (isChosen && !isRight) {
-                      boxClasses += ' border-rose-400 bg-rose-50';
+                      boxClasses += " border-rose-400 bg-rose-50";
                       icon = <XCircle size={16} className="text-rose-700" />;
                     } else {
-                      boxClasses += ' border-gray-200 bg-white opacity-80';
+                      boxClasses += " border-gray-200 bg-white opacity-80";
                     }
                   } else {
-                    boxClasses += isChosen ? ' border-indigo-500 bg-indigo-50' : ' border-gray-200 bg-white hover:bg-gray-50';
+                    boxClasses += isChosen
+                      ? " border-indigo-500 bg-indigo-50"
+                      : " border-gray-200 bg-white hover:bg-gray-50";
                   }
 
                   return (
@@ -512,11 +522,17 @@ const LearningMode: React.FC = () => {
                       className={`w-full text-left ${boxClasses}`}
                       onClick={() => choose(current, oi)}
                       disabled={revealed[current]}
-                      title={revealed[current] ? 'Respuesta bloqueada' : 'Seleccionar'}
+                      title={
+                        revealed[current]
+                          ? "Respuesta bloqueada"
+                          : "Seleccionar"
+                      }
                     >
                       <div className="flex items-center gap-3">
                         {icon}
-                        <span className="font-semibold">{String.fromCodePoint(65 + oi)}.</span>
+                        <span className="font-semibold">
+                          {String.fromCodePoint(65 + oi)}.
+                        </span>
                         <span>{opt}</span>
                       </div>
                     </button>
@@ -528,10 +544,14 @@ const LearningMode: React.FC = () => {
               {revealed[current] && (
                 <div
                   className={`mt-3 rounded-xl px-3 py-2 text-sm font-medium ${
-                    isCorrect ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                    isCorrect
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                      : "bg-rose-50 text-rose-700 border border-rose-200"
                   }`}
                 >
-                  {isCorrect ? '¡Correcto!' : 'Incorrecto. Revisa la pista si es necesario.'}
+                  {isCorrect
+                    ? "¡Correcto!"
+                    : "Incorrecto. Revisa la pista si es necesario."}
                 </div>
               )}
 
@@ -543,12 +563,12 @@ const LearningMode: React.FC = () => {
                   className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-sm hover:bg-gray-50"
                 >
                   <Lightbulb size={16} />
-                  {hintShown[current] ? 'Ocultar pista' : 'Mostrar pista'}
+                  {hintShown[current] ? "Ocultar pista" : "Mostrar pista"}
                 </button>
 
                 {hintShown[current] && (
                   <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                    {q.hint?.trim() || 'Sin pista para esta pregunta.'}
+                    {q.hint?.trim() || "Sin pista para esta pregunta."}
                   </div>
                 )}
               </div>
@@ -573,7 +593,9 @@ const LearningMode: React.FC = () => {
                 <button
                   onClick={prevQ}
                   className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm ${
-                    current === 0 ? 'cursor-not-allowed border-gray-200 text-gray-400' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                    current === 0
+                      ? "cursor-not-allowed border-gray-200 text-gray-400"
+                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
                   }`}
                   disabled={current === 0}
                 >
@@ -584,7 +606,9 @@ const LearningMode: React.FC = () => {
                 <button
                   onClick={nextQ}
                   className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm ${
-                    current >= qCount - 1 ? 'cursor-not-allowed border-gray-200 text-gray-400' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                    current >= qCount - 1
+                      ? "cursor-not-allowed border-gray-200 text-gray-400"
+                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
                   }`}
                   disabled={current >= qCount - 1}
                 >
@@ -620,7 +644,9 @@ const LearningMode: React.FC = () => {
                   </div>
                   <div className="rounded-xl bg-indigo-50 p-3">
                     <div className="text-xs text-gray-500">Pistas</div>
-                    <div className="text-lg font-semibold">{hintShown.filter(Boolean).length}</div>
+                    <div className="text-lg font-semibold">
+                      {hintShown.filter(Boolean).length}
+                    </div>
                   </div>
                 </div>
 
@@ -644,7 +670,8 @@ const LearningMode: React.FC = () => {
             <div className="border-b px-6 py-4">
               <h3 className="text-lg font-semibold">Reclamar esta pregunta</h3>
               <p className="mt-1 text-sm text-gray-600">
-                Explica por qué consideras que tu respuesta es correcta y la del test no.
+                Explica por qué consideras que tu respuesta es correcta y la del
+                test no.
               </p>
             </div>
 
@@ -664,27 +691,33 @@ const LearningMode: React.FC = () => {
                   <div className="text-gray-500">Tu respuesta</div>
                   <div className="mt-1 font-medium">
                     {selected[current] !== null
-                      ? `${String.fromCodePoint(65 + (selected[current] as number))}. ${q.options[selected[current] as number]}`
-                      : '—'}
+                      ? `${String.fromCodePoint(
+                          65 + (selected[current] as number)
+                        )}. ${q.options[selected[current] as number]}`
+                      : "—"}
                   </div>
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
                   <div className="text-gray-500">Respuesta oficial</div>
                   <div className="mt-1 font-medium">
-                    {`${String.fromCodePoint(65 + q.correctIndex)}. ${q.options[q.correctIndex]}`}
+                    {`${String.fromCodePoint(65 + q.correctIndex)}. ${
+                      q.options[q.correctIndex]
+                    }`}
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Explicación (obligatoria)</label>
-                <textarea
-                  value={claimText}
-                  onChange={(e) => setClaimText(e.target.value)}
-                  rows={4}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                  placeholder="Argumenta tu reclamación con detalle…"
-                />
+                <label className="block text-sm text-gray-600 mb-1">
+                  Explicación (obligatoria)
+                  <textarea
+                    value={claimText}
+                    onChange={(e) => setClaimText(e.target.value)}
+                    rows={4}
+                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                    placeholder="Argumenta tu reclamación con detalle…"
+                  />
+                </label>
               </div>
             </div>
 
@@ -700,17 +733,17 @@ const LearningMode: React.FC = () => {
                 disabled={submittingClaim || !canClaim || !claimText.trim()}
                 className={`rounded-xl px-5 py-2 text-sm font-medium text-white ${
                   submittingClaim || !canClaim || !claimText.trim()
-                    ? 'bg-rose-300 cursor-not-allowed'
-                    : 'bg-rose-600 hover:bg-rose-500'
+                    ? "bg-rose-300 cursor-not-allowed"
+                    : "bg-rose-600 hover:bg-rose-500"
                 }`}
               >
-                {submittingClaim ? 'Enviando…' : 'Enviar reclamación'}
+                {submittingClaim ? "Enviando…" : "Enviar reclamación"}
               </button>
             </div>
           </div>
         </div>
       )}
-   </PageWithHeader>
+    </PageWithHeader>
   );
 };
 
