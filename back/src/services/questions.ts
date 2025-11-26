@@ -503,7 +503,7 @@ export class QuestionsService {
     const body = `
       <div style="font-size:14px;line-height:1.6">
         <div style="margin-bottom:12px">
-          <span style="display:inline-block;padding:4px 10px;border-radius:999px;background:#D1FAE5;color:#065F46;border:1px solid #A7F3D0;font-size:12px;font-weight:700;">✓ INCLUIDA</span>
+          <span style="display:inline-block;padding:4px 10px;border-radius:999px;background:#D1FAE5;color:#065F46;border:1px solid #A7F3D0;font-size:12px;font-weight:700;">✓ ACEPTADA</span>
         </div>
 
         <div style="margin:8px 0 6px 0;font-size:12px;color:#6b7280;">Pregunta</div>
@@ -520,13 +520,13 @@ export class QuestionsService {
         }
 
         <p style="margin-top:14px;color:#16a34a;font-size:14px;">
-          Tu pregunta se ha incluido automáticamente en el banco de preguntas.
+          Tu pregunta ha sido añadida automáticamente a las preguntas del diagrama.
         </p>
       </div>
     `;
 
     const html = renderCardEmail({
-      title: 'Tu pregunta está en el banco',
+      title: 'Tu pregunta está ha sido incluida',
       bodyHtml: body,
       accent: '#D1FAE5',
     });
@@ -534,7 +534,7 @@ export class QuestionsService {
     await transporter.sendMail({
       from: '"ERPlay Revisión" <no-reply@erplay.com>',
       to: args.to,
-      subject: 'Tu pregunta se ha incluido en el banco de preguntas',
+      subject: 'Tu pregunta ha sido incluida satisfactoriamente',
       html,
     });
   }

@@ -41,7 +41,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
   
   // Validar que exista el header de autorización
   if (!authHeader) {
-    next(createHttpError(401, 'Token no proporcionado'));
+    next(createHttpError(401, 'Su sesión ha expirado. Vuelve a iniciar sesión'));
     return;
   }
 
