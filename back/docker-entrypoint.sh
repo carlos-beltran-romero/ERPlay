@@ -29,6 +29,54 @@ should_seed() {
   esac
 }
 
+create_default_admin() {
+  ADMIN_EMAIL="erplay.supervisor@gmail.com"
+  ADMIN_NAME="ERPlay"
+  ADMIN_LASTNAME="Supervisor"
+  ADMIN_PASSWORD="localAdmin2025"
+
+  echo "Verificando usuario admin por defecto (${ADMIN_EMAIL})..."
+
+  EXISTING_SUPERVISOR=$(
+    mysql -N -s \
+      -h"$DB_HOST" -P"$DB_PORT" \
+      -u"$DB_USER" -p"$DB_PASSWORD" \
+      "$DB_NAME" \
+      -e "SELECT COUNT(*) FROM users WHERE email='${ADMIN_EMAIL}';" 2>/dev/null \
+    || echo "0"
+  )
+
+  case "$EXISTING_SUPERVISOR" in
+    '' ) EXISTING_SUPERVISOR=0 ;;
+  esac
+
+  if [ "$EXISTING_SUPERVISOR" -gt 0 ]; then
+    echo "Ya existe un usuario con ese email. No se crea admin por defecto."
+    return 0
+  fi
+
+  echo "Creando admin por defecto sin seed..."
+
+  ADMIN_HASH=$(
+    node -e "const bcrypt = require('bcrypt'); console.log(bcrypt.hashSync('${ADMIN_PASSWORD}', 10));"
+  )
+
+  if [ -z "$ADMIN_HASH" ]; then
+    echo "No se pudo generar hash de contraseña para el admin." >&2
+    return 1
+  fi
+
+  if mysql \
+    -h"$DB_HOST" -P"$DB_PORT" \
+    -u"$DB_USER" -p"$DB_PASSWORD" \
+    "$DB_NAME" \
+    -e "INSERT INTO users (id, name, lastName, email, passwordHash, role) VALUES (UUID(), '${ADMIN_NAME}', '${ADMIN_LASTNAME}', '${ADMIN_EMAIL}', '${ADMIN_HASH}', 'supervisor')"; then
+    echo "Admin por defecto creado correctamente."
+  else
+    echo "No se pudo crear el admin por defecto." >&2
+  fi
+}
+
 wait_for_db
 
 echo "Ejecutando migraciones de base de datos..."
@@ -70,6 +118,7 @@ if should_seed; then
   fi
 else
   echo "RUN_DB_SEED desactivado; Sin seed en base de datos."
+  create_default_admin
 fi
 
 echo "Arrancando aplicación Node..."

@@ -26,6 +26,7 @@ export interface BatchStudentDTO {
   lastName: string;
   email: string;
   password: string;
+  role?: UserRole;
 }
 
 /** Representación segura de usuario sin datos sensibles */
@@ -73,6 +74,7 @@ export class UsersService {
       lastName: u.lastName.trim(),
       email: u.email.trim().toLowerCase(),
       password: u.password,
+      role: u.role === UserRole.SUPERVISOR ? UserRole.SUPERVISOR : UserRole.STUDENT,
     }));
 
     const counter = new Map<string, number>();
@@ -110,7 +112,7 @@ export class UsersService {
           lastName: u.lastName,
           email: u.email,
           passwordHash,
-          role: UserRole.STUDENT,
+          role: u.role,
         });
       })
     );

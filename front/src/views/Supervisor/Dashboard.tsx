@@ -192,7 +192,7 @@ const SupervisorDashboard: React.FC = () => {
           />
           <ActionCard
             title="Alta masiva"
-            subtitle="Registrar alumnos por lote."
+            subtitle="Registrar alumnos o un admin por lote."
             onClick={() => navigate("/supervisor/users/batch")}
             Icon={ClipboardList}
           />

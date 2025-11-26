@@ -11,6 +11,7 @@ type Row = {
   lastName: string;
   email: string;
   password: string;
+  role: 'alumno' | 'supervisor';
   errors?: { name?: string; lastName?: string; email?: string; password?: string };
 };
 
@@ -38,7 +39,14 @@ type RawRecord = {
   rowNumber: number;
 };
 
-const emptyRow = (): Row => ({ key: crypto.randomUUID(), name: '', lastName: '', email: '', password: '' });
+const emptyRow = (role: Row['role'] = 'alumno'): Row => ({
+  key: crypto.randomUUID(),
+  name: '',
+  lastName: '',
+  email: '',
+  password: '',
+  role,
+});
 
 const isDraftEmpty = (draft: Pick<Row, RowField>) =>
   !draft.name && !draft.lastName && !draft.email && !draft.password;
@@ -307,6 +315,10 @@ const SupervisorBulkStudents: React.FC = () => {
     setRows(prev => [...prev, emptyRow()]);
   };
 
+  const addAdminRow = () => {
+    setRows(prev => [...prev, emptyRow('supervisor')]);
+  };
+
   const removeRow = (key: string) => {
     setRows(prev => prev.filter(r => r.key !== key));
     setVisiblePasswords(prev => {
@@ -318,6 +330,14 @@ const SupervisorBulkStudents: React.FC = () => {
 
   const updateCell = (key: string, field: keyof Row, value: string) => {
     setRows(prev => prev.map(r => (r.key === key ? { ...r, [field]: value } : r)));
+  };
+
+  const toggleRole = (key: string) => {
+    setRows(prev =>
+      prev.map(r =>
+        r.key === key ? { ...r, role: r.role === 'supervisor' ? 'alumno' : 'supervisor' } : r,
+      ),
+    );
   };
 
   const togglePasswordVisibility = (key: string) => {
@@ -371,7 +391,7 @@ const SupervisorBulkStudents: React.FC = () => {
       const imported = await readSpreadsheetFile(file);
       setRows(prev => {
         const preserved = prev.filter(row => !isDraftEmpty(row));
-        const mapped = imported.map(data => ({ key: crypto.randomUUID(), ...data }));
+        const mapped = imported.map(data => ({ key: crypto.randomUUID(), role: 'alumno' as const, ...data }));
         const next = [...preserved, ...mapped];
         return next.length ? next : [emptyRow()];
       });
@@ -401,7 +421,7 @@ const SupervisorBulkStudents: React.FC = () => {
     const hasErrors = checked.some(r => r.errors && Object.keys(r.errors).length > 0);
 
     if (allEmpty) {
-      toast.info('Añade al menos un alumno.');
+      toast.info('Añade al menos un usuario (alumno o admin).');
       return;
     }
     if (hasErrors) {
@@ -418,6 +438,7 @@ const SupervisorBulkStudents: React.FC = () => {
           lastName: r.lastName.trim(),
           email: r.email.trim(),
           password: r.password,
+          role: r.role,
         }));
 
       const result = await batchCreateStudents(payload);
@@ -425,7 +446,7 @@ const SupervisorBulkStudents: React.FC = () => {
       const yaExisten = result.skipped.exists?.length || 0;
       const duplicados = result.skipped.payloadDuplicates?.length || 0;
 
-      if (creados > 0) toast.success(`Registrados ${creados} alumno(s) correctamente.`);
+      if (creados > 0) toast.success(`Registrados ${creados} usuario(s) correctamente.`);
       if (yaExisten > 0) toast.warn(`Omitidos por existir previamente: ${result.skipped.exists.join(', ')}`);
       if (duplicados > 0) toast.warn(`Omitidos por duplicados en el lote: ${result.skipped.payloadDuplicates.join(', ')}`);
 
@@ -453,9 +474,10 @@ const SupervisorBulkStudents: React.FC = () => {
               <ArrowLeft size={16} />
             </button>
             <div>
-              <h1 className="text-2xl font-semibold">Alta masiva de alumnos</h1>
+              <h1 className="text-2xl font-semibold">Alta masiva de alumnos y administradores</h1>
               <p className="text-gray-600">
-                Rellena los campos solicitados. Puedes añadir varias filas y guardar todas de una vez.
+                Rellena los campos solicitados. Puedes añadir varias filas y guardar todas de una vez. Usa el conmutador
+                para marcar a un usuario como admin cuando lo necesites.
               </p>
             </div>
           </div>
@@ -590,7 +612,18 @@ const SupervisorBulkStudents: React.FC = () => {
                         )}
                       </div>
 
-                      <div className="col-span-1 flex justify-end">
+                      <div className="col-span-1 flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleRole(r.key)}
+                          className={`rounded-lg px-3 py-1 text-xs font-semibold ${
+                            r.role === 'supervisor'
+                              ? 'bg-amber-100 text-amber-700'
+                              : 'bg-slate-100 text-slate-700'
+                          }`}
+                        >
+                          {r.role === 'supervisor' ? 'Admin' : 'Alumno'}
+                        </button>
                         <button
                           type="button"
                           onClick={() => removeRow(r.key)}
@@ -605,7 +638,20 @@ const SupervisorBulkStudents: React.FC = () => {
                     {/* Tarjeta móvil */}
                     <div className="md:hidden rounded-xl   bg-white p-3">
                       <div className="flex items-center justify-between mb-2">
-                        <div className="text-sm font-medium text-gray-700">Alumno</div>
+                        <div className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                          <span>{r.role === 'supervisor' ? 'Administrador' : 'Alumno'}</span>
+                          <button
+                            type="button"
+                            onClick={() => toggleRole(r.key)}
+                            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                              r.role === 'supervisor'
+                                ? 'bg-amber-100 text-amber-700'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            {r.role === 'supervisor' ? 'Admin' : 'Alumno'}
+                          </button>
+                        </div>
                         <button
                           type="button"
                           onClick={() => removeRow(r.key)}
@@ -702,6 +748,15 @@ const SupervisorBulkStudents: React.FC = () => {
             >
               <Plus size={18} />
               Añadir fila
+            </button>
+
+            <button
+              type="button"
+              onClick={addAdminRow}
+              className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-800 hover:bg-amber-100"
+            >
+              <Plus size={18} />
+              Añadir admin
             </button>
 
             <button

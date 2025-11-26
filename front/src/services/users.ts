@@ -21,6 +21,7 @@ export interface BatchStudent {
   lastName: string;
   email: string;
   password: string;
+  role?: 'alumno' | 'supervisor';
 }
 
 /** Datos actualizables de estudiante */

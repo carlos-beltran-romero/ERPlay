@@ -17,7 +17,7 @@ import { RefreshToken } from '../models/RefreshToken';
 import { User } from '../models/User';
 
 const PASSWORD_SALT_ROUNDS = 10;
-const ACCESS_TOKEN_TTL = '15m';
+const ACCESS_TOKEN_TTL = '2h';
 const REFRESH_TOKEN_TTL = '7d';
 const RESET_TOKEN_TTL = '1h';
 const REFRESH_TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;

@@ -78,6 +78,10 @@ router.post(
       .isString()
       .isLength({ min: 6 })
       .withMessage('Each user password must be at least 6 characters'),
+    body('users.*.role')
+      .optional()
+      .isIn(['alumno', 'supervisor'])
+      .withMessage('Rol inválido'),
   ]),
   usersController.batchCreateUsers,
 );
