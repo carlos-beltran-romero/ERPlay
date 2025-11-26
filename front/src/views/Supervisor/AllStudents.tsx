@@ -159,7 +159,7 @@ const SupervisorStudents: React.FC = () => {
 
   const csvEscape = (value: string | number | null | undefined) => {
     if (value == null) return '""';
-    const str = String(value).replaceAll(/"/g, '""');
+    const str = String(value).replaceAll('"', '""');
     return `"${str}"`;
   };
 

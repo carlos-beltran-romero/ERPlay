@@ -58,11 +58,11 @@ export function renderCardEmail(options: CardEmailOptions): string {
  */
 export function escapeHtml(raw: string | null | undefined): string {
   return (raw ?? '')
-    .replaceAll(/&/g, '&amp;')
-    .replaceAll(/</g, '&lt;')
-    .replaceAll(/>/g, '&gt;')
-    .replaceAll(/"/g, '&quot;')
-    .replaceAll(/'/g, '&#39;');
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
 
 /**
