@@ -8,7 +8,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useDelayedFlag } from '../../shared/hooks/useDelayedFlag';
 
 const normalize = (s: string) =>
-  s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+  s.normalize('NFD').replaceAll(/\p{Diacritic}/gu, '').toLowerCase();
 
 const PAGE_SIZE = 20;
 

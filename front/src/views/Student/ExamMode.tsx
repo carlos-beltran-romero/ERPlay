@@ -330,7 +330,7 @@ const ExamMode: React.FC = () => {
                     disabled={locked}
                     onChange={() => chooseAnswer(current, oi)}
                   />
-                  <span className="font-semibold">{String.fromCharCode(65 + oi)}.</span>
+                  <span className="font-semibold">{String.fromCodePoint(65 + oi)}.</span>
                   <span>{opt}</span>
                 </label>
               );

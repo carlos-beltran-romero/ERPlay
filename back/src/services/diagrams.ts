@@ -163,7 +163,7 @@ export class DiagramsService {
     newFile?: { filename: string; path: string };
     actorId: string;
   }): Promise<void> {
-    const norm = (s?: string) => (s || '').trim().replace(/\s+/g, ' ');
+    const norm = (s?: string) => (s || '').trim().replaceAll(/\s+/g, ' ');
     const makeSignature = (q: { prompt: string; hint: string; options: string[]; correctIndex: number }) => {
       const opts = (q.options || []).map(o => norm(o)).join('||');
       return `${norm(q.prompt)}|${norm(q.hint)}|${opts}|#${q.correctIndex}`;
@@ -236,7 +236,7 @@ export class DiagramsService {
     });
 
     if (oldPublicPath) {
-      const absolute = path.resolve(oldPublicPath.replace(/^\/+/, ''));
+      const absolute = path.resolve(oldPublicPath.replaceAll(/^\/+/, ''));
       fs.unlink(absolute, () => { /* ignore */ });
     }
   }
@@ -260,7 +260,7 @@ export class DiagramsService {
     });
 
     if (oldPublicPath) {
-      const absolute = path.resolve(oldPublicPath.replace(/^\/+/, ''));
+      const absolute = path.resolve(oldPublicPath.replaceAll(/^\/+/, ''));
       fs.unlink(absolute, () => { /* ignore */ });
     }
   }

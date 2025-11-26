@@ -18,7 +18,7 @@ export function resolveAssetUrl(path?: string | null): string | null {
   if (!path) return null;
   if (/^https?:\/\//i.test(path)) return path;
 
-  const base = env.API_URL.replace(/\/+$/, '').replace(/\/api$/i, '');
-  const rel = `/${String(path)}`.replace(/\/{2,}/g, '/');
+  const base = env.API_URL.replaceAll(/\/+$/, '').replaceAll(/\/api$/i, '');
+  const rel = `/${String(path)}`.replaceAll(/\/{2,}/g, '/');
   return `${base}${rel}`;
 }

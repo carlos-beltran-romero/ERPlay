@@ -13,7 +13,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 const normalize = (s: string) =>
-  s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+  s.normalize('NFD').replaceAll(/\p{Diacritic}/gu, '').toLowerCase();
 
 type EditForm = {
   id: string;
@@ -154,12 +154,12 @@ const SupervisorStudents: React.FC = () => {
 
   const formatDecimal = (value?: number | null) => {
     if (value == null || Number.isNaN(value)) return '';
-    return Number(value).toFixed(2); // si quieres coma: .replace('.', ',')
+    return Number(value).toFixed(2); // si quieres coma: .replaceAll('.', ',')
   };
 
   const csvEscape = (value: string | number | null | undefined) => {
     if (value == null) return '""';
-    const str = String(value).replace(/"/g, '""');
+    const str = String(value).replaceAll(/"/g, '""');
     return `"${str}"`;
   };
 

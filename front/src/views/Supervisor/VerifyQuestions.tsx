@@ -28,7 +28,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 
-const letter = (i: number) => String.fromCharCode(65 + i);
+const letter = (i: number) => String.fromCodePoint(65 + i);
 
 /* ---------- Utilidades UI ---------- */
 const joinName = (name?: string | null, lastName?: string | null) =>

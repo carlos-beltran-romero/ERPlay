@@ -1947,7 +1947,7 @@ const StudentDetail: React.FC = () => {
                                         }`}
                                       >
                                         <span className="font-semibold mr-2">
-                                          {String.fromCharCode(65 + oi)}.
+                                          {String.fromCodePoint(65 + oi)}.
                                         </span>
                                         <span>{txt}</span>
                                       </div>

@@ -19,7 +19,7 @@ const transporter = defaultMailer;
 
 /** Normaliza texto eliminando espacios extra */
 function norm(s: string) {
-  return (s ?? '').toString().trim().replace(/\s+/g, ' ');
+  return (s ?? '').toString().trim().replaceAll(/\s+/g, ' ');
 }
 
 /** Compara dos arrays de texto normalizados */

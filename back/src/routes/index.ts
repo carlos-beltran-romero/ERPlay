@@ -28,7 +28,7 @@ export default function registerRoutes(app: Express) {
   apiRouter.get("/swagger-ui/swagger-ui.css", (_req, res) => {
     const cssPath = path.join(SWAGGER_DIST, "swagger-ui.css");
     let css = fs.readFileSync(cssPath, "utf8");
-    css = css.replace(/\/\*#\s*sourceMappingURL=.*?\*\//g, "");
+    css = css.replaceAll(/\/\*#\s*sourceMappingURL=.*?\*\//g, "");
     res.type("text/css").send(css);
   });
 

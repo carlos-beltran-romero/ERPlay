@@ -72,8 +72,8 @@ const isDraftEmpty = (draft: Pick<Row, RowField>) =>
 const normalizeHeader = (value: string) =>
   value
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-zA-Z0-9]/g, '')
+    .replaceAll(/[\u0300-\u036f]/g, '')
+    .replaceAll(/[^a-zA-Z0-9]/g, '')
     .toLowerCase();
 
 const headerAliasMap = (() => {
@@ -229,7 +229,7 @@ const splitCsv = (text: string, delimiter: string) => {
 };
 
 const parseCsvRecords = (text: string): RawRecord[] => {
-  const sanitized = text.replace(/^\ufeff/, '');
+  const sanitized = text.replaceAll(/^\ufeff/, '');
   const trimmed = sanitized.trim();
   if (!trimmed) {
     throw new Error('El archivo está vacío.');

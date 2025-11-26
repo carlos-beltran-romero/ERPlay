@@ -58,11 +58,11 @@ export function renderCardEmail(options: CardEmailOptions): string {
  */
 export function escapeHtml(raw: string | null | undefined): string {
   return (raw ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replaceAll(/&/g, '&amp;')
+    .replaceAll(/</g, '&lt;')
+    .replaceAll(/>/g, '&gt;')
+    .replaceAll(/"/g, '&quot;')
+    .replaceAll(/'/g, '&#39;');
 }
 
 /**
@@ -74,5 +74,5 @@ export function escapeHtml(raw: string | null | undefined): string {
  */
 export function letterFromIndex(index: number): string {
   const value = Number.isFinite(index) ? Number(index) : 0;
-  return String.fromCharCode(65 + Math.max(0, value));
+  return String.fromCodePoint(65 + Math.max(0, value));
 }

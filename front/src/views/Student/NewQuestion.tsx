@@ -11,7 +11,7 @@ import { useDelayedFlag } from '../../shared/hooks/useDelayedFlag';
 type PublicDiagram = { id: string; title: string; path: string };
 
 const normalize = (s: string) =>
-  s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+  s.normalize('NFD').replaceAll(/\p{Diacritic}/gu, '').toLowerCase();
 
 const NewQuestion: React.FC = () => {
   const navigate = useNavigate();

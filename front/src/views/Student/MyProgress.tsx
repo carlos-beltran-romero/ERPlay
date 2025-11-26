@@ -140,7 +140,7 @@ const DualLineChart: React.FC<DualLineChartProps> = ({ data }) => {
     P = 28;
   const clamp01 = (v: any) => {
     const n = Number(v);
-    if (!isFinite(n)) return null;
+    if (!Number.isFinite(n)) return null;
     return Math.max(0, Math.min(100, n));
   };
 

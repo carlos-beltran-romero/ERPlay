@@ -61,7 +61,7 @@ const STATUS_LABEL = {
 
 
 const letter = (i?: number) =>
-  typeof i === "number" && i >= 0 ? String.fromCharCode(65 + i) : "—";
+  typeof i === "number" && i >= 0 ? String.fromCodePoint(65 + i) : "—";
 
 
 const fmtDate = (iso?: string) =>
@@ -374,7 +374,7 @@ const MyQuestionsView: React.FC = () => {
                                           }`}
                                         >
                                           <span className="font-semibold mr-2">
-                                            {String.fromCharCode(65 + idx)}.
+                                            {String.fromCodePoint(65 + idx)}.
                                           </span>
                                           <ExpandableText
                                             text={opt}
@@ -466,7 +466,7 @@ const MyQuestionsView: React.FC = () => {
                                       }`}
                                     >
                                       <span className="font-semibold mr-2">
-                                        {String.fromCharCode(65 + idx)}.
+                                        {String.fromCodePoint(65 + idx)}.
                                       </span>
                                       <ExpandableText
                                         text={opt}
@@ -714,7 +714,7 @@ const MyQuestionsView: React.FC = () => {
                                     text={
                                       typeof c.chosenIndex === "number" &&
                                       c.options?.[c.chosenIndex]
-                                        ? `${String.fromCharCode(
+                                        ? `${String.fromCodePoint(
                                             65 + c.chosenIndex
                                           )}. ${c.options[c.chosenIndex]}`
                                         : "—"
@@ -732,7 +732,7 @@ const MyQuestionsView: React.FC = () => {
                                     text={
                                       typeof c.correctIndex === "number" &&
                                       c.options?.[c.correctIndex]
-                                        ? `${String.fromCharCode(
+                                        ? `${String.fromCodePoint(
                                             65 + c.correctIndex
                                           )}. ${c.options[c.correctIndex]}`
                                         : "—"

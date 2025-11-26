@@ -516,7 +516,7 @@ const LearningMode: React.FC = () => {
                     >
                       <div className="flex items-center gap-3">
                         {icon}
-                        <span className="font-semibold">{String.fromCharCode(65 + oi)}.</span>
+                        <span className="font-semibold">{String.fromCodePoint(65 + oi)}.</span>
                         <span>{opt}</span>
                       </div>
                     </button>
@@ -664,14 +664,14 @@ const LearningMode: React.FC = () => {
                   <div className="text-gray-500">Tu respuesta</div>
                   <div className="mt-1 font-medium">
                     {selected[current] !== null
-                      ? `${String.fromCharCode(65 + (selected[current] as number))}. ${q.options[selected[current] as number]}`
+                      ? `${String.fromCodePoint(65 + (selected[current] as number))}. ${q.options[selected[current] as number]}`
                       : '—'}
                   </div>
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
                   <div className="text-gray-500">Respuesta oficial</div>
                   <div className="mt-1 font-medium">
-                    {`${String.fromCharCode(65 + q.correctIndex)}. ${q.options[q.correctIndex]}`}
+                    {`${String.fromCodePoint(65 + q.correctIndex)}. ${q.options[q.correctIndex]}`}
                   </div>
                 </div>
               </div>
