@@ -17,10 +17,10 @@ import { RefreshToken } from '../models/RefreshToken';
 import { User } from '../models/User';
 
 const PASSWORD_SALT_ROUNDS = 10;
-const ACCESS_TOKEN_TTL = '2h';
-const REFRESH_TOKEN_TTL = '7d';
+const ACCESS_TOKEN_TTL = '30m';
+const REFRESH_TOKEN_TTL = '1h';
 const RESET_TOKEN_TTL = '1h';
-const REFRESH_TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
+const REFRESH_TOKEN_EXPIRY_MS = 60 * 60 * 1000;
 
 /**
  * Servicio de autenticación
@@ -100,6 +100,12 @@ export class AuthService {
       });
 
       if (!existing) throw createHttpError(401, 'Token no válido');
+
+      const now = new Date();
+      if (existing.revoked || existing.expiresAt.getTime() <= now.getTime()) {
+        await this.refreshTokenRepository.remove(existing);
+        throw createHttpError(401, 'Su sesión expiró. Vuelve a iniciar sesión');
+      }
 
       const accessToken = jwt.sign(
         { id: existing.user.id, role: existing.user.role },
