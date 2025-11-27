@@ -310,7 +310,9 @@ const MyQuestionsView: React.FC = () => {
                   <div className="divide-y">
                     {filteredQ.slice(0, visibleQ).map((q) => {
                       const diagramSrc =
-                        resolveAssetUrl(q.diagram?.path) || q.diagram?.path || "";
+                        resolveAssetUrl(q.diagram?.path) ||
+                        q.diagram?.path ||
+                        "";
 
                       return (
                         <div key={q.id} className="px-4 py-3">
@@ -460,42 +462,43 @@ const MyQuestionsView: React.FC = () => {
                               ) : null}
                             </div>
 
-                            {Array.isArray(q.options) && q.options.length > 0 && (
-                              <div className="mt-2 space-y-1">
-                                {q.options.map((opt, idx) => {
-                                  const isSelected =
-                                    idx === (q.correctIndex ?? -1);
-                                  return (
-                                    <div
-                                      key={idx}
-                                      className={`rounded-lg border px-3 py-2 text-sm ${
-                                        isSelected
-                                          ? "border-gray-200 bg-gray-50"
-                                          : "border-gray-100 bg-white"
-                                      }`}
-                                    >
-                                      <span className="font-semibold mr-2">
-                                        {String.fromCodePoint(65 + idx)}.
-                                      </span>
-                                      <ExpandableText
-                                        text={opt}
-                                        minToHalf={MIN_HALF_TOGGLE_OPT}
-                                        className="inline"
-                                      />
-                                      {isSelected && (
-                                        <span className="ml-2 inline-flex items-center text-gray-600">
-                                          <CheckCircle2
-                                            size={14}
-                                            className="mr-1"
-                                          />
-                                          Seleccionada
+                            {Array.isArray(q.options) &&
+                              q.options.length > 0 && (
+                                <div className="mt-2 space-y-1">
+                                  {q.options.map((opt, idx) => {
+                                    const isSelected =
+                                      idx === (q.correctIndex ?? -1);
+                                    return (
+                                      <div
+                                        key={idx}
+                                        className={`rounded-lg border px-3 py-2 text-sm ${
+                                          isSelected
+                                            ? "border-gray-200 bg-gray-50"
+                                            : "border-gray-100 bg-white"
+                                        }`}
+                                      >
+                                        <span className="font-semibold mr-2">
+                                          {String.fromCodePoint(65 + idx)}.
                                         </span>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
+                                        <ExpandableText
+                                          text={opt}
+                                          minToHalf={MIN_HALF_TOGGLE_OPT}
+                                          className="inline"
+                                        />
+                                        {isSelected && (
+                                          <span className="ml-2 inline-flex items-center text-gray-600">
+                                            <CheckCircle2
+                                              size={14}
+                                              className="mr-1"
+                                            />
+                                            Seleccionada
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
 
                             <div className="mt-2 flex items-start justify-between gap-3">
                               <StatusBadge status={q.status} />
@@ -599,7 +602,9 @@ const MyQuestionsView: React.FC = () => {
                             }`
                           : "—";
                       const diagramSrc =
-                        resolveAssetUrl(c.diagram?.path) || c.diagram?.path || "";
+                        resolveAssetUrl(c.diagram?.path) ||
+                        c.diagram?.path ||
+                        "";
 
                       return (
                         <div key={c.id} className="px-4 py-3">
@@ -810,10 +815,9 @@ const MyQuestionsView: React.FC = () => {
         )}
 
         {previewImg && (
-          <div
+          <dialog
+            open
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
-            role="dialog"
-            aria-modal="true"
             aria-label={`Vista previa del diagrama: ${previewImg.title}`}
           >
             <div className="relative max-h-[90vh] max-w-[95vw] rounded-lg bg-white p-3 shadow-2xl">
@@ -835,7 +839,7 @@ const MyQuestionsView: React.FC = () => {
                 />
               </div>
             </div>
-          </div>
+          </dialog>
         )}
       </div>
     </PageWithHeader>

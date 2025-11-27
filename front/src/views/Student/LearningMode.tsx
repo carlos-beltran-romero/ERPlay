@@ -382,6 +382,10 @@ const LearningMode: React.FC = () => {
     selected[current] !== q.correctIndex &&
     !claimed[current];
 
+  // índice elegido para mostrar en el modal
+  const chosenIndexForClaim =
+    typeof selected[current] === "number" ? selected[current] : null;
+
   const openClaim = () => {
     if (!canClaim) {
       toast.info("Solo puedes reclamar una pregunta que hayas respondido mal.");
@@ -393,8 +397,13 @@ const LearningMode: React.FC = () => {
 
   const submitClaim = async () => {
     if (!payload || !canClaim) return;
-    const chosenIndex = selected[current] as number;
+
+    const currentSelected = selected[current];
+    if (typeof currentSelected !== "number") return; // seguridad extra
+
+    const chosenIndex = currentSelected;
     const explanation = claimText.trim();
+
     if (explanation.length < 10) {
       toast.error("Explica brevemente tu reclamación (mínimo 10 caracteres).");
       return;
@@ -690,11 +699,11 @@ const LearningMode: React.FC = () => {
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
                   <div className="text-gray-500">Tu respuesta</div>
                   <div className="mt-1 font-medium">
-                    {selected[current] !== null
-                      ? `${String.fromCodePoint(
-                          65 + (selected[current] as number)
-                        )}. ${q.options[selected[current] as number]}`
-                      : "—"}
+                    {chosenIndexForClaim === null
+                      ? "—"
+                      : `${String.fromCodePoint(65 + chosenIndexForClaim)}. ${
+                          q.options[chosenIndexForClaim]
+                        }`}
                   </div>
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
@@ -708,16 +717,20 @@ const LearningMode: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-600 mb-1">
+                <label
+                  htmlFor="claimExplanation"
+                  className="block text-sm text-gray-600 mb-1"
+                >
                   Explicación (obligatoria)
-                  <textarea
-                    value={claimText}
-                    onChange={(e) => setClaimText(e.target.value)}
-                    rows={4}
-                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                    placeholder="Argumenta tu reclamación con detalle…"
-                  />
                 </label>
+                <textarea
+                  id="claimExplanation"
+                  value={claimText}
+                  onChange={(e) => setClaimText(e.target.value)}
+                  rows={4}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  placeholder="Argumenta tu reclamación con detalle…"
+                />
               </div>
             </div>
 

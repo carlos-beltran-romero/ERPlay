@@ -129,7 +129,9 @@ function getTablesFromInsertStatements(stmts: string[]): string[] {
   for (const s of stmts) {
     const m = s.match(/INSERT\s+INTO\s+([^\s(]+)/i);
     if (m && m[1]) {
-      const table = m[1].split('.').pop()!.replaceAll('`', '');
+      const raw = m[1].split('.').pop();
+      if (!raw) continue; // seguridad extra
+      const table = raw.replaceAll('`', '');
       if (table) set.add(table);
     }
   }
