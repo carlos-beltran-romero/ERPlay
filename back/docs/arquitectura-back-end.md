@@ -1,46 +1,50 @@
 # Arquitectura del back-end
 
 ## Visión general
-El back-end de ERPlay es una API REST construida con **Node.js + Express** y **TypeORM** como capa de acceso a datos. Sigue una separación por responsabilidades que facilita el mantenimiento:
 
-- **Configuración (`src/config/`)**: lectura de variables de entorno, constantes y helpers de configuración.
-- **Core (`src/core/`)**: inicialización de dependencias transversales (p. ej. colas, seguridad).
-- **Módulos de dominio (`src/controllers`, `src/services`, `src/models`)**: cada módulo agrupa entidades, lógica de negocio y adaptadores HTTP.
-- **Infraestructura (`src/middlewares`, `src/routes`, `src/utils`)**: middlewares de Express, definición de rutas y utilidades reutilizables.
-- **Inicialización (`src/app.ts`, `src/server.ts`, `src/index.ts`)**: ensamblan la aplicación, inician la base de datos y levantan el servidor HTTP.
+La API de ERPlay está construida en **Node.js 20**, **Express 5** y **TypeORM** sobre MySQL. La solución se organiza por capas para aislar infraestructura, dominio y delivery HTTP:
 
-La API expone documentación Swagger desde `GET /api/docs` y ofrece un endpoint de salud en `GET /health`.
+- **Configuración (`src/config/`)**: validación estricta de variables con Zod y carga de `.env`.
+- **Núcleo (`src/core/`)**: utilidades compartidas (p. ej. estilos de Swagger UI) y bootstrap transversal.
+- **Aplicación (`src/app.ts`, `src/server.ts`)**: factoría `createApp` con middlewares comunes y exportación de la instancia para pruebas.
+- **Rutas (`src/routes/`)**: composición del router `/api`, documentación Swagger y registro de módulos.
+- **Controladores (`src/controllers/`)**: adaptadores HTTP que orquestan servicios y validan DTOs.
+- **Servicios (`src/services/`)**: lógica de negocio y coordinación con repositorios TypeORM.
+- **Modelos (`src/models/`)**: entidades y relaciones persistentes.
+- **Middlewares (`src/middlewares/`)**: autenticación, autorización, validación, logging y manejo de errores/cargas.
+- **Infraestructura de datos (`src/data-source.ts`, `src/migrations/`, `src/seeds/`)**: inicialización de TypeORM, migraciones versionadas y seeds.
 
-## Ciclo de una petición
-1. **Entrada**: las peticiones llegan a `createApp()` (Express) donde se aplican `helmet`, `cors`, logging y parseadores JSON/URL encoded.
-2. **Ruteo**: `registerRoutes()` monta un router `/api` que agrupa módulos (auth, users, diagrams, exams, etc.) y sirve los assets de Swagger.
-3. **Controladores**: cada archivo en `src/controllers/` transforma la solicitud en llamadas a servicios de dominio. Se encargan de validar DTOs y formatear la respuesta HTTP.
-4. **Servicios**: encapsulan la lógica de negocio, orquestan repositorios TypeORM y utilidades. Están diseñados para ser testeables de manera aislada.
-5. **Persistencia**: los modelos en `src/models/` definen entidades de TypeORM. El `AppDataSource` centraliza la conexión a MySQL y se inicializa desde `src/index.ts` antes de arrancar el servidor.
-6. **Errores**: cualquier excepción pasa por `uploadErrorHandler`, `notFound` y finalmente `errorHandler`, que uniformiza la respuesta (códigos, payload `{ error }`).
+## Flujo de petición
 
-## Estructura relevante
-```
-src/
-├─ app.ts             # Factoría Express con middlewares comunes
-├─ index.ts           # Bootstrap: inicializa TypeORM y arranca HTTP
-├─ server.ts          # Exporta instancia Express (para tests / serverless)
-├─ config/
-│  └─ env.ts          # Normaliza variables de entorno (DB, JWT, CORS)
-├─ controllers/       # Controladores HTTP por dominio (auth, exams, diagrams, ...)
-├─ services/          # Lógica de negocio (validaciones, agregaciones, orquestación)
-├─ models/            # Entidades TypeORM y relaciones
-├─ routes/            # Routers de Express por módulo + documentación Swagger
-├─ middlewares/       # Logger, auth guard, validación de archivos, manejadores de errores
-├─ utils/             # Helpers transversales (hashing, fechas, mapper de respuestas)
-├─ seeds/             # Scripts para poblar datos iniciales (opcional en despliegue)
-├─ migrations/        # Migraciones TypeORM versionadas
-└─ types/             # Definiciones de tipos compartidos (DTOs, payloads, enumeraciones)
-```
+1. `createApp()` aplica `helmet`, `cors`, logging y parseadores de JSON/URL-encoded; expone un `GET /health` y los assets estáticos de `/uploads` antes de montar las rutas de negocio.【F:back/src/app.ts†L17-L44】
+2. `registerRoutes()` construye el router `/api`, sirve Swagger UI sin depender de CDN, publica el contrato en `/api/openapi.yaml` y agrega los módulos de dominio (auth, users, diagrams, questions, progress, supervisor, etc.).【F:back/src/routes/index.ts†L23-L87】
+3. Los controladores transforman la petición en llamadas a servicios. Los servicios encapsulan las reglas de negocio y manipulan las entidades de TypeORM.
+4. Los errores pasan por `uploadErrorHandler`, `notFound` y `errorHandler`, devolviendo respuestas homogéneas.
 
-## Consideraciones de diseño
-- **Tipado estricto**: se utilizan DTOs y tipos auxiliares en `src/types/` para documentar inputs/outputs y reducir errores en controllers.
-- **Separación de responsabilidades**: los servicios no dependen de Express; los controladores actúan como adaptadores.
-- **Gestión de archivos**: los uploads se guardan en `/uploads` y se exponen de forma estática bajo `/api/uploads`.
-- **Observabilidad**: el middleware `logger` centraliza trazas de cada petición, facilitando la monitorización.
-- **Extensibilidad**: para añadir un módulo nuevo se recomienda crear entidad + servicio + controlador + router, registrar el router en `src/routes/index.ts` y documentar el contrato en `openapi.yaml`.
+## Configuración y arranque
+
+- `src/config/env.ts` valida todas las variables críticas (DB, JWT, SMTP, URLs públicas) y aborta el arranque si falta alguna, aplicando valores por defecto seguros donde procede.【F:back/src/config/env.ts†L10-L52】
+- `src/index.ts` inicializa el `AppDataSource` y, tras conectarse a MySQL, importa `server.ts` para levantar el HTTP server en el puerto configurado.【F:back/src/index.ts†L1-L15】
+- `src/server.ts` exporta la instancia Express creada por `createApp`, permitiendo reutilizarla en tests o adaptarla a otros despliegues.
+
+## Persistencia
+
+- El `AppDataSource` definido en `src/data-source.ts` centraliza la conexión MySQL y registra entidades/migraciones.
+- Las migraciones viven en `src/migrations/` y se ejecutan con los scripts `migration:run`/`migration:revert` desde TypeScript o compiladas (`:js`).
+- Las semillas (`src/seeds/seed.ts`) cargan usuarios, diagramas, preguntas, exámenes, progreso y métricas iniciales; el `docker-compose` permite habilitarlas con `RUN_DB_SEED` en arranque.【F:docker-compose.yml†L34-L48】【F:back/src/seeds/seed.ts†L1-L209】
+
+## Middlewares y seguridad
+
+- `middlewares/authenticate` y `middlewares/authorize` protegen rutas por rol, mientras que `validateDto` homogeniza la validación de payloads.
+- `middlewares/logger` traza cada petición; `upload` y `uploadErrorHandler` gestionan las cargas de archivos y sus errores.
+- Los JWT de acceso, refresco y reseteo se configuran mediante `JWT_SECRET`, `JWT_REFRESH_SECRET` y `JWT_RESET_SECRET` validados en `env.ts`.
+
+## Documentación y contratos
+
+- Swagger UI está disponible en `GET /api/docs`, alimentado por `back/openapi.yaml` y servido desde los assets locales de `swagger-ui-dist` para evitar dependencias externas.【F:back/src/routes/index.ts†L26-L68】【F:back/openapi.yaml†L1-L34】
+- La documentación técnica de TypeDoc (front y back) se genera en la carpeta raíz `docs/` y enlaza con el README principal (`typedoc.json`).
+
+## Pruebas y salud
+
+- La API expone `GET /health` como verificación básica del servicio.【F:back/src/app.ts†L37-L44】
+- La suite de Jest + Supertest cubre los flujos de autenticación usando repositorios en memoria y puede ejecutarse con `npm test` desde `back/`.

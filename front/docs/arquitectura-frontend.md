@@ -1,56 +1,40 @@
 # Arquitectura del frontend
 
 ## Visión general
-El frontend de **ERPlay** está construido con React + Vite y organizado alrededor de capas bien definidas:
 
-- **Capa de aplicación (`src/app/`)**: define contextos compartidos (autenticación, tema) y el router.
-- **Capa de vistas (`src/views/`)**: páginas específicas para alumnos y supervisores.
-- **Capa de componentes (`src/components/`)**: piezas reutilizables (layout, UI comunes) desacopladas de las vistas.
-- **Capa de servicios (`src/services/`)**: cliente HTTP y funciones de dominio que se comunican con la API.
-- **Capa compartida (`src/shared/`)**: utilidades puras (formateo, helpers de URL, constantes).
+El cliente web está construido con **React 19**, **Vite** y CSS con Tailwind v4. Se organiza por capas para aislar vistas, servicios y estado compartido:
 
-El estado global se reduce al mínimo imprescindible (perfil y tema) y se expone mediante contextos. El resto del estado se maneja de forma local en cada vista o componente.
+- **`src/app/`**: providers globales (autenticación, tema), router y bootstrap de notificaciones.
+- **`src/views/`**: páginas de negocio separadas por rol (estudiante y supervisor) y flujos públicos (login, recuperación).
+- **`src/layouts/`** y **`src/components/`**: layouts completos y componentes reutilizables (cabeceras, toggles, wrappers).
+- **`src/services/`**: cliente HTTP, caché de sesión y servicios de dominio (users, diagrams, progress...).
+- **`src/shared/`** y **`src/types/`**: constantes, hooks y tipos comunes.
 
-## Estructura de carpetas
-```
-src/
-├─ app/
-│  ├─ App.tsx              # Providers globales + RouterProvider + ToastContainer
-│  ├─ AuthContext.tsx      # Contexto de autenticación y helpers (profile, loading)
-│  ├─ ThemeContext.tsx     # Contexto de tema (light/dark) con persistencia y media queries
-│  └─ router.tsx           # Definición de rutas, loaders de autorización y páginas públicas
-├─ components/
-│  ├─ ThemeToggle.tsx      # Botón flotante para alternar tema
-│  └─ layout/              # Cabeceras, contenedores y wrappers reutilizables
-├─ config/
-│  └─ env.ts               # Normalización de variables de entorno expuestas por Vite
-├─ layouts/                # Layouts completos empleados por las vistas (dashboard, públicos, etc.)
-├─ services/
-│  ├─ http.ts              # Cliente HTTP (tokens, refresh, manejo centralizado de errores)
-│  ├─ auth.ts              # Lógica de login/reset/logout apoyada en http.ts
-│  ├─ authCache.ts         # Caché in-memory del perfil autenticado
-│  └─ *.ts                 # Servicios de dominio (diagrams, questions, progress, ...)
-├─ shared/
-│  ├─ constants            # Enumeraciones, valores por defecto de formularios
-│  ├─ hooks                # Hooks que encapsulan patrones repetidos
-│  └─ utils                # Utilidades puras (formatos, parseo, construcción de URLs)
-├─ views/
-│  ├─ Login.tsx            # Autenticación y bootstrap del perfil
-│  ├─ NotFound.tsx         # Página 404 genérica con CTA dinámico
-│  ├─ Student/             # Flujos propios del alumnado (dashboard, juego, progreso)
-│  └─ Supervisor/          # Gestión de alumnos, diagramas, evaluaciones
-└─ main.tsx                # Punto de montaje con StrictMode + App
-```
+La UI aplica modo claro/oscuro mediante variables CSS y clases `:root.dark`, con gradientes y tokens definidos en `src/index.css`.
 
-## Flujos clave
-- **Autenticación resiliente**: `AuthProvider` inicializa el perfil usando `authCache` y los servicios de usuarios. Si expira la sesión, limpia tokens y redirige a login. Las vistas consultan `useAuth()` para renderizar contenido o loaders.
-- **Protección de rutas**: `router.tsx` usa loaders que validan el rol antes de montar la vista. Las rutas públicas (login, recuperación) quedan accesibles sin sesión.
-- **Modo oscuro/claro**: `ThemeProvider` sincroniza `localStorage`, `prefers-color-scheme` y la clase `dark` en `<html>`. El componente `FloatingThemeToggle` permite alternar desde cualquier pantalla.
-- **Servicios declarativos**: los módulos de `services/` consumen `apiJson`/`apiRequest`, encapsulan las URLs y devuelven modelos tipados listos para la UI.
+## Composición de la aplicación
 
-## Buenas prácticas
-- **Reutiliza contextos**: Usa `useAuth()` y `useTheme()` en vez de manejar estado global manualmente.
-- **Centraliza llamadas HTTP**: no invoques `fetch` directamente desde las vistas; crea un helper en `services/` y reutilízalo.
-- **Componentiza layouts**: para nuevas pantallas, parte desde los componentes de `layouts/` y añade piezas de `components/` antes de crear duplicados.
-- **Documenta con TSDoc**: cualquier función exportada debe llevar comentarios con las etiquetas necesarias para Typedoc (ej. `@public`, `@internal`, `@remarks`).
-- **Rutas nuevas**: registra las vistas en `router.tsx`. Si requieren permisos, usa el helper `protect({ path, element, roles })` para añadir el loader.
+- `App.tsx` envuelve el router en `ThemeProvider` y `AuthProvider`, añade `ToastContainer` y el `FloatingThemeToggle` para alternar el tema global.【F:front/src/app/App.tsx†L1-L33】
+- `AuthContext.tsx` recupera el perfil desde la API o la caché (`authCache`), mantiene el estado de carga y expone helpers para refrescar o sobrescribir el perfil en cualquier vista.【F:front/src/app/AuthContext.tsx†L15-L123】
+- `ThemeContext.tsx` sincroniza el tema con `localStorage` y `prefers-color-scheme`, aplicando la clase `dark` en `<html>`.
+
+## Enrutado y protección
+
+- `router.tsx` define las rutas públicas y protegidas. Los loaders `requireRole` y `redirectIfAuthenticated` validan el rol antes de montar cada vista y redirigen a login o al dashboard correspondiente.【F:front/src/app/router.tsx†L28-L120】
+- El mismo router redirige `/` a `/login` y expone un `NotFound` genérico para rutas inexistentes.
+
+## Servicios y consumo de API
+
+- `services/http.ts` centraliza `fetch`, maneja tokens JWT (almacenados en `localStorage`), realiza refresh automático y normaliza errores de red, permitiendo configurar `VITE_API_URL` como absoluto o relativo según el entorno.【F:front/src/services/http.ts†L1-L200】
+- `config/env.ts` valida `VITE_API_URL` en tiempo de arranque para evitar builds sin backend configurado.【F:front/src/config/env.ts†L6-L16】
+- Servicios específicos (`services/users`, `services/auth`, etc.) consumen `apiJson/apiRequest` y devuelven modelos listos para la UI.
+
+## Estilos y theming
+
+- `src/index.css` define los tokens de color y sombras para ambos temas, con degradados de fondo y overrides para componentes Tailwind. Cambiar el tema actualiza `:root` y la clase `dark` para toda la aplicación.【F:front/src/index.css†L1-L120】
+
+## Desarrollo y despliegue
+
+- El entorno de desarrollo usa Vite (`npm run dev`), mientras que la build de producción (`npm run build`) se sirve detrás de Nginx en Docker con el proxy `/api` hacia el backend.
+- `VITE_API_URL` debe apuntar a `/api` cuando se usa el stack Docker, o a `http://localhost:3000/api` en desarrollo local sin proxy.
+- Las dependencias de linting (`npm run lint`) y typescript (`tsc -b`) aseguran calidad del código antes de la build.
