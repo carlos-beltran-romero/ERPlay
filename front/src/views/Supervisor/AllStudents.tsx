@@ -189,7 +189,6 @@ const SupervisorStudents: React.FC = () => {
     { label: 'Reclamaciones aprobadas', getValue: ({ claimsApproved }) => claimsApproved },
     { label: 'Reclamaciones enviadas', getValue: ({ claimsSubmitted }) => claimsSubmitted },
     { label: 'Preguntas creadas', getValue: ({ createdQuestions }) => createdQuestions },
-    { label: 'Preguntas aprobadas', getValue: ({ approvedQuestions }) => approvedQuestions },
     { label: 'Insignias', getValue: ({ badges }) => badges },
   ];
 

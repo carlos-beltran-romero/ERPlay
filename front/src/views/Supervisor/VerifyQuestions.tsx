@@ -341,8 +341,8 @@ const VerifyQuestions: React.FC = () => {
                       disabled={approvingAll || pendingQ.length === 0}
                       className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium shadow-sm ${
                         approvingAll || pendingQ.length === 0
-                          ? 'bg-emerald-300 text-white cursor-not-allowed'
-                          : 'bg-emerald-600 text-white hover:bg-emerald-500'
+                          ? 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-not-allowed'
+                          : 'bg-emerald-600 hover:bg-emerald-500 text-white'
                       }`}
                     >
                       <CheckCircle2 size={16} /> Aceptar todas

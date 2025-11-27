@@ -101,7 +101,6 @@ type Range = { from?: string; to?: string };
  * @returns Objeto con todas las métricas calculadas
  */
 export async function getDiagramStatsService(diagramId: string, range?: Range): Promise<DiagramStatsResponse> {
-  // Filtro de fechas
   const whereSession: any = { diagram: { id: diagramId } };
   if (range?.from && range?.to) {
     whereSession.createdAt = Between(new Date(range.from), new Date(range.to));

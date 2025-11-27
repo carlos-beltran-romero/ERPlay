@@ -815,10 +815,23 @@ const MyQuestionsView: React.FC = () => {
         )}
 
         {previewImg && (
-          <dialog
-            open
+          <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
-            aria-label={`Vista previa del diagrama: ${previewImg.title}`}
+            role="button"
+            tabIndex={0}
+            aria-label="Cerrar vista previa del diagrama"
+            onClick={(e) => {
+              // Cerrar solo si se hace clic en el fondo oscuro
+              if (e.target === e.currentTarget) {
+                setPreviewImg(null);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape" || e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setPreviewImg(null);
+              }
+            }}
           >
             <div className="relative max-h-[90vh] max-w-[95vw] rounded-lg bg-white p-3 shadow-2xl">
               <button
@@ -839,7 +852,7 @@ const MyQuestionsView: React.FC = () => {
                 />
               </div>
             </div>
-          </dialog>
+          </div>
         )}
       </div>
     </PageWithHeader>

@@ -115,7 +115,7 @@ export const createDiagram = asyncHandler(async (req: Request, res: Response) =>
     })),
   });
 
-  // result.path ya viene como /uploads/...
+
   res.status(201).json({ id: result.id, path: result.path });
 });
 

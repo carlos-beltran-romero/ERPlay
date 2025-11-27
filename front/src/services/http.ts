@@ -13,7 +13,6 @@ import { env } from '../config/env';
 const ACCESS_TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
 
-// Puede ser '', '/api' o 'http://host:3000'
 const API_URL_BASE = (env.API_URL ?? '').trim();
 
 export const API_URL = API_URL_BASE;
@@ -138,21 +137,18 @@ export function clearTokens() {
 function resolveUrl(path: string): string {
   if (/^https?:\/\//i.test(path)) return path;
 
-  // Normaliza path a que empiece por /
   const rel = path.startsWith('/') ? path : `/${path}`;
 
-  // ¿Base absoluta?
   const baseIsHttp = /^https?:\/\//i.test(API_URL_BASE);
   if (baseIsHttp) {
     const base = API_URL_BASE.replace(/\/+$/, ''); // sin barra final
     return `${base}${rel}`;
   }
 
-  // Base relativa: '', '/api', '/algo'
   const base = API_URL_BASE.replace(/\/+$/, ''); // '', '/api', '/algo'
   if (!base) return rel; // origen actual
 
-  // Evita duplicar prefijo: si rel ya empieza por base ('/api/...'), devuélvelo tal cual
+
   if (rel === base || rel.startsWith(`${base}/`)) {
     return rel;
   }

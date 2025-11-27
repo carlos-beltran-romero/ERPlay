@@ -50,7 +50,6 @@ type FeedItem =
 export async function getRecentActivity(userId: string, limit = 8, offset = 0): Promise<FeedItem[]> {
   const takeEach = Math.max(limit + offset, 40);
 
-  // Sesiones del usuario
   const sessions = await AppDataSource.getRepository(TestSession)
     .createQueryBuilder('s')
     .innerJoin('s.user', 'u')

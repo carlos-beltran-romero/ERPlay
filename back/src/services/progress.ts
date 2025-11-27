@@ -123,7 +123,7 @@ export async function getTrends(params: { userId: string; from?: string; to?: st
 
   const baseDateExpr =
     bucket === 'week'
-      ? "STR_TO_DATE(CONCAT(YEARWEEK(r.createdAt, 3),' Monday'), '%X%V %W')" // Semana ISO (modo 3)
+      ? "STR_TO_DATE(CONCAT(YEARWEEK(r.createdAt, 3),' Monday'), '%X%V %W')" 
       : 'DATE(r.createdAt)';
   const dateExpr = `DATE_FORMAT(${baseDateExpr}, '%Y-%m-%d')`;
 
