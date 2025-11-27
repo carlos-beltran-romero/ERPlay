@@ -7,7 +7,7 @@
     "typedoc": "^0.28.14"
   },
 "scripts": {
-  "sonar": "set \"SONAR_HOST_URL=http://localhost:9000\" && set \"SONAR_TOKEN=sqp_5775759382f550c5e58d75caffc4d068caa5bead\" && sonar-scanner",
+  "sonar": "set \"SONAR_HOST_URL=http://localhost:9000\" && set \"SONAR_TOKEN=sqa_ff2ec0bbd347aaa2f972b21b3ed0987a87af0908\" && sonar-scanner",
   "docs": "typedoc",
   "docs:serve": "npx http-server docs -o"
 }

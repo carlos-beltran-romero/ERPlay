@@ -72,8 +72,8 @@ const isDraftEmpty = (draft: Pick<Row, RowField>) =>
 const normalizeHeader = (value: string) =>
   value
     .normalize('NFD')
-    .replaceAll(/[\u0300-\u036f]/g, '')
-    .replaceAll(/[^a-zA-Z0-9]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]/g, '')
     .toLowerCase();
 
 const headerAliasMap = (() => {
@@ -195,8 +195,9 @@ const splitCsv = (text: string, delimiter: string) => {
   let current = '';
   let insideQuotes = false;
   let row: string[] = [];
+  let i = 0;
 
-  for (let i = 0; i < text.length; i += 1) {
+  while (i < text.length) {
     const char = text[i];
     const nextChar = text[i + 1];
 
@@ -221,6 +222,8 @@ const splitCsv = (text: string, delimiter: string) => {
     } else {
       current += char;
     }
+
+    i += 1;
   }
 
   row.push(current);
@@ -229,7 +232,7 @@ const splitCsv = (text: string, delimiter: string) => {
 };
 
 const parseCsvRecords = (text: string): RawRecord[] => {
-  const sanitized = text.replaceAll(/^\ufeff/, '');
+  const sanitized = text.replace(/^\ufeff/, '');
   const trimmed = sanitized.trim();
   if (!trimmed) {
     throw new Error('El archivo está vacío.');
@@ -457,14 +460,14 @@ const SupervisorBulkStudents: React.FC = () => {
     const checked = validate(rows);
     setRows(checked);
 
-    const allEmpty = checked.every(r => isDraftEmpty(r));
-    const hasErrors = checked.some(r => r.errors && Object.keys(r.errors).length > 0);
+    const allEmptyChecked = checked.every(r => isDraftEmpty(r));
+    const hasErrorsChecked = checked.some(r => r.errors && Object.keys(r.errors).length > 0);
 
-    if (allEmpty) {
+    if (allEmptyChecked) {
       toast.info('Añade al menos un usuario (alumno o admin).');
       return;
     }
-    if (hasErrors) {
+    if (hasErrorsChecked) {
       toast.error('Revisa los errores antes de guardar.');
       return;
     }
@@ -488,7 +491,8 @@ const SupervisorBulkStudents: React.FC = () => {
 
       if (creados > 0) toast.success(`Registrados ${creados} usuario(s) correctamente.`);
       if (yaExisten > 0) toast.warn(`Omitidos por existir previamente: ${result.skipped.exists.join(', ')}`);
-      if (duplicados > 0) toast.warn(`Omitidos por duplicados en el lote: ${result.skipped.payloadDuplicates.join(', ')}`);
+      if (duplicados > 0)
+        toast.warn(`Omitidos por duplicados en el lote: ${result.skipped.payloadDuplicates.join(', ')}`);
 
       setRows([emptyRow()]);
       setVisiblePasswords({});
@@ -554,8 +558,14 @@ const SupervisorBulkStudents: React.FC = () => {
               <form onSubmit={handleAdminSubmit} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-xs text-gray-600">Nombre *</label>
+                    <label
+                      htmlFor="adminName"
+                      className="mb-1 block text-xs text-gray-600"
+                    >
+                      Nombre *
+                    </label>
                     <input
+                      id="adminName"
                       value={adminForm.name}
                       onChange={e => updateAdminField('name', e.target.value)}
                       className={`w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
@@ -569,8 +579,14 @@ const SupervisorBulkStudents: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="mb-1 block text-xs text-gray-600">Apellidos *</label>
+                    <label
+                      htmlFor="adminLastName"
+                      className="mb-1 block text-xs text-gray-600"
+                    >
+                      Apellidos *
+                    </label>
                     <input
+                      id="adminLastName"
                       value={adminForm.lastName}
                       onChange={e => updateAdminField('lastName', e.target.value)}
                       className={`w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
@@ -586,8 +602,14 @@ const SupervisorBulkStudents: React.FC = () => {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-xs text-gray-600">Email *</label>
+                    <label
+                      htmlFor="adminEmail"
+                      className="mb-1 block text-xs text-gray-600"
+                    >
+                      Email *
+                    </label>
                     <input
+                      id="adminEmail"
                       value={adminForm.email}
                       onChange={e => updateAdminField('email', e.target.value)}
                       className={`w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
@@ -602,8 +624,14 @@ const SupervisorBulkStudents: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="mb-1 block text-xs text-gray-600">Contraseña *</label>
+                    <label
+                      htmlFor="adminPassword"
+                      className="mb-1 block text-xs text-gray-600"
+                    >
+                      Contraseña *
+                    </label>
                     <input
+                      id="adminPassword"
                       value={adminForm.password}
                       onChange={e => updateAdminField('password', e.target.value)}
                       className={`w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
@@ -669,8 +697,8 @@ const SupervisorBulkStudents: React.FC = () => {
                 <h2 className="text-lg font-semibold">Importar desde Excel</h2>
               </div>
               <p className="mt-1 text-sm text-gray-600">
-                Crea un archivo con las columnas <strong>Nombre</strong>, <strong>Apellidos</strong>,
-                <strong> Email</strong> y <strong>Contraseña</strong>. Puedes usar .xlsx, .xls o .csv exportado desde Excel.
+                Crea un archivo con las columnas <strong>Nombre</strong>, <strong>Apellidos</strong>,{' '}
+                <strong>Email</strong> y <strong>Contraseña</strong>. Puedes usar .xlsx, .xls o .csv exportado desde Excel.
               </p>
               <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-gray-600">
                 <li>Una fila por alumno.</li>
@@ -722,6 +750,10 @@ const SupervisorBulkStudents: React.FC = () => {
             <div className="divide-y">
               {validatedRows.map(r => {
                 const passwordVisible = !!visiblePasswords[r.key];
+                const nameMobileId = `name-${r.key}`;
+                const lastNameMobileId = `lastName-${r.key}`;
+                const emailMobileId = `email-${r.key}`;
+                const passwordMobileId = `password-${r.key}`;
                 return (
                   <div key={r.key} className="px-4 py-4">
                     {/* Fila desktop */}
@@ -843,8 +875,14 @@ const SupervisorBulkStudents: React.FC = () => {
 
                       <div className="space-y-3">
                         <div>
-                          <label className="mb-1 block text-xs text-gray-600">Nombre *</label>
+                          <label
+                            htmlFor={nameMobileId}
+                            className="mb-1 block text-xs text-gray-600"
+                          >
+                            Nombre *
+                          </label>
                           <input
+                            id={nameMobileId}
                             value={r.name}
                             onChange={e => updateCell(r.key, 'name', e.target.value)}
                             placeholder="Nombre"
@@ -857,8 +895,14 @@ const SupervisorBulkStudents: React.FC = () => {
                         </div>
 
                         <div>
-                          <label className="mb-1 block text-xs text-gray-600">Apellidos *</label>
+                          <label
+                            htmlFor={lastNameMobileId}
+                            className="mb-1 block text-xs text-gray-600"
+                          >
+                            Apellidos *
+                          </label>
                           <input
+                            id={lastNameMobileId}
                             value={r.lastName}
                             onChange={e => updateCell(r.key, 'lastName', e.target.value)}
                             placeholder="Apellidos"
@@ -871,8 +915,14 @@ const SupervisorBulkStudents: React.FC = () => {
                         </div>
 
                         <div>
-                          <label className="mb-1 block text-xs text-gray-600">Email *</label>
+                          <label
+                            htmlFor={emailMobileId}
+                            className="mb-1 block text-xs text-gray-600"
+                          >
+                            Email *
+                          </label>
                           <input
+                            id={emailMobileId}
                             value={r.email}
                             onChange={e => updateCell(r.key, 'email', e.target.value)}
                             placeholder="correo@ejemplo.com"
@@ -886,9 +936,15 @@ const SupervisorBulkStudents: React.FC = () => {
                         </div>
 
                         <div>
-                          <label className="mb-1 block text-xs text-gray-600">Contraseña *</label>
+                          <label
+                            htmlFor={passwordMobileId}
+                            className="mb-1 block text-xs text-gray-600"
+                          >
+                            Contraseña *
+                          </label>
                           <div className="relative">
                             <input
+                              id={passwordMobileId}
                               value={r.password}
                               onChange={e => updateCell(r.key, 'password', e.target.value)}
                               placeholder="Contraseña"

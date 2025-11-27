@@ -2,5 +2,5 @@ projectKey=ERPLAY
 serverUrl=http://localhost:9000
 serverVersion=25.10.0.114319
 dashboardUrl=http://localhost:9000/dashboard?id=ERPLAY
-ceTaskId=1adeb27c-c0f2-4a1b-be09-234ab777df71
-ceTaskUrl=http://localhost:9000/api/ce/task?id=1adeb27c-c0f2-4a1b-be09-234ab777df71
+ceTaskId=52906796-c9e4-4655-b73d-4ef07e82cde5
+ceTaskUrl=http://localhost:9000/api/ce/task?id=52906796-c9e4-4655-b73d-4ef07e82cde5

@@ -294,10 +294,14 @@ const SupervisorDashboard: React.FC = () => {
           {/* Formulario (1 col en móvil, 3-4 en desktop) */}
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3 md:grid-cols-4">
             <div>
-              <label className="text-xs text-gray-500">
+              <label
+                htmlFor="weeklyTarget"
+                className="text-xs text-gray-500"
+              >
                 Tests objetivo (semana)
               </label>
               <input
+                id="weeklyTarget"
                 type="number"
                 min={1}
                 value={targetInput}

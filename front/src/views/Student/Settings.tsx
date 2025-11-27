@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PageWithHeader from '../../components/layout/PageWithHeader';
 import { useNavigate } from 'react-router-dom';
@@ -22,10 +21,9 @@ const Settings: React.FC = () => {
 
   const [me, setMe] = useState<UserProfile | null>(null);
   const [name, setName] = useState('');
-  const [lastName, setLastName] = useState(''); 
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
 
-  
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newPassword2, setNewPassword2] = useState('');
@@ -33,7 +31,6 @@ const Settings: React.FC = () => {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPwd, setSavingPwd] = useState(false);
 
-  
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
   const initialSnapRef = useRef<string>('');
 
@@ -46,7 +43,6 @@ const Settings: React.FC = () => {
         setName(u.name || '');
         setLastName(u.lastName || '');
         setEmail(u.email || '');
-
 
         initialSnapRef.current = JSON.stringify({
           name: u.name || '',
@@ -101,7 +97,6 @@ const Settings: React.FC = () => {
       setEmail(updated.email || '');
       toast.success('Perfil actualizado');
 
-      
       initialSnapRef.current = JSON.stringify({
         name: updated.name || '',
         lastName: updated.lastName || '',
@@ -138,7 +133,6 @@ const Settings: React.FC = () => {
       setNewPassword('');
       setNewPassword2('');
 
-      
       initialSnapRef.current = JSON.stringify({
         name,
         lastName,
@@ -154,7 +148,6 @@ const Settings: React.FC = () => {
     }
   };
 
-  
   const currentSnap = useMemo(
     () =>
       JSON.stringify({
@@ -220,10 +213,14 @@ const Settings: React.FC = () => {
 
             <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-sm text-gray-600 mb-1">
+                <label
+                  htmlFor="profileName"
+                  className="block text-sm text-gray-600 mb-1"
+                >
                   Nombre *
                 </label>
                 <input
+                  id="profileName"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
@@ -232,10 +229,14 @@ const Settings: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-600 mb-1">
+                <label
+                  htmlFor="profileLastName"
+                  className="block text-sm text-gray-600 mb-1"
+                >
                   Apellidos *
                 </label>
                 <input
+                  id="profileLastName"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
@@ -244,12 +245,16 @@ const Settings: React.FC = () => {
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm text-gray-600 mb-1">
+                <label
+                  htmlFor="profileEmail"
+                  className="block text-sm text-gray-600 mb-1"
+                >
                   Email *
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
+                    id="profileEmail"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -299,10 +304,14 @@ const Settings: React.FC = () => {
 
             <div className="mt-4 space-y-4">
               <div>
-                <label className="block text-sm text-gray-600 mb-1">
+                <label
+                  htmlFor="currentPassword"
+                  className="block text-sm text-gray-600 mb-1"
+                >
                   Contraseña actual
                 </label>
                 <input
+                  id="currentPassword"
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
@@ -311,10 +320,14 @@ const Settings: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">
+                <label
+                  htmlFor="newPassword"
+                  className="block text-sm text-gray-600 mb-1"
+                >
                   Nueva contraseña
                 </label>
                 <input
+                  id="newPassword"
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
@@ -323,10 +336,14 @@ const Settings: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">
+                <label
+                  htmlFor="newPassword2"
+                  className="block text-sm text-gray-600 mb-1"
+                >
                   Repetir nueva contraseña
                 </label>
                 <input
+                  id="newPassword2"
                   type="password"
                   value={newPassword2}
                   onChange={(e) => setNewPassword2(e.target.value)}

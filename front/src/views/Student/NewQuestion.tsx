@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PageWithHeader from '../../components/layout/PageWithHeader';
 import { toast } from 'react-toastify';
@@ -11,7 +10,10 @@ import { useDelayedFlag } from '../../shared/hooks/useDelayedFlag';
 type PublicDiagram = { id: string; title: string; path: string };
 
 const normalize = (s: string) =>
-  s.normalize('NFD').replaceAll(/\p{Diacritic}/gu, '').toLowerCase();
+  s
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '') 
+    .toLowerCase();
 
 const NewQuestion: React.FC = () => {
   const navigate = useNavigate();
@@ -19,18 +21,15 @@ const NewQuestion: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  
   const [diagrams, setDiagrams] = useState<PublicDiagram[]>([]);
-  const [q, setQ] = useState(''); 
+  const [q, setQ] = useState('');
   const [selectedDiagramId, setSelectedDiagramId] = useState<string>('');
 
-  
   const [prompt, setPrompt] = useState('');
   const [hint, setHint] = useState('');
   const [options, setOptions] = useState<string[]>(['', '']);
   const [correctIndex, setCorrectIndex] = useState<number>(0);
 
-  
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
   const initialSnapRef = useRef<string>('');
 
@@ -47,7 +46,6 @@ const NewQuestion: React.FC = () => {
     })();
   }, []);
 
-  
   useEffect(() => {
     initialSnapRef.current = JSON.stringify({
       diagramId: '',
@@ -57,7 +55,6 @@ const NewQuestion: React.FC = () => {
     });
   }, []);
 
-  
   const filtered = useMemo(() => {
     const needle = normalize(q.trim());
     if (!needle) return diagrams;
@@ -69,13 +66,14 @@ const NewQuestion: React.FC = () => {
     [diagrams, selectedDiagramId]
   );
 
-  
   const setOption = (i: number, v: string) => {
     const next = options.slice();
     next[i] = v;
     setOptions(next);
   };
+
   const addOption = () => setOptions((prev) => [...prev, '']);
+
   const removeOption = (i: number) => {
     if (options.length <= 2) return;
     const next = options.filter((_, idx) => idx !== i);
@@ -86,7 +84,6 @@ const NewQuestion: React.FC = () => {
     setCorrectIndex(Math.min(ci, Math.max(0, next.length - 1)));
   };
 
-  
   const nonEmpty = options.map((o) => o.trim()).filter(Boolean);
   const canSave =
     !!selectedDiagramId &&
@@ -97,7 +94,6 @@ const NewQuestion: React.FC = () => {
     correctIndex < options.length &&
     options[correctIndex].trim().length > 0;
 
-  
   const currentSnap = useMemo(
     () =>
       JSON.stringify({
@@ -135,7 +131,6 @@ const NewQuestion: React.FC = () => {
         correctIndex,
       });
 
-      
       initialSnapRef.current = JSON.stringify({
         diagramId: '',
         prompt: '',
@@ -158,7 +153,7 @@ const NewQuestion: React.FC = () => {
     return (
       <PageWithHeader>
         <div className="p-6 text-gray-600">Cargando…</div>
-     </PageWithHeader>
+      </PageWithHeader>
     );
   }
 
@@ -187,10 +182,16 @@ const NewQuestion: React.FC = () => {
         <div className="mt-5 rounded-2xl border border-gray-200 bg-white p-5">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="md:col-span-2 space-y-3">
-              <label className="block text-sm text-gray-600">Buscar diagrama por nombre</label>
+              <label
+                htmlFor="diagramSearch"
+                className="block text-sm text-gray-600"
+              >
+                Buscar diagrama por nombre
+              </label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
+                  id="diagramSearch"
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Escribe para filtrar…"
@@ -199,8 +200,14 @@ const NewQuestion: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Diagrama *</label>
+                <label
+                  htmlFor="diagramSelect"
+                  className="block text-sm text-gray-600 mb-1"
+                >
+                  Diagrama *
+                </label>
                 <select
+                  id="diagramSelect"
                   value={selectedDiagramId}
                   onChange={(e) => setSelectedDiagramId(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
@@ -214,7 +221,9 @@ const NewQuestion: React.FC = () => {
                 </select>
 
                 {q.trim() && filtered.length === 0 && (
-                  <div className="mt-2 text-sm text-gray-500">Sin resultados para “{q}”.</div>
+                  <div className="mt-2 text-sm text-gray-500">
+                    Sin resultados para “{q}”.
+                  </div>
                 )}
               </div>
             </div>
@@ -223,7 +232,9 @@ const NewQuestion: React.FC = () => {
             <div className="md:col-span-1">
               <div className="text-sm text-gray-600 mb-1">Seleccionado</div>
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                <div className="font-medium truncate">{selectedDiagram?.title || 'Ninguno'}</div>
+                <div className="font-medium truncate">
+                  {selectedDiagram?.title || 'Ninguno'}
+                </div>
                 <div className="mt-1 text-xs text-gray-500">
                   {selectedDiagram ? 'Imagen abajo ↓' : 'Elige un diagrama para ver su imagen'}
                 </div>
@@ -236,7 +247,9 @@ const NewQuestion: React.FC = () => {
         <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-5">
           {selectedDiagram?.path ? (
             <>
-              <div className="mb-2 text-sm font-medium text-gray-700">{selectedDiagram.title}</div>
+              <div className="mb-2 text-sm font-medium text-gray-700">
+                {selectedDiagram.title}
+              </div>
               <div className="flex items-center justify-center">
                 <img
                   src={selectedDiagram.path}
@@ -256,8 +269,14 @@ const NewQuestion: React.FC = () => {
         <form onSubmit={onSubmit} className="mt-5 space-y-6">
           {/* Enunciado */}
           <div className="rounded-2xl border border-gray-200 bg-white p-5">
-            <label className="block text-sm text-gray-600 mb-1">Enunciado *</label>
+            <label
+              htmlFor="questionPrompt"
+              className="block text-sm text-gray-600 mb-1"
+            >
+              Enunciado *
+            </label>
             <textarea
+              id="questionPrompt"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               className="w-full h-28 rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
@@ -277,6 +296,7 @@ const NewQuestion: React.FC = () => {
                     checked={correctIndex === i}
                     onChange={() => setCorrectIndex(i)}
                     title="Marcar como correcta"
+                    aria-label={`Marcar la opción ${i + 1} como correcta`}
                   />
                   <input
                     value={opt}
@@ -311,8 +331,14 @@ const NewQuestion: React.FC = () => {
 
           {/* Pista (debajo de opciones) */}
           <div className="rounded-2xl border border-gray-200 bg-white p-5">
-            <label className="block text-sm text-gray-600 mb-1">Pista *</label>
+            <label
+              htmlFor="hintText"
+              className="block text-sm text-gray-600 mb-1"
+            >
+              Pista *
+            </label>
             <textarea
+              id="hintText"
               value={hint}
               onChange={(e) => setHint(e.target.value)}
               className="w-full h-20 rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
@@ -332,9 +358,15 @@ const NewQuestion: React.FC = () => {
               type="submit"
               disabled={!canSave || saving}
               className={`inline-flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-medium text-white ${
-                !canSave || saving ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-500'
+                !canSave || saving
+                  ? 'bg-indigo-300 cursor-not-allowed'
+                  : 'bg-indigo-600 hover:bg-indigo-500'
               }`}
-              title={!canSave ? 'Completa todos los campos y selecciona un diagrama' : 'Crear pregunta'}
+              title={
+                !canSave
+                  ? 'Completa todos los campos y selecciona un diagrama'
+                  : 'Crear pregunta'
+              }
             >
               <Save size={16} />
               {saving ? 'Creando…' : 'Crear pregunta'}
@@ -370,7 +402,7 @@ const NewQuestion: React.FC = () => {
           </div>
         )}
       </div>
-   </PageWithHeader>
+    </PageWithHeader>
   );
 };
 

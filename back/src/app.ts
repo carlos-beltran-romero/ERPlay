@@ -5,7 +5,7 @@
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
-import path from 'path';
+import path from 'node:path';
 
 import { env } from './config/env';
 import errorHandler from './middlewares/errorHandler';

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageWithHeader from '../../components/layout/PageWithHeader';
@@ -37,9 +36,9 @@ const joinName = (name?: string | null, lastName?: string | null) =>
 /** Texto expandible con "Ver más / Ver menos" (por caracteres) */
 const ExpandableText: React.FC<{
   text?: string | null;
-  clamp?: number;           
+  clamp?: number;
   className?: string;
-  inline?: boolean;         
+  inline?: boolean;
 }> = ({ text, clamp = 220, className, inline }) => {
   const [expanded, setExpanded] = useState(false);
   const t = (text || '').trim();
@@ -71,7 +70,6 @@ const VerifyQuestions: React.FC = () => {
 
   const [tab, setTab] = useState<'questions' | 'claims'>('questions');
 
-  
   const [qLoading, setQLoading] = useState(true);
   const [pendingQ, setPendingQ] = useState<PendingQuestion[]>([]);
   const [qCount, setQCount] = useState<number>(0);
@@ -82,12 +80,10 @@ const VerifyQuestions: React.FC = () => {
   const [autoLoading, setAutoLoading] = useState(true);
   const [autoSaving, setAutoSaving] = useState(false);
 
-
   const [cLoading, setCLoading] = useState(true);
   const [pendingC, setPendingC] = useState<PendingClaim[]>([]);
   const [cCount, setCCount] = useState<number>(0);
   const [cSubmitting, setCSubmitting] = useState<string | null>(null);
-
 
   const [claimModal, setClaimModal] = useState<{
     claim: PendingClaim;
@@ -97,18 +93,18 @@ const VerifyQuestions: React.FC = () => {
     rejectSameSolution?: boolean;
   } | null>(null);
 
-
   const [lightbox, setLightbox] = useState<{ src: string; title?: string } | null>(null);
-
 
   const [hasTypedComment, setHasTypedComment] = useState(false);
   const qShowLoading = useDelayedFlag(qLoading);
   const cShowLoading = useDelayedFlag(cLoading);
 
-  
   useEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasTypedComment) { e.preventDefault(); e.returnValue = ''; }
+      if (hasTypedComment) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
     };
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
@@ -122,7 +118,6 @@ const VerifyQuestions: React.FC = () => {
     setQLoading(true);
     setCLoading(true);
     try {
-
       const [rawQuestions, rawClaims, pendingClaimsCount, autoFlag] = await Promise.all([
         listPendingQuestions(),
         listPendingClaims(),
@@ -130,12 +125,10 @@ const VerifyQuestions: React.FC = () => {
         getAutoApproveMode(),
       ]);
 
-      
       const claimedIds = new Set(
         rawClaims.map(c => c.questionId).filter(Boolean) as string[]
       );
 
-      
       const filteredQ = rawQuestions.filter(q => !claimedIds.has(q.id));
 
       setPendingQ(filteredQ);
@@ -155,7 +148,6 @@ const VerifyQuestions: React.FC = () => {
   useEffect(() => {
     loadAll();
   }, []);
-
 
   const approveAllQuestions = async () => {
     if (pendingQ.length === 0) return;
@@ -189,7 +181,6 @@ const VerifyQuestions: React.FC = () => {
       setAutoSaving(false);
     }
   };
-
 
   const onDecideQuestion = async (q: PendingQuestion, decision: 'approve' | 'reject', comment?: string) => {
     setQSubmitting(q.id);
@@ -257,6 +248,7 @@ const VerifyQuestions: React.FC = () => {
           Reclamaciones: {cCount}
         </span>
         <button
+          type="button"
           onClick={loadAll}
           className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm hover:bg-gray-50"
         >
@@ -273,6 +265,7 @@ const VerifyQuestions: React.FC = () => {
         {/* Volver */}
         <div className="mb-4">
           <button
+            type="button"
             onClick={goBack}
             className="inline-flex items-center rounded-full border border-gray-300 bg-white p-2 hover:bg-gray-50"
             aria-label="Volver"
@@ -287,6 +280,7 @@ const VerifyQuestions: React.FC = () => {
         {/* Tabs */}
         <div className="mb-5 flex items-center gap-2">
           <button
+            type="button"
             onClick={() => setTab('questions')}
             className={`rounded-xl px-3 py-1.5 text-sm border ${
               tab === 'questions'
@@ -297,6 +291,7 @@ const VerifyQuestions: React.FC = () => {
             Preguntas
           </button>
           <button
+            type="button"
             onClick={() => setTab('claims')}
             className={`rounded-xl px-3 py-1.5 text-sm border inline-flex items-center gap-1 ${
               tab === 'claims'
@@ -316,27 +311,32 @@ const VerifyQuestions: React.FC = () => {
             ) : (
               <div className="space-y-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800">
+                  {/* Checkbox modo automático: label con texto accesible */}
+                  <div className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
                     <input
+                      id="auto-approve-mode"
                       type="checkbox"
                       className="mt-1 h-4 w-4"
                       checked={autoApprove}
                       disabled={autoLoading || autoSaving}
                       onChange={(e) => onToggleAutoApprove(e.target.checked)}
                     />
-                    <span>
-                      <strong>Modo automático</strong>
-                      <br />
-                      <span className="text-gray-600">
+                    <label
+                      htmlFor="auto-approve-mode"
+                      className="text-sm text-gray-800 cursor-pointer"
+                    >
+                      <span className="font-semibold block">Modo automático</span>
+                      <span className="text-gray-600 block">
                         {autoApprove
                           ? 'Las preguntas nuevas se aprobarán en cuanto lleguen.'
                           : 'Revisa manualmente las preguntas pendientes.'}
                       </span>
-                    </span>
-                  </label>
+                    </label>
+                  </div>
 
                   <div className="flex justify-end">
                     <button
+                      type="button"
                       onClick={() => pendingQ.length && setShowApproveAllModal(true)}
                       disabled={approvingAll || pendingQ.length === 0}
                       className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium shadow-sm ${
@@ -357,159 +357,206 @@ const VerifyQuestions: React.FC = () => {
                 ) : (
                   pendingQ.map((q) => {
                     const opts = q.options ?? [];
-                    const correct = Math.min(Math.max(q.correctIndex ?? 0, 0), Math.max(0, opts.length - 1));
+                    const correct = Math.min(
+                      Math.max(q.correctIndex ?? 0, 0),
+                      Math.max(0, opts.length - 1)
+                    );
                     const hasImage = Boolean(q.diagram?.path);
 
                     return (
                       <div key={q.id} className="rounded-2xl border border-gray-200 bg-white p-5">
-                        {/* Imagen grande primero en móvil */}
+                        {/* Imagen grande primero en móvil (envolver en button accesible) */}
                         {hasImage && (
                           <div className="md:hidden mb-3">
-                            <img
-                              src={q.diagram!.path!}
-                              alt={q.diagram?.title || 'Diagrama'}
-                              title="Toca para ampliar"
-                              className="w-full max-h-64 object-contain rounded-xl border bg-white"
-                              onClick={() =>
-                                setLightbox({
-                                  src: q.diagram!.path!,
-                                  title: q.diagram?.title,
-                                })
-                              }
-                            />
-                          </div>
-                        )}
-
-                      {/* Cabecera con título del diagrama y autor */}
-                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                        <div>
-                          <div className="text-sm text-gray-500">Diagrama</div>
-                          <div className="text-base font-semibold">{q.diagram?.title?.trim() || 'Sin título'}</div>
-                          <div className="mt-2 text-sm text-gray-600 inline-flex items-center gap-2">
-                            <UserIcon size={16} />
-                            <span>
-                              Creada por:{' '}
-                              <strong>{joinName(q.creator?.name, (q as any).creator?.lastName)}</strong>
-                            </span>
-                            {q.creator?.email && (
-                              <span className="inline-flex items-center gap-1 text-gray-500">
-                                <Mail size={14} />
-                                {q.creator.email}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Miniatura / botón ampliar SOLO desktop */}
-                        <div className="hidden md:flex items-center gap-2">
-                          {hasImage ? (
                             <button
+                              type="button"
+                              className="w-full"
                               onClick={() =>
                                 setLightbox({
                                   src: q.diagram!.path!,
                                   title: q.diagram?.title,
                                 })
                               }
-                              className="group"
-                              title="Haz clic para ampliar"
+                              aria-label="Ampliar diagrama"
                             >
                               <img
                                 src={q.diagram!.path!}
                                 alt={q.diagram?.title || 'Diagrama'}
-                                className="h-16 w-16 rounded border object-cover group-hover:opacity-90"
+                                title="Toca para ampliar"
+                                className="w-full max-h-64 object-contain rounded-xl border bg-white"
                               />
-                              <div className="mt-1 text-center text-xs text-gray-500">Ampliar</div>
                             </button>
-                          ) : (
-                            <div className="flex items-center gap-2 text-sm text-gray-500">
-                              <ImageIcon size={16} /> Sin imagen
+                          </div>
+                        )}
+
+                        {/* Cabecera con título del diagrama y autor */}
+                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                          <div>
+                            <div className="text-sm text-gray-500">Diagrama</div>
+                            <div className="text-base font-semibold">
+                              {q.diagram?.title?.trim() || 'Sin título'}
                             </div>
-                          )}
-                        </div>
-                      </div>
+                            <div className="mt-2 text-sm text-gray-600 inline-flex items-center gap-2">
+                              <UserIcon size={16} />
+                              <span>
+                                Creada por:{' '}
+                                <strong>{joinName(q.creator?.name, (q as any).creator?.lastName)}</strong>
+                              </span>
+                              {q.creator?.email && (
+                                <span className="inline-flex items-center gap-1 text-gray-500">
+                                  <Mail size={14} />
+                                  {q.creator.email}
+                                </span>
+                              )}
+                            </div>
+                          </div>
 
-                      <div className="mt-4">
-                        <div className="text-sm text-gray-500">Enunciado</div>
-                        <ExpandableText text={q.prompt} clamp={260} className="mt-1 text-gray-800" />
-                      </div>
-
-                      <div className="mt-3">
-                        <div className="text-sm text-gray-500">Pista</div>
-                        <ExpandableText text={q.hint || '—'} clamp={220} className="mt-1 italic text-gray-700" />
-                      </div>
-
-                      <div className="mt-4">
-                        <div className="text-sm text-gray-500 mb-1">Opciones</div>
-                        <div className="space-y-1">
-                          {(opts.length ? opts : ['(sin opciones)']).map((opt, idx) => {
-                            const isCorrect = idx === correct;
-                            return (
-                              <div
-                                key={idx}
-                                className={`rounded-lg border px-3 py-2 text-sm ${
-                                  isCorrect ? 'border-emerald-300 bg-emerald-50' : 'border-gray-200 bg-white'
-                                }`}
+                          {/* Miniatura / botón ampliar SOLO desktop (ya es button) */}
+                          <div className="hidden md:flex items-center gap-2">
+                            {hasImage ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setLightbox({
+                                    src: q.diagram!.path!,
+                                    title: q.diagram?.title,
+                                  })
+                                }
+                                className="group"
+                                title="Haz clic para ampliar"
+                                aria-label="Ampliar diagrama"
                               >
-                                <span className="font-medium mr-2">{letter(idx)}.</span>
-                                <ExpandableText text={opt} clamp={140} inline />
-                                {isCorrect && (
-                                  <span className="ml-2 inline-flex items-center text-emerald-700">
-                                    <CheckCircle2 size={16} className="mr-1" />
-                                    Correcta (propuesta)
-                                  </span>
-                                )}
+                                <img
+                                  src={q.diagram!.path!}
+                                  alt={q.diagram?.title || 'Diagrama'}
+                                  className="h-16 w-16 rounded border object-cover group-hover:opacity-90"
+                                />
+                                <div className="mt-1 text-center text-xs text-gray-500">
+                                  Ampliar
+                                </div>
+                              </button>
+                            ) : (
+                              <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <ImageIcon size={16} /> Sin imagen
                               </div>
-                            );
-                          })}
+                            )}
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-end">
-                        <details className="w-full md:w-auto">
-                          <summary className="cursor-pointer text-sm text-gray-600">Añadir comentario al rechazar (opcional)</summary>
-                          <textarea
-                            id={`q-comment-${q.id}`}
-                            className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                            placeholder="Explica brevemente tu decisión…"
-                            onChange={(e) => setHasTypedComment((prev) => prev || e.target.value.trim().length > 0)}
+                        <div className="mt-4">
+                          <div className="text-sm text-gray-500">Enunciado</div>
+                          <ExpandableText
+                            text={q.prompt}
+                            clamp={260}
+                            className="mt-1 text-gray-800"
                           />
-                        </details>
+                        </div>
 
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => {
-                              const el = document.getElementById(`q-comment-${q.id}`) as HTMLTextAreaElement | null;
-                              onDecideQuestion(q, 'reject', el?.value?.trim() || undefined);
-                            }}
-                            disabled={qSubmitting === q.id}
-                            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${
-                              qSubmitting === q.id
-                                ? 'bg-rose-300 cursor-not-allowed text-white'
-                                : 'bg-rose-600 hover:bg-rose-500 text-white'
-                            }`}
-                          >
-                            <XCircle size={16} />
-                            Rechazar
-                          </button>
+                        <div className="mt-3">
+                          <div className="text-sm text-gray-500">Pista</div>
+                          <ExpandableText
+                            text={q.hint || '—'}
+                            clamp={220}
+                            className="mt-1 italic text-gray-700"
+                          />
+                        </div>
 
-                          <button
-                            onClick={() => {
-                              const el = document.getElementById(`q-comment-${q.id}`) as HTMLTextAreaElement | null;
-                              onDecideQuestion(q, 'approve', el?.value?.trim() || undefined);
-                            }}
-                            disabled={qSubmitting === q.id}
-                            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${
-                              qSubmitting === q.id
-                                ? 'bg-emerald-300 cursor-not-allowed text-white'
-                                : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                            }`}
-                          >
-                            <CheckCircle2 size={16} />
-                            Aprobar
-                          </button>
+                        <div className="mt-4">
+                          <div className="text-sm text-gray-500 mb-1">Opciones</div>
+                          <div className="space-y-1">
+                            {(opts.length ? opts : ['(sin opciones)']).map((opt, idx) => {
+                              const isCorrect = idx === correct;
+                              return (
+                                <div
+                                  key={idx}
+                                  className={`rounded-lg border px-3 py-2 text-sm ${
+                                    isCorrect
+                                      ? 'border-emerald-300 bg-emerald-50'
+                                      : 'border-gray-200 bg-white'
+                                  }`}
+                                >
+                                  <span className="font-medium mr-2">
+                                    {letter(idx)}.
+                                  </span>
+                                  <ExpandableText text={opt} clamp={140} inline />
+                                  {isCorrect && (
+                                    <span className="ml-2 inline-flex items-center text-emerald-700">
+                                      <CheckCircle2 size={16} className="mr-1" />
+                                      Correcta (propuesta)
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-end">
+                          <details className="w-full md:w-auto">
+                            <summary className="cursor-pointer text-sm text-gray-600">
+                              Añadir comentario al rechazar (opcional)
+                            </summary>
+                            <textarea
+                              id={`q-comment-${q.id}`}
+                              className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                              placeholder="Explica brevemente tu decisión…"
+                              onChange={(e) =>
+                                setHasTypedComment(
+                                  (prev) => prev || e.target.value.trim().length > 0
+                                )
+                              }
+                            />
+                          </details>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const el = document.getElementById(
+                                  `q-comment-${q.id}`
+                                ) as HTMLTextAreaElement | null;
+                                onDecideQuestion(
+                                  q,
+                                  'reject',
+                                  el?.value?.trim() || undefined
+                                );
+                              }}
+                              disabled={qSubmitting === q.id}
+                              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${
+                                qSubmitting === q.id
+                                  ? 'bg-rose-300 cursor-not-allowed text-white'
+                                  : 'bg-rose-600 hover:bg-rose-500 text-white'
+                              }`}
+                            >
+                              <XCircle size={16} />
+                              Rechazar
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const el = document.getElementById(
+                                  `q-comment-${q.id}`
+                                ) as HTMLTextAreaElement | null;
+                                onDecideQuestion(
+                                  q,
+                                  'approve',
+                                  el?.value?.trim() || undefined
+                                );
+                              }}
+                              disabled={qSubmitting === q.id}
+                              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${
+                                qSubmitting === q.id
+                                  ? 'bg-emerald-300 cursor-not-allowed text-white'
+                                  : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                              }`}
+                            >
+                              <CheckCircle2 size={16} />
+                              Aprobar
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
                     );
                   })
                 )}
@@ -522,7 +569,9 @@ const VerifyQuestions: React.FC = () => {
         {tab === 'claims' && (
           <>
             {cShowLoading ? (
-              <div className="rounded-2xl border border-gray-200 bg-white p-6 text-gray-600">Cargando…</div>
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 text-gray-600">
+                Cargando…
+              </div>
             ) : pendingC.length === 0 ? (
               <div className="rounded-2xl border border-gray-200 bg-white p-6 text-gray-600">
                 No hay reclamaciones pendientes.
@@ -535,34 +584,47 @@ const VerifyQuestions: React.FC = () => {
 
                   return (
                     <div key={c.id} className="rounded-2xl border border-gray-200 bg-white p-5">
-                      {/* Imagen grande primero en móvil */}
+                      {/* Imagen grande primero en móvil (envolver en button accesible) */}
                       {hasImage && (
                         <div className="md:hidden mb-3">
-                          <img
-                            src={c.diagram!.path!}
-                            alt={c.diagram?.title || 'Diagrama'}
-                            title="Toca para ampliar"
-                            className="w-full max-h-64 object-contain rounded-xl border bg-white"
+                          <button
+                            type="button"
+                            className="w-full"
                             onClick={() =>
                               setLightbox({
                                 src: c.diagram!.path!,
                                 title: c.diagram?.title,
                               })
                             }
-                          />
+                            aria-label="Ampliar diagrama"
+                          >
+                            <img
+                              src={c.diagram!.path!}
+                              alt={c.diagram?.title || 'Diagrama'}
+                              title="Toca para ampliar"
+                              className="w-full max-h-64 object-contain rounded-xl border bg-white"
+                            />
+                          </button>
                         </div>
                       )}
 
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                         <div>
                           <div className="text-sm text-gray-500">Diagrama</div>
-                          <div className="text-base font-semibold">{c.diagram?.title?.trim() || 'Sin título'}</div>
+                          <div className="text-base font-semibold">
+                            {c.diagram?.title?.trim() || 'Sin título'}
+                          </div>
 
                           <div className="mt-2 text-sm text-gray-600 inline-flex items-center gap-2">
                             <UserIcon size={16} />
                             <span>
                               Reclamada por:{' '}
-                              <strong>{joinName(c.reporter?.name, (c as any).reporter?.lastName)}</strong>
+                              <strong>
+                                {joinName(
+                                  c.reporter?.name,
+                                  (c as any).reporter?.lastName
+                                )}
+                              </strong>
                             </span>
                             {c.reporter?.email && (
                               <span className="inline-flex items-center gap-1 text-gray-500">
@@ -573,10 +635,11 @@ const VerifyQuestions: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Miniatura / botón ampliar SOLO desktop */}
+                        {/* Miniatura / botón ampliar SOLO desktop (ya es button) */}
                         <div className="hidden md:flex items-center gap-2">
                           {hasImage ? (
                             <button
+                              type="button"
                               onClick={() =>
                                 setLightbox({
                                   src: c.diagram!.path!,
@@ -585,13 +648,16 @@ const VerifyQuestions: React.FC = () => {
                               }
                               className="group"
                               title="Haz clic para ampliar"
+                              aria-label="Ampliar diagrama"
                             >
                               <img
                                 src={c.diagram!.path!}
                                 alt={c.diagram?.title || 'Diagrama'}
                                 className="h-16 w-16 rounded border object-cover group-hover:opacity-90"
                               />
-                              <div className="mt-1 text-center text-xs text-gray-500">Ampliar</div>
+                              <div className="mt-1 text-center text-xs text-gray-500">
+                                Ampliar
+                              </div>
                             </button>
                           ) : (
                             <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -603,7 +669,11 @@ const VerifyQuestions: React.FC = () => {
 
                       <div className="mt-4">
                         <div className="text-sm text-gray-500">Pregunta</div>
-                        <ExpandableText text={c.question?.prompt || '—'} clamp={260} className="mt-1 text-gray-800" />
+                        <ExpandableText
+                          text={c.question?.prompt || '—'}
+                          clamp={260}
+                          className="mt-1 text-gray-800"
+                        />
                       </div>
 
                       <div className="mt-4">
@@ -623,7 +693,9 @@ const VerifyQuestions: React.FC = () => {
                                     : 'border-gray-200 bg-white'
                                 }`}
                               >
-                                <span className="font-medium mr-2">{letter(idx)}.</span>
+                                <span className="font-medium mr-2">
+                                  {letter(idx)}.
+                                </span>
                                 <ExpandableText text={opt} clamp={140} inline />
                                 {isCorrect && (
                                   <span className="ml-2 inline-flex items-center text-emerald-700">
@@ -632,7 +704,9 @@ const VerifyQuestions: React.FC = () => {
                                   </span>
                                 )}
                                 {isChosen && !isCorrect && (
-                                  <span className="ml-2 inline-flex items-center text-indigo-700">• Elegida por el alumno</span>
+                                  <span className="ml-2 inline-flex items-center text-indigo-700">
+                                    • Elegida por el alumno
+                                  </span>
                                 )}
                               </div>
                             );
@@ -658,12 +732,17 @@ const VerifyQuestions: React.FC = () => {
                             id={`c-comment-${c.id}`}
                             className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
                             placeholder="Explica brevemente tu decisión…"
-                            onChange={(e) => setHasTypedComment((prev) => prev || e.target.value.trim().length > 0)}
+                            onChange={(e) =>
+                              setHasTypedComment(
+                                (prev) => prev || e.target.value.trim().length > 0
+                              )
+                            }
                           />
                         </details>
 
                         <div className="flex items-center gap-2">
                           <button
+                            type="button"
                             onClick={() => {
                               openClaimModal(c, 'reject');
                             }}
@@ -679,6 +758,7 @@ const VerifyQuestions: React.FC = () => {
                           </button>
 
                           <button
+                            type="button"
                             onClick={() => {
                               openClaimModal(c, 'approve');
                             }}
@@ -702,16 +782,26 @@ const VerifyQuestions: React.FC = () => {
           </>
         )}
 
+        {/* MODAL "ACEPTAR TODAS" */}
         {showApproveAllModal && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-            onClick={() => {
+            role="button"
+            tabIndex={0}
+            aria-label="Cerrar diálogo de aprobar todas las preguntas"
+            onClick={(e) => {
+              if (e.target !== e.currentTarget) return;
               if (!approvingAll) setShowApproveAllModal(false);
+            }}
+            onKeyDown={(e) => {
+              if (!approvingAll && (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault();
+                setShowApproveAllModal(false);
+              }
             }}
           >
             <div
               className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-lg font-semibold text-gray-900">Aprobar todas las preguntas</h3>
               <p className="mt-2 text-sm text-gray-700 leading-relaxed">
@@ -719,6 +809,7 @@ const VerifyQuestions: React.FC = () => {
               </p>
               <div className="mt-6 flex justify-end gap-2">
                 <button
+                  type="button"
                   onClick={() => setShowApproveAllModal(false)}
                   disabled={approvingAll}
                   className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
@@ -726,6 +817,7 @@ const VerifyQuestions: React.FC = () => {
                   Cancelar
                 </button>
                 <button
+                  type="button"
                   onClick={approveAllQuestions}
                   disabled={approvingAll}
                   className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-white ${
@@ -741,16 +833,26 @@ const VerifyQuestions: React.FC = () => {
           </div>
         )}
 
+        {/* MODAL RECLAMACIÓN */}
         {claimModal && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-            onClick={() => {
+            role="button"
+            tabIndex={0}
+            aria-label="Cerrar diálogo de revisión de reclamación"
+            onClick={(e) => {
+              if (e.target !== e.currentTarget) return;
               if (!cSubmitting) setClaimModal(null);
+            }}
+            onKeyDown={(e) => {
+              if (!cSubmitting && (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault();
+                setClaimModal(null);
+              }
             }}
           >
             <div
               className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-lg font-semibold text-gray-900">Confirmar revisión</h3>
               <p className="mt-2 text-sm text-gray-700 leading-relaxed">
@@ -767,8 +869,9 @@ const VerifyQuestions: React.FC = () => {
               </div>
 
               {claimModal.decision === 'approve' && (
-                <label className="mt-4 flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800">
+                <div className="mt-4 flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800">
                   <input
+                    id="reject-other-solutions"
                     type="checkbox"
                     className="mt-1 h-4 w-4"
                     checked={Boolean(claimModal.rejectOtherSolutions)}
@@ -778,17 +881,23 @@ const VerifyQuestions: React.FC = () => {
                       )
                     }
                   />
-                  <span>
+                  <label
+                    htmlFor="reject-other-solutions"
+                    className="cursor-pointer"
+                  >
                     <strong>Rechazar automáticamente las reclamaciones con otra solución.</strong>
                     <br />
-                    <span className="text-gray-600">Se enviará el rechazo con motivo vacío.</span>
-                  </span>
-                </label>
+                    <span className="text-gray-600">
+                      Se enviará el rechazo con motivo vacío.
+                    </span>
+                  </label>
+                </div>
               )}
 
               {claimModal.decision === 'reject' && (
-                <label className="mt-4 flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800">
+                <div className="mt-4 flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800">
                   <input
+                    id="reject-same-solution"
                     type="checkbox"
                     className="mt-1 h-4 w-4"
                     checked={claimModal.rejectSameSolution !== false}
@@ -798,16 +907,22 @@ const VerifyQuestions: React.FC = () => {
                       )
                     }
                   />
-                  <span>
+                  <label
+                    htmlFor="reject-same-solution"
+                    className="cursor-pointer"
+                  >
                     <strong>Rechazar también las reclamaciones con la misma opción elegida.</strong>
                     <br />
-                    <span className="text-gray-600">Si se desmarca, solo se rechaza la reclamación seleccionada.</span>
-                  </span>
-                </label>
+                    <span className="text-gray-600">
+                      Si se desmarca, solo se rechaza la reclamación seleccionada.
+                    </span>
+                  </label>
+                </div>
               )}
 
               <div className="mt-6 flex justify-end gap-2">
                 <button
+                  type="button"
                   onClick={() => setClaimModal(null)}
                   disabled={cSubmitting === claimModal.claim.id}
                   className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
@@ -815,6 +930,7 @@ const VerifyQuestions: React.FC = () => {
                   Cancelar
                 </button>
                 <button
+                  type="button"
                   onClick={() => submitClaimDecision(claimModal)}
                   disabled={cSubmitting === claimModal.claim.id}
                   className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-white ${
@@ -825,27 +941,50 @@ const VerifyQuestions: React.FC = () => {
                       : 'bg-rose-600 hover:bg-rose-500'
                   }`}
                 >
-                  {claimModal.decision === 'approve' ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
-                  {claimModal.decision === 'approve' ? 'Aprobar reclamación' : 'Rechazar reclamación'}
+                  {claimModal.decision === 'approve' ? (
+                    <CheckCircle2 size={16} />
+                  ) : (
+                    <XCircle size={16} />
+                  )}
+                  {claimModal.decision === 'approve'
+                    ? 'Aprobar reclamación'
+                    : 'Rechazar reclamación'}
                 </button>
               </div>
             </div>
           </div>
         )}
 
+        {/* LIGHTBOX */}
         {lightbox && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
-            onClick={() => setLightbox(null)}
+            role="button"
+            tabIndex={0}
+            aria-label="Cerrar imagen ampliada"
+            onClick={(e) => {
+              if (e.target !== e.currentTarget) return;
+              setLightbox(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setLightbox(null);
+              }
+            }}
           >
-            <div className="max-h-[90vh] max-w-5xl">
+            <div
+              className="max-h-[90vh] max-w-5xl"
+            >
               <img
                 src={lightbox.src}
                 alt={lightbox.title || 'Diagrama'}
                 className="max-h-[90vh] w-auto rounded-lg shadow-2xl"
               />
               {lightbox.title && (
-                <div className="mt-3 text-center text-sm text-white/90">{lightbox.title}</div>
+                <div className="mt-3 text-center text-sm text-white/90">
+                  {lightbox.title}
+                </div>
               )}
             </div>
           </div>

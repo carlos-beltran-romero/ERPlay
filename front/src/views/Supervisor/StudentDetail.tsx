@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PageWithHeader from "../../components/layout/PageWithHeader";
@@ -13,8 +12,8 @@ import {
   supGetCreatedQuestions,
   supListUserSessions,
   supListUserClaims,
-  supGetWeeklyProgress, 
-  supGetStudentBadges, 
+  supGetWeeklyProgress,
+  supGetStudentBadges,
   type SupStudent,
   type SupOverview,
   type SupTrendPoint,
@@ -23,8 +22,8 @@ import {
   type SupQuestionItem,
   type SupSessionSummary,
   type SupClaimItem,
-  type WeeklyProgressRow, 
-  type SupBadgeItem, 
+  type WeeklyProgressRow,
+  type SupBadgeItem,
 } from "../../services/supervisor";
 import { getSessionDetail, type SessionDetail } from "../../services/tests";
 import {
@@ -48,8 +47,8 @@ import {
   Loader2,
   CheckCircle2,
   MessageSquare,
-  Target, 
-  Award, 
+  Target,
+  Award,
 } from "lucide-react";
 import {
   formatDateTime,
@@ -160,8 +159,8 @@ const KPI: React.FC<{
 );
 
 /* ---------- Mini-charts ---------- */
-const COLOR_A = "#10b981"; 
-const COLOR_B = "#3b82f6"; 
+const COLOR_A = "#10b981";
+const COLOR_B = "#3b82f6";
 
 const DualLineChart: React.FC<{
   data: { a?: number | null; b?: number | null }[];
@@ -470,12 +469,10 @@ const StudentDetail: React.FC = () => {
   const [tests, setTests] = useState<SupSessionSummary[]>([]);
   const [claims, setClaims] = useState<SupClaimItem[]>([]);
 
-  
   const [progRows, setProgRows] = useState<WeeklyProgressRow[]>([]);
   const [bgs, setBgs] = useState<SupBadgeItem[]>([]);
   const [showBadges, setShowBadges] = useState(false);
 
-  
   const [mode, setMode] = useState<"ALL" | "learning" | "exam" | "errors">(
     "ALL"
   );
@@ -483,24 +480,20 @@ const StudentDetail: React.FC = () => {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
-  
   const [qClaims, setQClaims] = useState("");
   const [stClaims, setStClaims] = useState<
     "ALL" | "PENDING" | "APPROVED" | "REJECTED"
   >("ALL");
 
-  
   const PAGE_SIZE = 15;
   const [visibleQ, setVisibleQ] = useState(PAGE_SIZE);
   const [visibleC, setVisibleC] = useState(PAGE_SIZE);
 
-  
   const [previewImg, setPreviewImg] = useState<{
     src: string;
     title: string;
   } | null>(null);
 
-  
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detail, setDetail] = useState<SessionDetail | null>(null);
@@ -509,29 +502,19 @@ const StudentDetail: React.FC = () => {
     (async () => {
       try {
         setLoading(true);
-        const [
-          stu,
-          ovw,
-          tr,
-          er,
-          cs,
-          qs,
-          ts,
-          cl,
-          rows, 
-          badges, 
-        ] = await Promise.all([
-          supGetStudent(studentId),
-          supGetOverview(studentId),
-          supGetTrends(studentId, { bucket: "day" }),
-          supGetErrors(studentId, 5),
-          supGetClaimsStats(studentId),
-          supGetCreatedQuestions(studentId, { limit: 200 }),
-          supListUserSessions(studentId, {}),
-          supListUserClaims(studentId),
-          supGetWeeklyProgress({ userId: studentId }),
-          supGetStudentBadges(studentId),
-        ]);
+        const [stu, ovw, tr, er, cs, qs, ts, cl, rows, badges] =
+          await Promise.all([
+            supGetStudent(studentId),
+            supGetOverview(studentId),
+            supGetTrends(studentId, { bucket: "day" }),
+            supGetErrors(studentId, 5),
+            supGetClaimsStats(studentId),
+            supGetCreatedQuestions(studentId, { limit: 200 }),
+            supListUserSessions(studentId, {}),
+            supListUserClaims(studentId),
+            supGetWeeklyProgress({ userId: studentId }),
+            supGetStudentBadges(studentId),
+          ]);
         setStudent(stu);
         setOv(ovw);
         setTrends(tr);
@@ -630,7 +613,7 @@ const StudentDetail: React.FC = () => {
     if (s2 != null) return s2;
     const total = detail.totals?.totalQuestions ?? 0;
     const correct = detail.totals?.correct ?? 0;
-    return total > 0 ? Math.round((correct / total) * 100) / 10 : null; 
+    return total > 0 ? Math.round((correct / total) * 100) / 10 : null;
   }, [detail]);
 
   /* ------- Abrir detalle test ------- */
@@ -643,7 +626,6 @@ const StudentDetail: React.FC = () => {
     setDetailOpen(true);
     setDetailLoading(true);
     try {
-      
       let d: any = null;
       try {
         const supMod: any = await import("../../services/supervisor");
@@ -673,7 +655,6 @@ const StudentDetail: React.FC = () => {
     setDetail(null);
   };
 
-  
   const progRow: WeeklyProgressRow | null = useMemo(() => {
     if (!progRows?.length) return null;
     const found = progRows.find((r) => r.userId === studentId);
@@ -684,7 +665,7 @@ const StudentDetail: React.FC = () => {
     return (
       <PageWithHeader>
         <div className="mx-auto w-full max-w-6xl p-6">Cargando…</div>
-     </PageWithHeader>
+      </PageWithHeader>
     );
   }
 
@@ -704,6 +685,7 @@ const StudentDetail: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-start gap-3">
             <button
+              type="button"
               onClick={() => navigate(-1)}
               className="rounded-xl border border-gray-300 bg-white p-2 hover:bg-gray-50"
               aria-label="Volver"
@@ -731,6 +713,7 @@ const StudentDetail: React.FC = () => {
             ).map(([key, label, Icon]) => (
               <button
                 key={key}
+                type="button"
                 onClick={() => setTab(key as any)}
                 className={`inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm ${
                   tab === key
@@ -1060,6 +1043,7 @@ const StudentDetail: React.FC = () => {
                   {(["ALL", "learning", "exam", "errors"] as const).map((m) => (
                     <button
                       key={m}
+                      type="button"
                       onClick={() => setMode(m)}
                       className={`rounded-full px-3 py-1.5 text-sm border ${
                         mode === m
@@ -1131,7 +1115,8 @@ const StudentDetail: React.FC = () => {
                               {it.diagram?.title || "—"}
                             </div>
                             <div className="text-xs text-gray-500">
-                              {acc} · {formatDuration(it.summary?.durationSeconds)}
+                              {acc} ·{" "}
+                              {formatDuration(it.summary?.durationSeconds)}
                             </div>
                           </div>
                           <div className="col-span-2 text-sm">
@@ -1149,6 +1134,7 @@ const StudentDetail: React.FC = () => {
                           </div>
                           <div className="col-span-1 flex justify-end">
                             <button
+                              type="button"
                               onClick={() => openDetail(it)}
                               className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-sm hover:bg-gray-50"
                               title="Ver detalle"
@@ -1173,10 +1159,12 @@ const StudentDetail: React.FC = () => {
                             · {formatDateTime(it.startedAt)}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {acc} · {formatDuration(it.summary?.durationSeconds)}
+                            {acc} ·{" "}
+                            {formatDuration(it.summary?.durationSeconds)}
                           </div>
                           <div className="pt-2">
                             <button
+                              type="button"
                               onClick={() => openDetail(it)}
                               className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-sm hover:bg-gray-50"
                               title="Ver detalle"
@@ -1228,18 +1216,24 @@ const StudentDetail: React.FC = () => {
                           {/* Diagrama */}
                           <div className="col-span-1">
                             {qi.diagram?.path ? (
-                              <img
-                                src={qi.diagram.path}
-                                alt={qi.diagram.title || "Diagrama"}
-                                title="Haz clic para ampliar"
-                                className="h-12 w-12 object-cover rounded border cursor-zoom-in"
+                              <button
+                                type="button"
                                 onClick={() =>
                                   setPreviewImg({
                                     src: qi.diagram!.path!,
                                     title: qi.diagram?.title || "Diagrama",
                                   })
                                 }
-                              />
+                                className="h-12 w-12 rounded border overflow-hidden cursor-zoom-in"
+                                aria-label="Ampliar diagrama"
+                                title="Haz clic para ampliar"
+                              >
+                                <img
+                                  src={qi.diagram.path}
+                                  alt={qi.diagram.title || "Diagrama"}
+                                  className="h-full w-full object-cover"
+                                />
+                              </button>
                             ) : (
                               <div className="h-12 w-12 grid place-items-center rounded border text-gray-400">
                                 <ImageIcon size={16} />
@@ -1318,18 +1312,24 @@ const StudentDetail: React.FC = () => {
                           <div className="mb-3 rounded-xl border bg-white overflow-hidden">
                             <div className="relative w-full pt-[56.25%]">
                               {qi.diagram?.path ? (
-                                <img
-                                  src={qi.diagram.path}
-                                  alt={qi.diagram.title || "Diagrama"}
-                                  title="Toca para ampliar"
-                                  className="absolute inset-0 h-full w-full object-contain bg-white"
+                                <button
+                                  type="button"
+                                  className="absolute inset-0"
                                   onClick={() =>
                                     setPreviewImg({
                                       src: qi.diagram!.path!,
                                       title: qi.diagram?.title || "Diagrama",
                                     })
                                   }
-                                />
+                                  aria-label="Ampliar diagrama"
+                                  title="Toca para ampliar"
+                                >
+                                  <img
+                                    src={qi.diagram.path}
+                                    alt={qi.diagram.title || "Diagrama"}
+                                    className="h-full w-full object-contain bg-white"
+                                  />
+                                </button>
                               ) : (
                                 <div className="absolute inset-0 grid place-items-center text-gray-400">
                                   <ImageIcon size={18} />
@@ -1410,6 +1410,7 @@ const StudentDetail: React.FC = () => {
                     </span>
                     {visibleQ < myQuestions.length && (
                       <button
+                        type="button"
                         onClick={() => setVisibleQ((v) => v + PAGE_SIZE)}
                         className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm hover:bg-gray-50"
                       >
@@ -1500,7 +1501,9 @@ const StudentDetail: React.FC = () => {
                       const chosenTxt =
                         typeof chosenIndex === "number" &&
                         options?.[chosenIndex]
-                          ? `${letterFromIndex(chosenIndex)}. ${options[chosenIndex]}`
+                          ? `${letterFromIndex(chosenIndex)}. ${
+                              options[chosenIndex]
+                            }`
                           : typeof chosenIndex === "number"
                           ? letterFromIndex(chosenIndex)
                           : "—";
@@ -1508,7 +1511,9 @@ const StudentDetail: React.FC = () => {
                       const correctTxt =
                         typeof correctIndex === "number" &&
                         options?.[correctIndex]
-                          ? `${letterFromIndex(correctIndex)}. ${options[correctIndex]}`
+                          ? `${letterFromIndex(correctIndex)}. ${
+                              options[correctIndex]
+                            }`
                           : typeof correctIndex === "number"
                           ? letterFromIndex(correctIndex)
                           : "—";
@@ -1520,18 +1525,24 @@ const StudentDetail: React.FC = () => {
                             {/* Diagrama */}
                             <div className="col-span-1">
                               {ci.diagram?.path ? (
-                                <img
-                                  src={ci.diagram.path}
-                                  alt={ci.diagram.title || "Diagrama"}
-                                  title="Haz clic para ampliar"
-                                  className="h-12 w-12 object-cover rounded border cursor-zoom-in"
+                                <button
+                                  type="button"
                                   onClick={() =>
                                     setPreviewImg({
                                       src: ci.diagram!.path!,
                                       title: ci.diagram?.title || "Diagrama",
                                     })
                                   }
-                                />
+                                  className="h-12 w-12 rounded border overflow-hidden cursor-zoom-in"
+                                  aria-label="Ampliar diagrama"
+                                  title="Haz clic para ampliar"
+                                >
+                                  <img
+                                    src={ci.diagram.path}
+                                    alt={ci.diagram.title || "Diagrama"}
+                                    className="h-full w-full object-cover"
+                                  />
+                                </button>
                               ) : (
                                 <div className="h-12 w-12 grid place-items-center rounded border text-gray-400">
                                   <ImageIcon size={16} />
@@ -1597,18 +1608,24 @@ const StudentDetail: React.FC = () => {
                             {/* Imagen */}
                             <div className="mb-2">
                               {ci.diagram?.path ? (
-                                <img
-                                  src={ci.diagram.path}
-                                  alt={ci.diagram.title || "Diagrama"}
-                                  title="Toca para ampliar"
-                                  className="w-full max-h-64 object-contain rounded-xl border bg-white"
+                                <button
+                                  type="button"
+                                  className="w-full"
                                   onClick={() =>
                                     setPreviewImg({
                                       src: ci.diagram!.path!,
                                       title: ci.diagram?.title || "Diagrama",
                                     })
                                   }
-                                />
+                                  aria-label="Ampliar diagrama"
+                                  title="Toca para ampliar"
+                                >
+                                  <img
+                                    src={ci.diagram.path}
+                                    alt={ci.diagram.title || "Diagrama"}
+                                    className="w-full max-h-64 object-contain rounded-xl border bg-white"
+                                  />
+                                </button>
                               ) : (
                                 <div className="w-full h-40 grid place-items-center rounded-xl border text-gray-400 bg-white">
                                   <ImageIcon size={18} />
@@ -1684,6 +1701,7 @@ const StudentDetail: React.FC = () => {
                     </span>
                     {visibleC < filteredClaims.length && (
                       <button
+                        type="button"
                         onClick={() => setVisibleC((v) => v + PAGE_SIZE)}
                         className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm hover:bg-gray-50"
                       >
@@ -1701,13 +1719,23 @@ const StudentDetail: React.FC = () => {
         {previewImg && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
-            onClick={() => setPreviewImg(null)}
+            role="button"
+            tabIndex={0}
+            aria-label="Cerrar imagen ampliada"
+            onClick={(e) => {
+              if (e.target !== e.currentTarget) return; // solo cerrar si se hace click en el overlay
+              setPreviewImg(null);
+            }}
+            onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
+              if (e.key === "Escape" || e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setPreviewImg(null);
+              }
+            }}
           >
-            <div
-              className="relative max-h-[90vh] max-w-[95vw] rounded-lg bg-white p-3 shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="relative max-h-[90vh] max-w-[95vw] rounded-lg bg-white p-3 shadow-2xl">
               <button
+                type="button"
                 onClick={() => setPreviewImg(null)}
                 className="absolute right-2 top-2 rounded p-1 text-gray-600 hover:bg-gray-100"
                 aria-label="Cerrar"
@@ -1755,6 +1783,7 @@ const StudentDetail: React.FC = () => {
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={closeDetail}
                   className="rounded-lg border border-gray-300 bg-white p-2 hover:bg-gray-50"
                   aria-label="Cerrar"
@@ -1996,6 +2025,7 @@ const StudentDetail: React.FC = () => {
                   </h3>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setShowBadges(false)}
                   className="rounded-lg border border-gray-300 bg-white p-2 hover:bg-gray-50"
                   aria-label="Cerrar"
@@ -2041,7 +2071,7 @@ const StudentDetail: React.FC = () => {
           </div>
         )}
       </div>
-   </PageWithHeader>
+    </PageWithHeader>
   );
 };
 

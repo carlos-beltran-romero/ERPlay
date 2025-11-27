@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useState } from 'react';
 import PageWithHeader from '../../components/layout/PageWithHeader';
 import { listDiagrams, deleteDiagram, type DiagramSummary } from '../../services/diagrams';
@@ -8,7 +7,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useDelayedFlag } from '../../shared/hooks/useDelayedFlag';
 
 const normalize = (s: string) =>
-  s.normalize('NFD').replaceAll(/\p{Diacritic}/gu, '').toLowerCase();
+  s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
 
 const PAGE_SIZE = 20;
 
@@ -20,10 +19,8 @@ const SupervisorTests: React.FC = () => {
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  
   const [previewImg, setPreviewImg] = useState<{ src: string; title: string } | null>(null);
 
-  
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const loadMore = () => setVisibleCount((v) => v + PAGE_SIZE);
   const showLoading = useDelayedFlag(loading);
@@ -44,10 +41,9 @@ const SupervisorTests: React.FC = () => {
   const filtered = useMemo(() => {
     const q = normalize(query.trim());
     if (!q) return items;
-    return items.filter(i => normalize(i.title).includes(q));
+    return items.filter((i) => normalize(i.title).includes(q));
   }, [items, query]);
 
-  
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
   }, [query, items]);
@@ -57,7 +53,7 @@ const SupervisorTests: React.FC = () => {
     setDeleting(true);
     try {
       await deleteDiagram(confirmId);
-      setItems(prev => prev.filter(i => i.id !== confirmId));
+      setItems((prev) => prev.filter((i) => i.id !== confirmId));
       toast.success('Test eliminado');
       setConfirmId(null);
     } catch (e: any) {
@@ -85,9 +81,7 @@ const SupervisorTests: React.FC = () => {
         <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-2xl font-semibold">Gestionar diagramas</h1>
-            <p className="text-gray-600">
-              Lista de diagramas con sus preguntas asociadas.
-            </p>
+            <p className="text-gray-600">Lista de diagramas con sus preguntas asociadas.</p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
             <div className="relative w-full sm:w-64">
@@ -130,16 +124,24 @@ const SupervisorTests: React.FC = () => {
                     {/* Fila desktop */}
                     <div className="hidden md:grid grid-cols-12 gap-3 items-center">
                       <div className="col-span-1">
-                        <img
-                          src={t.path}
-                          alt={t.title}
-                          title="Haz clic para ampliar"
-                          className="h-12 w-12 object-cover rounded border cursor-zoom-in"
+                        <button
+                          type="button"
+                          className="h-12 w-12 rounded border overflow-hidden cursor-zoom-in"
                           onClick={() => setPreviewImg({ src: t.path, title: t.title })}
-                        />
+                          aria-label={`Ampliar imagen: ${t.title}`}
+                        >
+                          <img
+                            src={t.path}
+                            alt={t.title}
+                            title="Haz clic para ampliar"
+                            className="h-full w-full object-cover"
+                          />
+                        </button>
                       </div>
                       <div className="col-span-6 min-w-0">
-                        <div className="truncate" title={t.title}>{t.title}</div>
+                        <div className="truncate" title={t.title}>
+                          {t.title}
+                        </div>
                       </div>
                       <div className="col-span-3">{t.questionsCount ?? '—'}</div>
                       <div className="col-span-2 flex justify-end gap-2">
@@ -175,6 +177,7 @@ const SupervisorTests: React.FC = () => {
                           className="shrink-0"
                           onClick={() => setPreviewImg({ src: t.path, title: t.title })}
                           title="Ampliar imagen"
+                          aria-label={`Ampliar imagen: ${t.title}`}
                         >
                           <img
                             src={t.path}
@@ -185,7 +188,10 @@ const SupervisorTests: React.FC = () => {
                         <div className="min-w-0 flex-1">
                           <div className="font-medium break-words">{t.title}</div>
                           <div className="mt-0.5 text-xs text-gray-500">
-                            Preguntas: <span className="font-medium text-gray-700">{t.questionsCount ?? '—'}</span>
+                            Preguntas:{' '}
+                            <span className="font-medium text-gray-700">
+                              {t.questionsCount ?? '—'}
+                            </span>
                           </div>
 
                           <div className="mt-2 flex justify-end gap-1.5">
@@ -280,12 +286,21 @@ const SupervisorTests: React.FC = () => {
         {previewImg && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
-            onClick={() => setPreviewImg(null)}
+            role="button"
+            tabIndex={0}
+            aria-label="Cerrar vista previa del diagrama"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setPreviewImg(null);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+                setPreviewImg(null);
+              }
+            }}
           >
-            <div
-              className="relative max-h-[90vh] max-w-[95vw] rounded-lg bg-white p-3 shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="relative max-h-[90vh] max-w-[95vw] rounded-lg bg-white p-3 shadow-2xl">
               <button
                 onClick={() => setPreviewImg(null)}
                 className="absolute right-2 top-2 rounded p-1 text-gray-600 hover:bg-gray-100"

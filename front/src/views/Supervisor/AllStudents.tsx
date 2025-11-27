@@ -13,7 +13,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 const normalize = (s: string) =>
-  s.normalize('NFD').replaceAll(/\p{Diacritic}/gu, '').toLowerCase();
+  s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
 
 type EditForm = {
   id: string;
@@ -57,7 +57,7 @@ const SupervisorStudents: React.FC = () => {
   const filtered = useMemo(() => {
     const q = normalize(query.trim());
     if (!q) return students;
-    return students.filter(s => {
+    return students.filter((s) => {
       const full = normalize(`${s.name} ${s.lastName}`);
       return full.includes(q) || normalize(s.email).includes(q);
     });
@@ -82,12 +82,10 @@ const SupervisorStudents: React.FC = () => {
   const isEditDirty =
     !!editing &&
     !!editingOriginal &&
-    (
-      editing.name !== editingOriginal.name ||
+    (editing.name !== editingOriginal.name ||
       editing.lastName !== editingOriginal.lastName ||
       editing.email !== editingOriginal.email ||
-      editing.password.trim() !== ''
-    );
+      editing.password.trim() !== '');
 
   const closeEdit = () => {
     if (isEditDirty && !window.confirm('Hay cambios sin guardar. ¿Seguro que deseas salir?')) return;
@@ -97,7 +95,10 @@ const SupervisorStudents: React.FC = () => {
 
   ReactUseEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isEditDirty) { e.preventDefault(); e.returnValue = ''; }
+      if (isEditDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
     };
     if (editing && isEditDirty) window.addEventListener('beforeunload', onBeforeUnload);
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
@@ -119,7 +120,7 @@ const SupervisorStudents: React.FC = () => {
       if (editing.password.trim()) dto.password = editing.password;
 
       const updated = await updateStudent(editing.id, dto);
-      setStudents(prev => prev.map(s => (s.id === updated.id ? updated : s)));
+      setStudents((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
       toast.success('Alumno actualizado');
       setEditing(null);
       setEditingOriginal(null);
@@ -135,7 +136,7 @@ const SupervisorStudents: React.FC = () => {
     setDeletingId(confirmDelete.id);
     try {
       await deleteStudent(confirmDelete.id);
-      setStudents(prev => prev.filter(st => st.id !== confirmDelete.id));
+      setStudents((prev) => prev.filter((st) => st.id !== confirmDelete.id));
       toast.success('Alumno eliminado');
       setConfirmDelete(null);
     } catch (e: any) {
@@ -154,12 +155,12 @@ const SupervisorStudents: React.FC = () => {
 
   const formatDecimal = (value?: number | null) => {
     if (value == null || Number.isNaN(value)) return '';
-    return Number(value).toFixed(2); // si quieres coma: .replaceAll('.', ',')
+    return Number(value).toFixed(2); 
   };
 
   const csvEscape = (value: string | number | null | undefined) => {
     if (value == null) return '""';
-    const str = String(value).replaceAll('"', '""');
+    const str = String(value).replace(/"/g, '""');
     return `"${str}"`;
   };
 
@@ -210,19 +211,23 @@ const SupervisorStudents: React.FC = () => {
           ]);
 
           const createdCount = questions.length;
-          const approvedQuestions = questions.filter((q: SupQuestionItem) => normalizeStatus(q.status) === 'APPROVED').length;
+          const approvedQuestions = questions.filter(
+            (q: SupQuestionItem) => normalizeStatus(q.status) === 'APPROVED'
+          ).length;
           const rowValues = csvColumns.map((column) =>
-            column.getValue({
-              student,
-              sessionsCompleted: overview?.sessionsCompleted ?? 0,
-              examAvg: formatDecimal(overview?.examScoreAvg ?? null),
-              learningAvg: formatDecimal(overview?.accuracyLearningPct ?? null),
-              claimsApproved: claimsStats?.approved ?? 0,
-              claimsSubmitted: claimsStats?.submitted ?? 0,
-              createdQuestions: createdCount,
-              approvedQuestions,
-              badges: (badges || []).length,
-            }).toString()
+            column
+              .getValue({
+                student,
+                sessionsCompleted: overview?.sessionsCompleted ?? 0,
+                examAvg: formatDecimal(overview?.examScoreAvg ?? null),
+                learningAvg: formatDecimal(overview?.accuracyLearningPct ?? null),
+                claimsApproved: claimsStats?.approved ?? 0,
+                claimsSubmitted: claimsStats?.submitted ?? 0,
+                createdQuestions: createdCount,
+                approvedQuestions,
+                badges: (badges || []).length,
+              })
+              .toString()
           );
           rows.push(rowValues);
         } catch (err: any) {
@@ -263,8 +268,9 @@ const SupervisorStudents: React.FC = () => {
         <div className="mb-3">
           <button
             onClick={() => {
-              if (editing && isEditDirty && !window.confirm('Hay cambios sin guardar. ¿Salir igualmente?')) return;
-              navigate("/supervisor/dashboard");
+              if (editing && isEditDirty && !window.confirm('Hay cambios sin guardar. ¿Salir igualmente?'))
+                return;
+              navigate('/supervisor/dashboard');
             }}
             className="inline-flex items-center rounded-full border border-gray-300 bg-white p-2 hover:bg-gray-50"
             aria-label="Volver"
@@ -331,13 +337,19 @@ const SupervisorStudents: React.FC = () => {
                       {/* Fila desktop */}
                       <div className="hidden md:grid grid-cols-12 gap-3 items-center">
                         <div className="col-span-3 min-w-0">
-                          <div className="truncate" title={s.name}>{s.name}</div>
+                          <div className="truncate" title={s.name}>
+                            {s.name}
+                          </div>
                         </div>
                         <div className="col-span-3 min-w-0">
-                          <div className="truncate" title={s.lastName}>{s.lastName}</div>
+                          <div className="truncate" title={s.lastName}>
+                            {s.lastName}
+                          </div>
                         </div>
                         <div className="col-span-4 min-w-0">
-                          <div className="truncate" title={s.email}>{s.email}</div>
+                          <div className="truncate" title={s.email}>
+                            {s.email}
+                          </div>
                         </div>
                         <div className="col-span-2 flex justify-end gap-2">
                           <button
@@ -414,7 +426,7 @@ const SupervisorStudents: React.FC = () => {
                 </span>
                 {visibleCount < filtered.length ? (
                   <button
-                    onClick={() => setVisibleCount(v => v + PAGE_SIZE)}
+                    onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}
                     className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm hover:bg-gray-50"
                   >
                     Cargar más
@@ -444,10 +456,14 @@ const SupervisorStudents: React.FC = () => {
               <div className="px-6 py-5 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">
+                    <label
+                      htmlFor="editName"
+                      className="block text-sm text-gray-600 mb-1"
+                    >
                       Nombre *
                     </label>
                     <input
+                      id="editName"
                       value={editing.name}
                       onChange={(e) =>
                         setEditing({ ...editing, name: e.target.value })
@@ -456,10 +472,14 @@ const SupervisorStudents: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text.sm text-gray-600 mb-1">
+                    <label
+                      htmlFor="editLastName"
+                      className="block text-sm text-gray-600 mb-1"
+                    >
                       Apellidos *
                     </label>
                     <input
+                      id="editLastName"
                       value={editing.lastName}
                       onChange={(e) =>
                         setEditing({ ...editing, lastName: e.target.value })
@@ -470,10 +490,14 @@ const SupervisorStudents: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">
+                  <label
+                    htmlFor="editEmail"
+                    className="block text-sm text-gray-600 mb-1"
+                  >
                     Email *
                   </label>
                   <input
+                    id="editEmail"
                     type="email"
                     value={editing.email}
                     onChange={(e) =>
@@ -484,10 +508,14 @@ const SupervisorStudents: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">
+                  <label
+                    htmlFor="editPassword"
+                    className="block text-sm text-gray-600 mb-1"
+                  >
                     Contraseña (dejar vacío para no cambiar)
                   </label>
                   <input
+                    id="editPassword"
                     type="password"
                     value={editing.password}
                     onChange={(e) =>
@@ -528,7 +556,7 @@ const SupervisorStudents: React.FC = () => {
             <div
               role="dialog"
               aria-modal="true"
-              className="w.full max-w-md rounded-2xl bg-white shadow-xl"
+              className="w-full max-w-md rounded-2xl bg-white shadow-xl"
             >
               <div className="flex items-center gap-3 border-b px-6 py-4">
                 <div className="rounded-lg bg-rose-50 p-2 text-rose-600">

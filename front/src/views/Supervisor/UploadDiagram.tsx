@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageWithHeader from "../../components/layout/PageWithHeader";
@@ -15,13 +14,13 @@ import {
 
 type QuestionForm = {
   prompt: string;
-  options: string[]; 
-  correctIndex: number; 
-  hint: string; 
+  options: string[];
+  correctIndex: number;
+  hint: string;
   errors?: {
     prompt?: string;
-    options?: string[]; 
-    optionsGeneral?: string; 
+    options?: string[];
+    optionsGeneral?: string;
     correctIndex?: string;
     hint?: string;
   };
@@ -46,11 +45,9 @@ const UploadDiagram: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
 
-  
   const initialSnapRef = useRef<string>("");
 
   useEffect(() => {
-    
     initialSnapRef.current = JSON.stringify({
       title: "",
       hasFile: false,
@@ -105,7 +102,6 @@ const UploadDiagram: React.FC = () => {
       prev.map((q, i) => {
         if (i !== qIdx || q.options.length <= MIN_OPTIONS) return q;
 
-        
         let newCorrect = q.correctIndex;
         if (optIdx === q.correctIndex) newCorrect = 0;
         else if (optIdx < q.correctIndex) newCorrect = q.correctIndex - 1;
@@ -127,7 +123,6 @@ const UploadDiagram: React.FC = () => {
     );
   };
 
-  
   const validate = (): boolean => {
     let ok = true;
     const next = questions.map((q) => {
@@ -166,7 +161,6 @@ const UploadDiagram: React.FC = () => {
     return ok;
   };
 
-  
   const canSubmit = useMemo(() => {
     if (!title.trim() || !file) return false;
     for (const q of questions) {
@@ -191,7 +185,6 @@ const UploadDiagram: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    
     if (!validate() || !file) return;
 
     setSubmitting(true);
@@ -208,11 +201,11 @@ const UploadDiagram: React.FC = () => {
       });
 
       toast.success("Diagrama subido correctamente");
-      
+
       setTitle("");
       setFile(null);
       setQuestions([emptyQuestion()]);
-      
+
       initialSnapRef.current = JSON.stringify({
         title: "",
         hasFile: false,
@@ -252,10 +245,14 @@ const UploadDiagram: React.FC = () => {
           <div className="rounded-2xl border border-gray-200 bg-white p-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-gray-600 mb-1">
+                <label
+                  htmlFor="diagramTitle"
+                  className="block text-sm text-gray-600 mb-1"
+                >
                   Título *
                 </label>
                 <input
+                  id="diagramTitle"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
@@ -264,9 +261,9 @@ const UploadDiagram: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-600 mb-2">
+                <p className="block text-sm text-gray-600 mb-2">
                   Imagen (JPG o PNG) *
-                </label>
+                </p>
                 <label className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 p-6 cursor-pointer hover:bg-gray-50">
                   <input
                     type="file"
@@ -312,159 +309,178 @@ const UploadDiagram: React.FC = () => {
               </button>
             </div>
 
-            {questions.map((q, idx) => (
-              <div
-                key={idx}
-                className="mb-6 rounded-xl border border-gray-200 p-4"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-medium text-gray-700">
-                    Pregunta #{idx + 1}
-                  </div>
-                  {questions.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeQuestion(idx)}
-                      className="rounded-lg p-2 text-gray-600 hover:bg-gray-100"
-                      title="Eliminar pregunta"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  )}
-                </div>
+            {questions.map((q, idx) => {
+              const promptId = `question-${idx}-prompt`;
+              const hintId = `question-${idx}-hint`;
 
-                {/* Enunciado */}
-                <div className="mt-3">
-                  <label className="block text-sm text-gray-600 mb-1">
-                    Enunciado *
-                  </label>
-                  <textarea
-                    value={q.prompt}
-                    onChange={(e) =>
-                      updateQuestion(idx, { prompt: e.target.value })
-                    }
-                    className={`w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
-                      q.errors?.prompt ? "border-red-400" : "border-gray-300"
-                    }`}
-                    rows={2}
-                    placeholder="¿Qué representa la entidad ...?"
-                  />
-                  {q.errors?.prompt && (
-                    <p className="mt-1 text-xs text-red-600">
-                      {q.errors.prompt}
-                    </p>
-                  )}
-                </div>
-
-                {/* Opciones */}
-                <div className="mt-4">
+              return (
+                <div
+                  key={idx}
+                  className="mb-6 rounded-xl border border-gray-200 p-4"
+                >
                   <div className="flex items-center justify-between">
-                    <label className="block text-sm text-gray-600">
-                      Opciones *
-                    </label>
-                    <div className="flex gap-2">
+                    <div className="text-sm font-medium text-gray-700">
+                      Pregunta #{idx + 1}
+                    </div>
+                    {questions.length > 1 && (
                       <button
                         type="button"
-                        onClick={() => addOption(idx)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs hover:bg-gray-50"
-                        disabled={q.options.length >= MAX_OPTIONS}
-                        title="Añadir opción"
+                        onClick={() => removeQuestion(idx)}
+                        className="rounded-lg p-2 text-gray-600 hover:bg-gray-100"
+                        title="Eliminar pregunta"
                       >
-                        <Plus size={14} /> Opción
+                        <Trash2 size={16} />
                       </button>
-                    </div>
+                    )}
                   </div>
-                  {q.errors?.optionsGeneral && (
-                    <p className="mt-1 text-xs text-red-600">
-                      {q.errors.optionsGeneral}
-                    </p>
-                  )}
-                  <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {q.options.map((opt, optIdx) => (
-                      <div key={optIdx} className="relative">
-                        <label className="block text-xs text-gray-500 mb-1">
-                          Opción {optIdx + 1}
-                        </label>
-                        <input
-                          value={opt}
-                          onChange={(e) =>
-                            updateOption(idx, optIdx, e.target.value)
-                          }
-                          className={`w-full rounded-lg border px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
-                            q.errors?.options?.[optIdx]
-                              ? "border-red-400"
-                              : "border-gray-300"
-                          }`}
-                          placeholder={`Texto de la opción ${optIdx + 1}`}
-                        />
-                        <div className="absolute right-2 top-[28px] flex items-center gap-2">
-                          {/* Selector de correcta */}
-                          <input
-                            type="radio"
-                            name={`correct-${idx}`}
-                            checked={q.correctIndex === optIdx}
-                            onChange={() =>
-                              updateQuestion(idx, { correctIndex: optIdx })
-                            }
-                            title="Marcar como correcta"
-                          />
-                          {/* Eliminar opción */}
-                          <button
-                            type="button"
-                            onClick={() => removeOption(idx, optIdx)}
-                            className="rounded p-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
-                            disabled={q.options.length <= MIN_OPTIONS}
-                            title="Eliminar opción"
-                          >
-                            <Minus size={14} />
-                          </button>
-                        </div>
-                        {q.errors?.options?.[optIdx] && (
-                          <p className="mt-1 text-xs text-red-600">
-                            {q.errors.options[optIdx]}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  {q.errors?.correctIndex && (
-                    <p className="mt-2 text-xs text-red-600">
-                      {q.errors.correctIndex}
-                    </p>
-                  )}
-                </div>
 
-                {/* Pista OBLIGATORIA */}
-                <div className="mt-4">
-                  <label className="block text-sm text-gray-600 mb-1">
-                    Pista *
-                  </label>
-                  <input
-                    value={q.hint}
-                    onChange={(e) =>
-                      updateQuestion(idx, { hint: e.target.value })
-                    }
-                    className={`w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
-                      q.errors?.hint ? "border-red-400" : "border-gray-300"
-                    }`}
-                    placeholder="Recuerda revisar las cardinalidades..."
-                  />
-                  {q.errors?.hint && (
-                    <p className="mt-1 text-xs text-red-600">{q.errors.hint}</p>
-                  )}
+                  {/* Enunciado */}
+                  <div className="mt-3">
+                    <label
+                      htmlFor={promptId}
+                      className="block text-sm text-gray-600 mb-1"
+                    >
+                      Enunciado *
+                    </label>
+                    <textarea
+                      id={promptId}
+                      value={q.prompt}
+                      onChange={(e) =>
+                        updateQuestion(idx, { prompt: e.target.value })
+                      }
+                      className={`w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
+                        q.errors?.prompt ? "border-red-400" : "border-gray-300"
+                      }`}
+                      rows={2}
+                      placeholder="¿Qué representa la entidad ...?"
+                    />
+                    {q.errors?.prompt && (
+                      <p className="mt-1 text-xs text-red-600">
+                        {q.errors.prompt}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Opciones */}
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between">
+                      <p className="block text-sm text-gray-600">
+                        Opciones *
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => addOption(idx)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs hover:bg-gray-50"
+                          disabled={q.options.length >= MAX_OPTIONS}
+                          title="Añadir opción"
+                        >
+                          <Plus size={14} /> Opción
+                        </button>
+                      </div>
+                    </div>
+                    {q.errors?.optionsGeneral && (
+                      <p className="mt-1 text-xs text-red-600">
+                        {q.errors.optionsGeneral}
+                      </p>
+                    )}
+                    <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {q.options.map((opt, optIdx) => {
+                        const optionId = `question-${idx}-option-${optIdx}`;
+                        return (
+                          <div key={optIdx} className="relative">
+                            <label
+                              htmlFor={optionId}
+                              className="block text-xs text-gray-500 mb-1"
+                            >
+                              Opción {optIdx + 1}
+                            </label>
+                            <input
+                              id={optionId}
+                              value={opt}
+                              onChange={(e) =>
+                                updateOption(idx, optIdx, e.target.value)
+                              }
+                              className={`w-full rounded-lg border px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
+                                q.errors?.options?.[optIdx]
+                                  ? "border-red-400"
+                                  : "border-gray-300"
+                              }`}
+                              placeholder={`Texto de la opción ${optIdx + 1}`}
+                            />
+                            <div className="absolute right-2 top-[28px] flex items-center gap-2">
+                              <input
+                                type="radio"
+                                name={`correct-${idx}`}
+                                checked={q.correctIndex === optIdx}
+                                onChange={() =>
+                                  updateQuestion(idx, { correctIndex: optIdx })
+                                }
+                                title="Marcar como correcta"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeOption(idx, optIdx)}
+                                className="rounded p-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+                                disabled={q.options.length <= MIN_OPTIONS}
+                                title="Eliminar opción"
+                              >
+                                <Minus size={14} />
+                              </button>
+                            </div>
+                            {q.errors?.options?.[optIdx] && (
+                              <p className="mt-1 text-xs text-red-600">
+                                {q.errors.options[optIdx]}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {q.errors?.correctIndex && (
+                      <p className="mt-2 text-xs text-red-600">
+                        {q.errors.correctIndex}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Pista OBLIGATORIA */}
+                  <div className="mt-4">
+                    <label
+                      htmlFor={hintId}
+                      className="block text-sm text-gray-600 mb-1"
+                    >
+                      Pista *
+                    </label>
+                    <input
+                      id={hintId}
+                      value={q.hint}
+                      onChange={(e) =>
+                        updateQuestion(idx, { hint: e.target.value })
+                      }
+                      className={`w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 ${
+                        q.errors?.hint ? "border-red-400" : "border-gray-300"
+                      }`}
+                      placeholder="Recuerda revisar las cardinalidades..."
+                    />
+                    {q.errors?.hint && (
+                      <p className="mt-1 text-xs text-red-600">
+                        {q.errors.hint}
+                      </p>
+                    )}
+                  </div>
+                  <div className="mt-4 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={addQuestion}
+                      className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
+                    >
+                      <Plus size={16} /> Añadir pregunta
+                    </button>
+                  </div>
                 </div>
-                {/* Acciones al final de la pregunta */}
-                <div className="mt-4 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={addQuestion}
-                    className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
-                  >
-                    <Plus size={16} /> Añadir pregunta
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Acciones */}
@@ -491,10 +507,9 @@ const UploadDiagram: React.FC = () => {
                 }
               `}
               onClick={(e) => {
-                
                 if (!canSubmit) {
                   e.preventDefault();
-                  validate(); 
+                  validate();
                 }
               }}
             >
@@ -531,7 +546,7 @@ const UploadDiagram: React.FC = () => {
           </div>
         </form>
         {confirmLeaveOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify_center bg-black/40 p-4">
             <div className="w-full max-w-md rounded-2xl bg-white shadow-xl border border-gray-200">
               <div className="px-5 py-4 border-b">
                 <h3 className="text-lg font-semibold">Salir sin guardar</h3>

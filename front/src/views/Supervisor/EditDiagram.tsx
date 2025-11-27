@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageWithHeader from '../../components/layout/PageWithHeader';
@@ -27,14 +26,11 @@ const EditDiagram: React.FC = () => {
 
   const [questions, setQuestions] = useState<QuestionForm[]>([]);
 
-  
   const initialSnapRef = useRef<string>('');
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
 
-  
   const formRef = useRef<HTMLFormElement | null>(null);
 
-  
   useEffect(() => {
     (async () => {
       try {
@@ -69,7 +65,6 @@ const EditDiagram: React.FC = () => {
   );
   const isDirty = currentSnap !== initialSnapRef.current;
 
-  
   const onPickImage = (file: File | null) => {
     if (!file) return;
     setImageFile(file);
@@ -77,7 +72,6 @@ const EditDiagram: React.FC = () => {
     setImagePreview(url);
   };
 
-  
   const addQuestion = () => {
     setQuestions(prev => [
       ...prev,
@@ -87,8 +81,6 @@ const EditDiagram: React.FC = () => {
 
   const removeQuestion = (qi: number) => {
     setQuestions(prev => prev.filter((_, i) => i !== qi));
-    
-    
   };
 
   const setQuestionField = (qi: number, field: keyof QuestionForm, value: any) => {
@@ -137,7 +129,6 @@ const EditDiagram: React.FC = () => {
     );
   };
 
-  
   const validation = useMemo(() => {
     const errs: string[] = [];
     if (!title.trim()) errs.push('El título es obligatorio.');
@@ -156,7 +147,6 @@ const EditDiagram: React.FC = () => {
     return { ok: errs.length === 0, errs };
   }, [title, questions]);
 
-  
   const showLoading = useDelayedFlag(loading);
 
   const goBack = () => {
@@ -197,7 +187,6 @@ const EditDiagram: React.FC = () => {
 
       await updateDiagram(id, fd);
 
-      
       initialSnapRef.current = JSON.stringify({
         title: title.trim(),
         questions: questions.map(q => ({
@@ -222,7 +211,7 @@ const EditDiagram: React.FC = () => {
     return (
       <PageWithHeader>
         <div className="p-6 text-gray-600">Cargando…</div>
-     </PageWithHeader>
+      </PageWithHeader>
     );
   }
 
@@ -244,8 +233,11 @@ const EditDiagram: React.FC = () => {
 
         {/* Título */}
         <div className="mb-6">
-          <label className="block text-sm text-gray-600 mb-1">Título *</label>
+          <label htmlFor="diagramTitle" className="block text-sm text-gray-600 mb-1">
+            Título *
+          </label>
           <input
+            id="diagramTitle"
             value={title}
             onChange={e => setTitle(e.target.value)}
             className="w-full rounded-xl border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
@@ -255,7 +247,7 @@ const EditDiagram: React.FC = () => {
 
         {/* Imagen */}
         <div className="mb-8">
-          <label className="block text-sm text-gray-600 mb-2">Imagen del diagrama</label>
+          <p className="block text-sm text-gray-600 mb-2">Imagen del diagrama</p>
 
           <div className="flex flex-col items-center gap-4">
             {imagePreview ? (
@@ -270,10 +262,14 @@ const EditDiagram: React.FC = () => {
               </div>
             )}
 
-            <label className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50 cursor-pointer">
+            <label
+              htmlFor="diagramImageInput"
+              className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50 cursor-pointer"
+            >
               <ImageIcon size={18} />
               Reemplazar imagen
               <input
+                id="diagramImageInput"
                 type="file"
                 accept="image/*"
                 className="hidden"
@@ -286,87 +282,104 @@ const EditDiagram: React.FC = () => {
         {/* Preguntas */}
         <form ref={formRef} onSubmit={onSubmit} className="space-y-6">
           <div className="space-y-6">
-            {questions.map((q, qi) => (
-              <div key={qi} className="rounded-2xl border border-gray-200 bg-white p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <h3 className="text-base font-semibold">Pregunta {qi + 1}</h3>
-                  <button
-                    type="button"
-                    onClick={() => removeQuestion(qi)}
-                    className="text-rose-700 hover:bg-rose-50 rounded-lg px-2 py-1"
-                    title="Eliminar pregunta"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
+            {questions.map((q, qi) => {
+              const promptId = `question-${qi}-prompt`;
+              const hintId = `question-${qi}-hint`;
 
-                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">Enunciado *</label>
-                    <textarea
-                      value={q.prompt}
-                      onChange={e => setQuestionField(qi, 'prompt', e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 h-24 resize-vertical focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">Pista *</label>
-                    <textarea
-                      value={q.hint}
-                      onChange={e => setQuestionField(qi, 'hint', e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 h-24 resize-vertical focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <div className="mb-2 text-sm text-gray-600">Opciones (mínimo 2)</div>
-                  <div className="space-y-2">
-                    {q.options.map((opt, oi) => (
-                      <div key={oi} className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setCorrect(qi, oi)}
-                          className={`rounded-full p-1 ${
-                            q.correctIndex === oi
-                              ? 'text-emerald-700'
-                              : 'text-gray-400 hover:text-gray-600'
-                          }`}
-                          title="Marcar como correcta"
-                        >
-                          <CheckCircle2 size={20} />
-                        </button>
-                        <input
-                          value={opt}
-                          onChange={e => setOption(qi, oi, e.target.value)}
-                          className="flex-1 rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                          placeholder={`Opción ${oi + 1}`}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeOption(qi, oi)}
-                          className="rounded-lg px-2 py-1 text-rose-700 hover:bg-rose-50"
-                          title="Eliminar opción"
-                          disabled={q.options.length <= 2}
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-3">
+              return (
+                <div key={qi} className="rounded-2xl border border-gray-200 bg-white p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <h3 className="text-base font-semibold">Pregunta {qi + 1}</h3>
                     <button
                       type="button"
-                      onClick={() => addOption(qi)}
-                      className="rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-sm hover:bg-gray-50"
+                      onClick={() => removeQuestion(qi)}
+                      className="text-rose-700 hover:bg-rose-50 rounded-lg px-2 py-1"
+                      title="Eliminar pregunta"
                     >
-                      Añadir opción
+                      <Trash2 size={18} />
                     </button>
                   </div>
+
+                  <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label
+                        htmlFor={promptId}
+                        className="block text-sm text-gray-600 mb-1"
+                      >
+                        Enunciado *
+                      </label>
+                      <textarea
+                        id={promptId}
+                        value={q.prompt}
+                        onChange={e => setQuestionField(qi, 'prompt', e.target.value)}
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 h-24 resize-vertical focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor={hintId}
+                        className="block text-sm text-gray-600 mb-1"
+                      >
+                        Pista *
+                      </label>
+                      <textarea
+                        id={hintId}
+                        value={q.hint}
+                        onChange={e => setQuestionField(qi, 'hint', e.target.value)}
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 h-24 resize-vertical focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <div className="mb-2 text-sm text-gray-600">Opciones (mínimo 2)</div>
+                    <div className="space-y-2">
+                      {q.options.map((opt, oi) => (
+                        <div key={oi} className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setCorrect(qi, oi)}
+                            className={`rounded-full p-1 ${
+                              q.correctIndex === oi
+                                ? 'text-emerald-700'
+                                : 'text-gray-400 hover:text-gray-600'
+                            }`}
+                            title="Marcar como correcta"
+                          >
+                            <CheckCircle2 size={20} />
+                          </button>
+                          <input
+                            value={opt}
+                            onChange={e => setOption(qi, oi, e.target.value)}
+                            className="flex-1 rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                            placeholder={`Opción ${oi + 1}`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeOption(qi, oi)}
+                            className="rounded-lg px-2 py-1 text-rose-700 hover:bg-rose-50"
+                            title="Eliminar opción"
+                            disabled={q.options.length <= 2}
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-3">
+                      <button
+                        type="button"
+                        onClick={() => addOption(qi)}
+                        className="rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-sm hover:bg-gray-50"
+                      >
+                        Añadir opción
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             <button
               type="button"
@@ -404,8 +417,19 @@ const EditDiagram: React.FC = () => {
               {saving ? (
                 <>
                   <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
-                    <path d="M4 12a8 8 0 018-8v4l3.464-3.464A12 12 0 004 12z" fill="currentColor" className="opacity-75" />
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      className="opacity-25"
+                    />
+                    <path
+                      d="M4 12a8 8 0 018-8v4l3.464-3.464A12 12 0 004 12z"
+                      fill="currentColor"
+                      className="opacity-75"
+                    />
                   </svg>
                   Guardando…
                 </>
@@ -472,7 +496,7 @@ const EditDiagram: React.FC = () => {
           </div>
         )}
       </div>
-   </PageWithHeader>
+    </PageWithHeader>
   );
 };
 
