@@ -1,0 +1,104 @@
+@startuml
+title ERPlay — Secuencia de implementación: createDiagram (DiagramsController → DiagramsService → TypeORM)
+
+skinparam shadowing false
+skinparam linetype ortho
+hide footbox
+
+actor Supervisor as sup
+boundary "API (Express)\nDiagramsController\ncreateDiagram()" as C
+control "DiagramsService\ncreateDiagram()" as S
+control "Zod Schema\nBodySchema.parse()" as Z
+
+database "TypeORM\n(Manager/Repositories)\ntransaction()" as ORM
+collections "FS uploads\n(req.file)" as FS
+
+entity "UserRepo\n(User)" as UR
+entity "DiagramRepo\n(Diagram)" as DR
+entity "QuestionRepo\n(Question)" as QR
+entity "OptionRepo\n(Option)" as OR
+
+== Petición HTTP ==
+sup -> C : POST /diagrams\nmultipart(image) + {title, questions[]}
+activate C
+
+C -> Z : validar title + questions JSON\n(y correctIndex en rango)
+activate Z
+Z --> C : payload validado
+deactivate Z
+
+C -> FS : req.file (filename, path)
+C -> S : createDiagram({title, creatorId,\nfile, questions})
+activate S
+
+== Reglas de negocio ==
+S -> UR : findOneByOrFail(creatorId)
+activate UR
+UR --> S : creator (role)
+deactivate UR
+
+note right of S
+Validaciones de negocio:
+- title no vacío
+- ≥ 1 pregunta
+- prompt/hint no vacíos
+- ≥ 2 opciones
+- correctIndex dentro de rango
+end note
+
+== Persistencia transaccional ==
+S -> ORM : transaction( manager => {...} )
+activate ORM
+
+ORM -> DR : manager.create(Diagram)\n{title, filename, path}
+activate DR
+DR --> ORM : diagram (no persistido)
+ORM -> DR : manager.save(diagram)
+DR --> ORM : diagram.id
+deactivate DR
+
+alt creator.role == SUPERVISOR
+  note right of S
+  Auto-aprobación:
+  status = APPROVED
+  reviewedBy = creator
+  reviewedAt = now()
+  end note
+else creator.role == STUDENT
+  note right of S
+  Propuesta del alumno:
+  status = PENDING
+  reviewedBy = null
+  reviewedAt = null
+  end note
+end
+
+loop por cada pregunta q
+  ORM -> QR : manager.create(Question)\n{prompt,hint,correctOptionIndex,\ndiagram,creator,status,reviewedBy,...}
+  activate QR
+  QR --> ORM : question
+  ORM -> QR : manager.save(question)
+  QR --> ORM : question.id
+  deactivate QR
+
+  loop por cada opción (text, idx)
+    ORM -> OR : manager.create(Option)\n{text, orderIndex=idx, question}
+    activate OR
+    OR --> ORM : option
+    ORM -> OR : manager.save(option)
+    OR --> ORM : option.id
+    deactivate OR
+  end
+end
+
+ORM --> S : commit OK
+deactivate ORM
+
+== Respuesta ==
+S --> C : { id: diagram.id, path: diagram.path }
+deactivate S
+
+C --> sup : 201 Created\n{ id, path }
+deactivate C
+
+@enduml
