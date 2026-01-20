@@ -1,123 +1,305 @@
 # ERPlay
 
-Plataforma educativa para practicar diagramas entidad–relación. El repositorio incluye una API REST en Express + TypeORM, un frontend React con Vite y tooling para documentación, calidad estática y despliegue con Docker.
+Plataforma educativa para **practicar diagramas Entidad–Relación (ER)** mediante tests (modo **Examen** / **Aprendizaje**), seguimiento de progreso y gestión de contenido.  
+Repositorio **monorepo** con **API REST (Express + TypeORM)**, **frontend (React + Vite)**, documentación técnica y tooling de calidad, preparado para ejecución local y despliegue con Docker.
 
-## Requisitos previos
+---
 
-- Node.js 20+ y npm 10+
-- MySQL 8 (solo si se ejecuta la API fuera de Docker)
-- Docker y Docker Compose (opcional, recomendados para el entorno completo)
-- SonarQube Community Edition en local para los análisis de calidad
+## Índice
+
+- [Stack](#stack)
+- [Estructura del repositorio](#estructura-del-repositorio)
+- [Requisitos previos](#requisitos-previos)
+- [Arranque rápido con Docker (recomendado)](#arranque-rápido-con-docker-recomendado)
+- [Puesta en marcha local (sin Docker)](#puesta-en-marcha-local-sin-docker)
+- [Variables de entorno](#variables-de-entorno)
+- [Migraciones y seed](#migraciones-y-seed)
+- [Documentación](#documentación)
+- [Calidad y análisis estático (SonarQube)](#calidad-y-análisis-estático-sonarqube)
+- [Despliegue (producción)](#despliegue-producción)
+- [Notas](#notas)
+
+---
+
+## Stack
+
+**Backend**
+- Node.js + Express
+- TypeORM
+- MySQL
+- JWT (autenticación)
+- SMTP (envío de emails)
+
+**Frontend**
+- React + Vite
+- UI responsive (modo claro/oscuro)
+
+**Tooling**
+- Docker / Docker Compose
+- TypeDoc
+- SonarQube (Community Edition)
+
+---
 
 ## Estructura del repositorio
 
-```
+```txt
 ERPlay/
 ├── back/               # API REST (Express + TypeORM)
-├── front/              # Aplicación React + Vite
+├── front/              # Frontend (React + Vite)
 ├── docs/               # Documentación HTML generada con TypeDoc
-├── docker-compose.yml  # Orquestación de frontend, backend y MySQL
-├── typedoc.json        # Configuración de la documentación técnica
+├── docker-compose.yml  # Orquestación: frontend, backend y MySQL
+├── typedoc.json        # Configuración TypeDoc
 └── sonar-project.properties
 ```
 
+---
+
+## Requisitos previos
+
+- Node.js **20+** y npm **10+**
+- Docker y Docker Compose *(opcional, recomendado para levantar todo el entorno)*
+- MySQL 8 *(solo si ejecutas la API fuera de Docker)*
+- SonarQube CE en local *(opcional, para análisis de calidad)*
+
+---
+
+## Arranque rápido con Docker (recomendado)
+
+Levanta MySQL + API + frontend en un solo comando:
+
+```bash
+docker compose up --build
+```
+
+Si quieres ejecutar seed automáticamente al arrancar:
+
+```bash
+RUN_DB_SEED=true docker compose up --build
+```
+
+En PowerShell:
+
+```powershell
+$env:RUN_DB_SEED="true"; docker compose up --build
+```
+
+### URLs locales (por defecto)
+
+- Frontend: http://localhost:8080
+- API: http://localhost:3000/api
+- MySQL: localhost:3306
+
+### Parar y limpiar (incluye volúmenes persistentes)
+
+```bash
+docker compose down -v
+```
+
+> En Docker, los ficheros subidos se guardan en el volumen `back_uploads`.
+
+---
+
 ## Puesta en marcha local (sin Docker)
 
-### Backend
-1. Instala dependencias:
-   ```bash
-   cd back
-   npm install
-   ```
-2. Copia y ajusta `.env` siguiendo el esquema de `src/config/env.ts`.
-3. Ejecuta migraciones con MySQL levantado:
-   ```bash
-   npm run migration:run
-   ```
-4. (Opcional) Carga datos de ejemplo:
-   ```bash
-   npm run seed
-   ```
-5. Levanta la API en modo desarrollo:
-   ```bash
-   npm run dev
-   ```
+### Backend (Express + TypeORM)
 
-### Frontend
-1. Instala dependencias:
-   ```bash
-   cd front
-   npm install
-   ```
-2. Define `VITE_API_URL` en un `.env.local` (p. ej. `http://localhost:3000/api`).
-3. Inicia el servidor de desarrollo de Vite:
-   ```bash
-   npm run dev
-   ```
+1) Instala dependencias:
 
-## Docker
+```bash
+cd back
+npm install
+```
 
-El `docker-compose.yml` levanta MySQL, API y frontend con Nginx.
+2) Crea tu archivo `.env` y ajústalo siguiendo el esquema esperado por `src/config/env.ts`.
 
-- Construir y arrancar (se aplica la semilla según `RUN_DB_SEED`):
-  ```bash
-  RUN_DB_SEED=true docker compose up --build
-  ```
-  En PowerShell:
-  ```powershell
-  $env:RUN_DB_SEED="true"; docker compose up --build
-  ```
-- Detener y limpiar volúmenes persistentes (incluye base de datos y uploads):
-  ```bash
-  docker compose down -v
-  ```
+3) Ejecuta migraciones (con MySQL levantado):
 
-Variables principales ya definidas en el `compose`:
-- `RUN_DB_SEED`: controla si se ejecuta la semilla inicial (`back/src/seeds/seed.ts`).
-- `MYSQL_*`: credenciales de la base de datos.
-- `JWT_*` y `SMTP_*`: secretos para autenticación y correo.
+```bash
+npm run migration:run
+```
 
-Al terminar el build, el frontend queda en `http://localhost:8080`, la API en `http://localhost:3000/api` y MySQL expuesto en `localhost:3306`. Los ficheros subidos se guardan en el volumen `back_uploads`.
+4) (Opcional) Carga datos de ejemplo:
+
+```bash
+npm run seed
+```
+
+5) Levanta la API en modo desarrollo:
+
+```bash
+npm run dev
+```
+
+API disponible en: http://localhost:3000/api
+
+### Frontend (React + Vite)
+
+1) Instala dependencias:
+
+```bash
+cd front
+npm install
+```
+
+2) Define `VITE_API_URL` en `.env.local` (ejemplo):
+
+```env
+VITE_API_URL=http://localhost:3000/api
+```
+
+3) Inicia el servidor de desarrollo:
+
+```bash
+npm run dev
+```
+
+---
+
+## Variables de entorno
+
+### Backend (orientativo)
+
+Dependiendo de tu implementación exacta en `back/src/config/env.ts`, normalmente encontrarás variables como:
+
+**Base de datos**
+- `MYSQL_HOST`
+- `MYSQL_PORT`
+- `MYSQL_USER`
+- `MYSQL_PASSWORD`
+- `MYSQL_DATABASE`
+
+**Auth**
+- `JWT_SECRET` *(y/o configuración JWT equivalente)*
+
+**Email**
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_USER`
+- `SMTP_PASS`
+- `MAIL_FROM`
+
+### Docker Compose
+
+En `docker-compose.yml` ya están definidas las principales, incluyendo:
+
+- `RUN_DB_SEED` *(controla seed inicial)*
+- `MYSQL_*`
+- `JWT_*`
+- `SMTP_*`
+
+---
+
+## Migraciones y seed
+
+### Migraciones (backend)
+
+Aplicar:
+
+```bash
+cd back
+npm run migration:run
+```
+
+Revertir:
+
+```bash
+cd back
+npm run migration:revert
+```
+
+### Seed (backend)
+
+Desarrollo:
+
+```bash
+cd back
+npm run seed
+```
+
+Producción (si existe build compilada):
+
+```bash
+cd back
+npm run seed:prod
+```
+
+---
 
 ## Documentación
 
-- **API**: Swagger UI servido por el backend en `http://localhost:3000/api/docs` y contrato disponible en `back/openapi.yaml`.
-- **Documentación HTML técnica**: generada con TypeDoc para frontend y backend en `/docs/index.html`.
-  - Generar/actualizar: `npm run docs`
-  - Servir localmente: `npm run docs:serve` (abre un servidor estático sobre `docs/`)
+### API (Swagger)
 
-## Calidad y análisis estático
+- Swagger UI: http://localhost:3000/api/docs
+- Contrato OpenAPI: `back/openapi.yaml`
 
-Se usa SonarQube Community Edition en local (`http://localhost:9000`). Arranca el servidor de SonarQube y crea un token de proyecto antes de lanzar el análisis.
+### Documentación técnica (TypeDoc)
 
-- Analizar el monorepo (front + back):
-  ```bash
-  SONAR_HOST_URL=http://localhost:9000 SONAR_TOKEN=<tu_token> npm run sonar
-  ```
-  El script espera que el servidor esté accesible y tomará la configuración de `sonar-project.properties`.
+Se genera en `docs/`.
 
-## Scripts útiles
+Generar/actualizar:
 
-### Backend (`back/`)
-- `npm run dev`: API en desarrollo con recarga.
-- `npm run build`: compila a `dist/`.
-- `npm start`: ejecuta la versión compilada.
-- `npm test`: suite de Jest + Supertest.
-- `npm run seed` / `npm run seed:prod`: poblar datos en desarrollo o desde build compilado.
-- `npm run migration:run` / `npm run migration:revert`: aplicar o revertir migraciones.
+```bash
+npm run docs
+```
 
-### Frontend (`front/`)
-- `npm run dev`: servidor de desarrollo Vite.
-- `npm run build`: build de producción.
-- `npm run lint`: linting con ESLint.
-- `npm run preview`: previsualizar la build.
+Servir localmente:
 
-### Raíz
-- `npm run docs`: genera documentación TypeDoc en `docs/`.
-- `npm run docs:serve`: sirve la documentación HTML.
-- `npm run sonar`: lanza el análisis SonarQube (requiere `SONAR_HOST_URL` y `SONAR_TOKEN`).
+```bash
+npm run docs:serve
+```
+
+---
+
+## Calidad y análisis estático (SonarQube)
+
+SonarQube Community Edition en local (http://localhost:9000).
+
+1) Arranca SonarQube y crea un token de proyecto.  
+2) Ejecuta el análisis:
+
+```bash
+SONAR_HOST_URL=http://localhost:9000 SONAR_TOKEN=<tu_token> npm run sonar
+```
+
+El script utiliza la configuración de `sonar-project.properties`.
+
+---
+
+## Despliegue (producción)
+
+### Opción A (recomendada): VPS + Docker Compose
+
+1) Provisiona un VPS (Ubuntu recomendado) e instala Docker + Docker Compose.  
+2) Clona el repositorio o despliega mediante CI/CD.  
+3) Define variables de entorno para producción (DB/JWT/SMTP) o gestiona un `.env` seguro.  
+4) Levanta servicios:
+
+```bash
+docker compose up -d --build
+```
+
+#### Dominio y HTTPS
+
+Coloca un reverse proxy delante (Nginx / Caddy / Traefik) para:
+- TLS con Let’s Encrypt
+- redirección HTTP → HTTPS
+- proxy hacia frontend y backend
+
+### Opción B: Frontend y backend separados (PaaS)
+
+- Frontend: Vercel / Netlify (build de Vite desde `front/`)
+- Backend: Render / Fly.io / Railway
+- DB: MySQL gestionado (cloud)
+
+En este enfoque:
+- `VITE_API_URL` debe apuntar a la URL pública del backend.
+- Configura CORS si frontend y backend están en dominios distintos.
+
+---
 
 ## Notas
 
-- El endpoint de salud está disponible en `GET /health` y los ficheros subidos se exponen en `/uploads`.
-- El reverse proxy de Nginx en Docker reenvía `/api/*` del frontend al backend, evitando configuraciones adicionales de CORS.
+- Endpoint de salud: `GET /health`
+- Uploads servidos en: `/uploads`
+- En Docker, si usas reverse proxy para `/api/*`, puedes evitar configuraciones adicionales de CORS.
