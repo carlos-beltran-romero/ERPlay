@@ -20,8 +20,9 @@ wait_for_db() {
   exit 1
 }
 
-should_seed() {
-  value="${RUN_DB_SEED:-false}"   # por defecto false
+to_bool() {
+  # usage: to_bool "$VALUE"
+  value="${1:-false}"
   value=$(printf '%s' "$value" | tr '[:upper:]' '[:lower:]')
   case "$value" in
     1|true|yes|on) return 0 ;;
@@ -29,36 +30,76 @@ should_seed() {
   esac
 }
 
+db_user_count() {
+  mysql -N -s \
+    -h"$DB_HOST" -P"$DB_PORT" \
+    -u"$DB_USER" -p"$DB_PASSWORD" \
+    "$DB_NAME" \
+    -e "SELECT COUNT(*) FROM users;" 2>/dev/null \
+  || echo "0"
+}
+
+db_user_exists_by_email() {
+  email="$1"
+  mysql -N -s \
+    -h"$DB_HOST" -P"$DB_PORT" \
+    -u"$DB_USER" -p"$DB_PASSWORD" \
+    "$DB_NAME" \
+    -e "SELECT COUNT(*) FROM users WHERE email='${email}';" 2>/dev/null \
+  || echo "0"
+}
+
+generate_password() {
+  # Intenta generar una contraseña aleatoria sin depender estrictamente de openssl.
+  if command -v openssl >/dev/null 2>&1; then
+    openssl rand -base64 18 | tr -d '\n'
+    return 0
+  fi
+
+  # Fallback: /dev/urandom
+  if [ -r /dev/urandom ]; then
+    # 18 bytes ~ 24 chars base64 aprox, suficiente para local
+    head -c 18 /dev/urandom | base64 | tr -d '\n'
+    return 0
+  fi
+
+  # Último fallback (muy básico)
+  date +%s | awk '{print "local-"$1"-admin"}'
+}
+
 create_default_admin() {
-  ADMIN_EMAIL="erplay.supervisor@gmail.com"
-  ADMIN_NAME="ERPlay"
-  ADMIN_LASTNAME="Supervisor"
-  ADMIN_PASSWORD="localAdmin2025"
+  # Controlado por env
+  if ! to_bool "${CREATE_DEFAULT_ADMIN:-false}"; then
+    echo "CREATE_DEFAULT_ADMIN=false; no se creará admin por defecto."
+    return 0
+  fi
+
+  ADMIN_EMAIL="${DEFAULT_ADMIN_EMAIL:-erplay.supervisor@gmail.com}"
+  ADMIN_NAME="${DEFAULT_ADMIN_NAME:-ERPlay}"
+  ADMIN_LASTNAME="${DEFAULT_ADMIN_LASTNAME:-Supervisor}"
+  ADMIN_PASSWORD="${DEFAULT_ADMIN_PASSWORD:-}"
 
   echo "Verificando usuario admin por defecto (${ADMIN_EMAIL})..."
 
-  EXISTING_SUPERVISOR=$(
-    mysql -N -s \
-      -h"$DB_HOST" -P"$DB_PORT" \
-      -u"$DB_USER" -p"$DB_PASSWORD" \
-      "$DB_NAME" \
-      -e "SELECT COUNT(*) FROM users WHERE email='${ADMIN_EMAIL}';" 2>/dev/null \
-    || echo "0"
-  )
-
-  case "$EXISTING_SUPERVISOR" in
-    '' ) EXISTING_SUPERVISOR=0 ;;
-  esac
+  EXISTING_SUPERVISOR="$(db_user_exists_by_email "$ADMIN_EMAIL")"
+  [ -z "$EXISTING_SUPERVISOR" ] && EXISTING_SUPERVISOR=0
 
   if [ "$EXISTING_SUPERVISOR" -gt 0 ]; then
     echo "Ya existe un usuario con ese email. No se crea admin por defecto."
     return 0
   fi
 
-  echo "Creando admin por defecto sin seed..."
+  if [ -z "$ADMIN_PASSWORD" ]; then
+    ADMIN_PASSWORD="$(generate_password)"
+    echo "No se proporcionó DEFAULT_ADMIN_PASSWORD. Se generó una contraseña para el admin."
+    echo "ADMIN_PASSWORD_GENERADA=${ADMIN_PASSWORD}"
+  fi
+
+  echo "Creando admin por defecto (sin seed)..."
 
   ADMIN_HASH=$(
-    node -e "const bcrypt = require('bcrypt'); console.log(bcrypt.hashSync('${ADMIN_PASSWORD}', 10));"
+    node -e "const bcrypt = require('bcrypt'); console.log(bcrypt.hashSync(process.env.ADMIN_PASSWORD, 10));" \
+    ADMIN_PASSWORD="$ADMIN_PASSWORD"
   )
 
   if [ -z "$ADMIN_HASH" ]; then
@@ -74,9 +115,35 @@ create_default_admin() {
     echo "Admin por defecto creado correctamente."
   else
     echo "No se pudo crear el admin por defecto." >&2
+    return 1
   fi
 }
 
+seed_database_if_empty() {
+  echo "RUN_DB_SEED=true → comprobando si la BD ya tiene usuarios..."
+
+  EXISTEN_USUARIOS="$(db_user_count)"
+  [ -z "$EXISTEN_USUARIOS" ] && EXISTEN_USUARIOS=0
+
+  if [ "$EXISTEN_USUARIOS" -gt 0 ]; then
+    echo "La BD ya tiene datos. No se ejecuta la seed."
+    return 0
+  fi
+
+  echo "La BD está vacía → ejecutando seed (erplay.sql)..."
+  if ! mysql \
+    -h"$DB_HOST" -P"$DB_PORT" \
+    -u"$DB_USER" -p"$DB_PASSWORD" \
+    "$DB_NAME" < erplay.sql; then
+    echo "Fallo al ejecutar erplay.sql." >&2
+    exit 1
+  fi
+  echo "erplay.sql ejecutado correctamente."
+}
+
+# -------------------------
+# Main
+# -------------------------
 wait_for_db
 
 echo "Ejecutando migraciones de base de datos..."
@@ -85,39 +152,10 @@ if ! npm run migration:run:js; then
   exit 1
 fi
 
-if should_seed; then
-  echo "RUN_DB_SEED=true → comprobando si la BD ya tiene usuarios..."
-
-  # Obtenemos el número de usuarios; si falla el comando, asumimos 0
-  EXISTEN_USUARIOS=$(
-    mysql -N -s \
-      -h"$DB_HOST" -P"$DB_PORT" \
-      -u"$DB_USER" -p"$DB_PASSWORD" \
-      "$DB_NAME" \
-      -e "SELECT COUNT(*) FROM users;" 2>/dev/null \
-    || echo "0"
-  )
-
-
-  case "$EXISTEN_USUARIOS" in
-    '' ) EXISTEN_USUARIOS=0 ;;
-  esac
-
-  if [ "$EXISTEN_USUARIOS" -gt 0 ]; then
-    echo "La BD ya tiene datos. No se ejecuta la seed."
-  else
-    echo "La BD está vacía → ejecutando seed..."
-    if ! mysql \
-      -h"$DB_HOST" -P"$DB_PORT" \
-      -u"$DB_USER" -p"$DB_PASSWORD" \
-      "$DB_NAME" < erplay.sql; then
-      echo "Fallo al ejecutar erplay.sql." >&2
-      exit 1
-    fi
-    echo "erplay.sql ejecutado correctamente."
-  fi
+if to_bool "${RUN_DB_SEED:-false}"; then
+  seed_database_if_empty
 else
-  echo "RUN_DB_SEED desactivado; Sin seed en base de datos."
+  echo "RUN_DB_SEED desactivado; sin seed en base de datos."
   create_default_admin
 fi
 
