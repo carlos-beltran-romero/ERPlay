@@ -20,130 +20,76 @@ wait_for_db() {
   exit 1
 }
 
-to_bool() {
-  # usage: to_bool "$VALUE"
-  value="${1:-false}"
+should_seed() {
+  value="${RUN_DB_SEED:-false}" # por defecto false
   value=$(printf '%s' "$value" | tr '[:upper:]' '[:lower:]')
   case "$value" in
     1|true|yes|on) return 0 ;;
-    *)             return 1 ;;
+    *) return 1 ;;
   esac
 }
 
-db_user_count() {
-  mysql -N -s \
-    -h"$DB_HOST" -P"$DB_PORT" \
-    -u"$DB_USER" -p"$DB_PASSWORD" \
-    "$DB_NAME" \
-    -e "SELECT COUNT(*) FROM users;" 2>/dev/null \
-  || echo "0"
+# Construye args de mysql de forma segura cuando DB_PASSWORD está vacío
+mysql_base_args() {
+  args="-h${DB_HOST} -P${DB_PORT} -u${DB_USER} --protocol=tcp"
+  if [ -n "${DB_PASSWORD:-}" ]; then
+    args="${args} --password=${DB_PASSWORD}"
+  fi
+  printf '%s' "$args"
 }
 
-db_user_exists_by_email() {
-  email="$1"
-  mysql -N -s \
-    -h"$DB_HOST" -P"$DB_PORT" \
-    -u"$DB_USER" -p"$DB_PASSWORD" \
-    "$DB_NAME" \
-    -e "SELECT COUNT(*) FROM users WHERE email='${email}';" 2>/dev/null \
-  || echo "0"
+mysql_query_scalar() {
+  # $1: SQL
+  # Devuelve un único valor (o vacío)
+  base_args="$(mysql_base_args)"
+  mysql -N -s $base_args "${DB_NAME}" -e "$1" 2>/dev/null || true
 }
 
-generate_password() {
-  # Intenta generar una contraseña aleatoria sin depender estrictamente de openssl.
-  if command -v openssl >/dev/null 2>&1; then
-    openssl rand -base64 18 | tr -d '\n'
-    return 0
-  fi
-
-  # Fallback: /dev/urandom
-  if [ -r /dev/urandom ]; then
-    # 18 bytes ~ 24 chars base64 aprox, suficiente para local
-    head -c 18 /dev/urandom | base64 | tr -d '\n'
-    return 0
-  fi
-
-  # Último fallback (muy básico)
-  date +%s | awk '{print "local-"$1"-admin"}'
+sql_escape() {
+  # Escapa \ y ' para MySQL (asumiendo escapes estándar)
+  printf "%s" "$1" | sed "s/\\\\/\\\\\\\\/g; s/'/\\\\'/g"
 }
 
 create_default_admin() {
-  # Controlado por env
-  if ! to_bool "${CREATE_DEFAULT_ADMIN:-false}"; then
-    echo "CREATE_DEFAULT_ADMIN=false; no se creará admin por defecto."
-    return 0
-  fi
-
-  ADMIN_EMAIL="${DEFAULT_ADMIN_EMAIL:-erplay.supervisor@gmail.com}"
-  ADMIN_NAME="${DEFAULT_ADMIN_NAME:-ERPlay}"
-  ADMIN_LASTNAME="${DEFAULT_ADMIN_LASTNAME:-Supervisor}"
-  ADMIN_PASSWORD="${DEFAULT_ADMIN_PASSWORD:-}"
+  ADMIN_EMAIL="${ADMIN_EMAIL:-erplay.supervisor@gmail.com}"
+  ADMIN_NAME="${ADMIN_NAME:-ERPlay}"
+  ADMIN_LASTNAME="${ADMIN_LASTNAME:-Supervisor}"
+  ADMIN_PASSWORD="${ADMIN_PASSWORD:-localAdmin2025}"
+  ADMIN_ROLE="${ADMIN_ROLE:-supervisor}"
 
   echo "Verificando usuario admin por defecto (${ADMIN_EMAIL})..."
 
-  EXISTING_SUPERVISOR="$(db_user_exists_by_email "$ADMIN_EMAIL")"
-  [ -z "$EXISTING_SUPERVISOR" ] && EXISTING_SUPERVISOR=0
+  EMAIL_ESCAPED="$(sql_escape "$ADMIN_EMAIL")"
+  EXISTING_SUPERVISOR="$(mysql_query_scalar "SELECT COUNT(*) FROM users WHERE email='${EMAIL_ESCAPED}';")"
+  [ -n "$EXISTING_SUPERVISOR" ] || EXISTING_SUPERVISOR="0"
 
-  if [ "$EXISTING_SUPERVISOR" -gt 0 ]; then
+  if [ "$EXISTING_SUPERVISOR" -gt 0 ] 2>/dev/null; then
     echo "Ya existe un usuario con ese email. No se crea admin por defecto."
     return 0
   fi
 
-  if [ -z "$ADMIN_PASSWORD" ]; then
-    ADMIN_PASSWORD="$(generate_password)"
-    echo "No se proporcionó DEFAULT_ADMIN_PASSWORD. Se generó una contraseña para el admin."
-    echo "ADMIN_PASSWORD_GENERADA=${ADMIN_PASSWORD}"
-  fi
+  echo "Creando admin por defecto sin seed..."
 
-  echo "Creando admin por defecto (sin seed)..."
-
-  ADMIN_HASH=$(
-    node -e "const bcrypt = require('bcrypt'); console.log(bcrypt.hashSync(process.env.ADMIN_PASSWORD, 10));" \
-    ADMIN_PASSWORD="$ADMIN_PASSWORD"
-  )
-
+  # Genera el hash leyendo la password desde env para evitar problemas de comillas
+  ADMIN_HASH="$(ADMIN_PASSWORD="$ADMIN_PASSWORD" node -e "const bcrypt = require('bcrypt'); console.log(bcrypt.hashSync(process.env.ADMIN_PASSWORD, 10));")"
   if [ -z "$ADMIN_HASH" ]; then
     echo "No se pudo generar hash de contraseña para el admin." >&2
     return 1
   fi
 
-  if mysql \
-    -h"$DB_HOST" -P"$DB_PORT" \
-    -u"$DB_USER" -p"$DB_PASSWORD" \
-    "$DB_NAME" \
-    -e "INSERT INTO users (id, name, lastName, email, passwordHash, role) VALUES (UUID(), '${ADMIN_NAME}', '${ADMIN_LASTNAME}', '${ADMIN_EMAIL}', '${ADMIN_HASH}', 'supervisor')"; then
+  NAME_ESCAPED="$(sql_escape "$ADMIN_NAME")"
+  LASTNAME_ESCAPED="$(sql_escape "$ADMIN_LASTNAME")"
+  HASH_ESCAPED="$(sql_escape "$ADMIN_HASH")"
+  ROLE_ESCAPED="$(sql_escape "$ADMIN_ROLE")"
+
+  base_args="$(mysql_base_args)"
+  if mysql $base_args "$DB_NAME" -e "INSERT INTO users (id, name, lastName, email, passwordHash, role) VALUES (UUID(), '${NAME_ESCAPED}', '${LASTNAME_ESCAPED}', '${EMAIL_ESCAPED}', '${HASH_ESCAPED}', '${ROLE_ESCAPED}');"; then
     echo "Admin por defecto creado correctamente."
   else
     echo "No se pudo crear el admin por defecto." >&2
-    return 1
   fi
 }
 
-seed_database_if_empty() {
-  echo "RUN_DB_SEED=true → comprobando si la BD ya tiene usuarios..."
-
-  EXISTEN_USUARIOS="$(db_user_count)"
-  [ -z "$EXISTEN_USUARIOS" ] && EXISTEN_USUARIOS=0
-
-  if [ "$EXISTEN_USUARIOS" -gt 0 ]; then
-    echo "La BD ya tiene datos. No se ejecuta la seed."
-    return 0
-  fi
-
-  echo "La BD está vacía → ejecutando seed (erplay.sql)..."
-  if ! mysql \
-    -h"$DB_HOST" -P"$DB_PORT" \
-    -u"$DB_USER" -p"$DB_PASSWORD" \
-    "$DB_NAME" < erplay.sql; then
-    echo "Fallo al ejecutar erplay.sql." >&2
-    exit 1
-  fi
-  echo "erplay.sql ejecutado correctamente."
-}
-
-# -------------------------
-# Main
-# -------------------------
 wait_for_db
 
 echo "Ejecutando migraciones de base de datos..."
@@ -152,8 +98,22 @@ if ! npm run migration:run:js; then
   exit 1
 fi
 
-if to_bool "${RUN_DB_SEED:-false}"; then
-  seed_database_if_empty
+if should_seed; then
+  echo "RUN_DB_SEED=true → comprobando si la BD ya tiene usuarios..."
+  EXISTEN_USUARIOS="$(mysql_query_scalar "SELECT COUNT(*) FROM users;")"
+  [ -n "$EXISTEN_USUARIOS" ] || EXISTEN_USUARIOS="0"
+
+  if [ "$EXISTEN_USUARIOS" -gt 0 ] 2>/dev/null; then
+    echo "La BD ya tiene datos. No se ejecuta la seed."
+  else
+    echo "La BD está vacía → ejecutando seed..."
+    base_args="$(mysql_base_args)"
+    if ! mysql $base_args "$DB_NAME" < erplay.sql; then
+      echo "Fallo al ejecutar erplay.sql." >&2
+      exit 1
+    fi
+    echo "erplay.sql ejecutado correctamente."
+  fi
 else
   echo "RUN_DB_SEED desactivado; sin seed en base de datos."
   create_default_admin
