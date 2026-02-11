@@ -23,30 +23,25 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+    env_file:
+      - ./back/.env
+
     environment:
       NODE_ENV: production
       PORT: 3000
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
-      PUBLIC_API_BASE_URL: ${PUBLIC_API_BASE_URL:-http://localhost:3000}
-      APP_URL: ${APP_URL:-http://localhost:3000}
+
+      # DB dentro de la red docker
       DB_HOST: db
       DB_PORT: 3306
       DB_USER: ${MYSQL_USER:-erplay}
       DB_PASSWORD: ${MYSQL_PASSWORD:-erplay}
       DB_NAME: ${MYSQL_DATABASE:-erplay}
-      JWT_SECRET: 9f4a1e7c2d5b8f0134c6e2a8b7d8f0a1c3e5b6d7a8c9e0f1b2c3d4e5f6a7b82
-      JWT_REFRESH_SECRET: 3b1f2c4d5e6a7b8c9d0e1f223b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1z
-      JWT_RESET_SECRET: 3b1f2c4d5e6a7bbh9d0e1f223b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f3dza
-      SMTP_HOST: smtp.gmail.com
-      SMTP_PORT: 465
-      SMTP_USER: erplay.contact@gmail.com
-      SMTP_PASS: tygv synh whha lcnf
-      RUN_DB_SEED: ${RUN_DB_SEED:-false}   # 👈 por defecto NO hace seed
+
     ports:
       - "3000:3000"
     volumes:
       - back_uploads:/app/uploads
-
 
   front:
     build:

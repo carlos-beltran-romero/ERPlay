@@ -1,5 +1,4 @@
 #!/bin/sh
-# POSIX-safe
 set -eu
 
 wait_for_db() {
@@ -21,7 +20,7 @@ wait_for_db() {
 }
 
 should_seed() {
-  value="${RUN_DB_SEED:-false}" # por defecto false
+  value="${RUN_DB_SEED:-false}" 
   value=$(printf '%s' "$value" | tr '[:upper:]' '[:lower:]')
   case "$value" in
     1|true|yes|on) return 0 ;;
@@ -29,7 +28,7 @@ should_seed() {
   esac
 }
 
-# Construye args de mysql de forma segura cuando DB_PASSWORD está vacío
+
 mysql_base_args() {
   args="-h${DB_HOST} -P${DB_PORT} -u${DB_USER} --protocol=tcp"
   if [ -n "${DB_PASSWORD:-}" ]; then
@@ -39,14 +38,11 @@ mysql_base_args() {
 }
 
 mysql_query_scalar() {
-  # $1: SQL
-  # Devuelve un único valor (o vacío)
   base_args="$(mysql_base_args)"
   mysql -N -s $base_args "${DB_NAME}" -e "$1" 2>/dev/null || true
 }
 
 sql_escape() {
-  # Escapa \ y ' para MySQL (asumiendo escapes estándar)
   printf "%s" "$1" | sed "s/\\\\/\\\\\\\\/g; s/'/\\\\'/g"
 }
 
@@ -70,7 +66,7 @@ create_default_admin() {
 
   echo "Creando admin por defecto sin seed..."
 
-  # Genera el hash leyendo la password desde env para evitar problemas de comillas
+
   ADMIN_HASH="$(ADMIN_PASSWORD="$ADMIN_PASSWORD" node -e "const bcrypt = require('bcrypt'); console.log(bcrypt.hashSync(process.env.ADMIN_PASSWORD, 10));")"
   if [ -z "$ADMIN_HASH" ]; then
     echo "No se pudo generar hash de contraseña para el admin." >&2
