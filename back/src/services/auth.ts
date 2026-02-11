@@ -18,7 +18,7 @@ import { User } from '../models/User';
 
 const PASSWORD_SALT_ROUNDS = 10;
 const ACCESS_TOKEN_TTL = '30m';
-const REFRESH_TOKEN_TTL = '1h';
+const REFRESH_TOKEN_TTL = '1d';
 const RESET_TOKEN_TTL = '1h';
 const REFRESH_TOKEN_EXPIRY_MS = 60 * 60 * 1000;
 
