@@ -8,8 +8,8 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-erplay}
     volumes:
       - db_data:/var/lib/mysql
-    ports:
-      - "3306:3306"
+    expose:
+      - "3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD:-rootpass}"]
       interval: 10s
@@ -30,13 +30,6 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-
-      # DB dentro de la red docker
-      DB_HOST: db
-      DB_PORT: 3306
-      DB_USER: ${MYSQL_USER:-erplay}
-      DB_PASSWORD: ${MYSQL_PASSWORD:-erplay}
-      DB_NAME: ${MYSQL_DATABASE:-erplay}
 
     ports:
       - "3000:3000"
