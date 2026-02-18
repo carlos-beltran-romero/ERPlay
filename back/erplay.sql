@@ -43,7 +43,42 @@ INSERT INTO `claims` (`id`, `status`, `promptSnapshot`, `optionsSnapshot`, `chos
 ('ac2147a9-822f-4034-bb59-975717e7d78f', 'REJECTED', '¿Qué atributo aparece asociado a la relación Realiza?', '[\"URL\",\"Fecha\",\"Premio\",\"Afiliación\"]', 0, 1, 'hhhjk', NULL, '2025-09-25 07:07:24', '2025-09-25 08:30:54.948737', '2025-09-25 09:07:24.000000', NULL, 'adc091d0-8333-4dad-81fa-2c2508145ac4', 'b406f0b3-6bc7-11f0-ba87-345a6023e5e9', '906e70bc-6bc7-11f0-ba87-345a6023e5e9', 'f168099f-93ec-4661-b39d-98e1ecbe93bc'),
 ('d0513f16-7a14-4355-9fa0-d816e32dc44b', 'REJECTED', 'La cardinalidad de Participa entre Concursante y Gala es:', '[\"1:1\",\"1:N (de Concursante a Gala)\",\"N:1 (de Concursante a Gala)\",\"M:N\"]', 0, 3, 'Mi opción es la correcta ya que cardinalidad 1 a 1 como se muestra en la imagen.', NULL, '2025-08-22 16:38:18', '2025-08-22 18:20:16.328990', '2025-08-22 18:38:18.000000', NULL, 'adc091d0-8333-4dad-81fa-2c2508145ac4', 'b406f0b3-6bc7-11f0-ba87-345a6023e5e9', '906e70bc-6bc7-11f0-ba87-345a6023e5e9', NULL),
 ('d7231b2b-d592-40e3-bf19-156dd839fcf8', 'REJECTED', '¿Hay entidades débiles explícitas en el diagrama?', '[\"Sí, Directo\",\"Sí, Tertuliano\",\"Sí, Youtuber\",\"No se muestran entidades débiles\"]', 0, 3, 'fghfhfjgfjgfjgfjcgh', NULL, '2025-08-22 20:28:49', '2025-08-22 21:32:13.767702', '2025-08-22 22:28:49.000000', NULL, 'adc091d0-8333-4dad-81fa-2c2508145ac4', 'b406f0b3-6bc7-11f0-ba87-345a6023e5e9', '906e70bc-6bc7-11f0-ba87-345a6023e5e9', NULL),
-('e7a66044-5b1c-4355-97a8-150a8756432a', 'REJECTED', '¿Cuáles son las entidades fuertes principales del diagrama?', '[\"Concursante y Tertuliano\",\"Concursante, Gala y Directo\",\"Gala y Realiza\",\"Participa y Realiza\"]', 0, 1, 'La respuesta correcta es la B', 'No es correcta tu opción ya que la cardinalidad siempre apunta al elemento mas atributado.', '2025-08-22 16:44:05', '2025-08-22 18:43:09.889829', '2025-11-11 17:14:11.882209', NULL, 'adc091d0-8333-4dad-81fa-2c2508145ac4', 'b406f0b3-6bc7-11f0-ba87-345a6023e5e9', '906e70bc-6bc7-11f0-ba87-345a6023e5e9', NULL);
+('e7a66044-5b1c-4355-97a8-150a8756432a', 'REJECTED', '¿Cuáles son las entidades fuertes principales del diagrama?', '[\"Concursante y Tertuliano\",\"Concursante, Gala y Directo\",\"Gala y Realiza\",\"Participa y Realiza\"]', 0, 1, 'La respuesta correcta es la B', 'No es correcta tu opción ya que la cardinalidad siempre apunta al elemento mas atributado.', '2025-08-22 16:44:05', '2025-08-22 18:43:09.889829', '2025-11-11 17:14:11.882209', NULL, 'adc091d0-8333-4dad-81fa-2c2508145ac4', 'b406f0b3-6bc7-11f0-ba87-345a6023e5e9', '906e70bc-6bc7-11f0-ba87-345a6023e5e9', NULL),(
+  'f2b1c0c1-1111-4a1a-9b10-111111111111',
+  'PENDING',
+  '¿Qué cardinalidad tiene la relación “entrega” entre Concursante y Premio?',
+  '[\"1-1\",\"N-N\",\"1-N (Concursante-Premio)\",\"N-1 (Concursante-Premio)\"]',
+  1,
+  2,
+  'Creo que debería ser N-N porque un concursante puede recibir varios premios y un premio puede entregarse varias veces.',
+  NULL,
+  NULL,
+  '2025-11-12 10:00:00.000000',
+  '2025-11-12 10:00:00.000000',
+  '1c9462b1-3c24-466b-a9e5-74d1ec234592',
+  '4609b137-64bd-48ea-8f81-16a77fc63a29',
+  '681ad9af-4ec4-48d9-b1a6-2fc1da21730e',
+  NULL,
+  NULL
+),
+(
+  'f2b1c0c1-2222-4a1a-9b10-222222222222',
+  'PENDING',
+  '¿Qué cardinalidad tiene la relación “entrega” entre Concursante y Premio?',
+  '[\"1-1\",\"N-N\",\"1-N (Concursante-Premio)\",\"N-1 (Concursante-Premio)\"]',
+  1,
+  2,
+  'Interpreto que varios concursantes pueden recibir el mismo premio en distintas galas.',
+  NULL,
+  NULL,
+  '2025-11-12 10:05:00.000000',
+  '2025-11-12 10:05:00.000000',
+  '1c9462b1-3c24-466b-a9e5-74d1ec234592',
+  '4609b137-64bd-48ea-8f81-16a77fc63a29',
+  'b406f0b3-6bc7-11f0-ba87-345a6023e5e9',
+  NULL,
+  NULL
+);
 
 --
 -- Volcado de datos para la tabla `diagrams`

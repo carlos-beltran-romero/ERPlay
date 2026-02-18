@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PageWithHeader from "../../components/layout/PageWithHeader";
 import { toast } from "react-toastify";
+import { resolveAssetUrl } from "../../shared/utils/url";
 import badgeCompleted from "../../assets/completed.png";
 import {
   supGetStudent,
@@ -66,6 +67,10 @@ const normStatus = (s?: string | null) => {
   if (u === "REJECTED") return "REJECTED";
   return "PENDING";
 };
+
+// ✅ único sitio para resolver src de imágenes (evita inconsistencias)
+const getDiagramSrc = (path?: string | null) =>
+  resolveAssetUrl(path || undefined) || path || "";
 
 /* ---------- Expandable text (Ver más/Ver menos) ---------- */
 const MIN_HALF_TOGGLE = 120;
@@ -238,7 +243,6 @@ const DualLineChart: React.FC<{
         )}
       </svg>
 
-      {/* Leyenda */}
       <div className="mt-2 flex items-center gap-4 text-xs text-gray-600">
         <div className="inline-flex items-center gap-1.5">
           <span
@@ -281,10 +285,8 @@ const ScrollableGroupedBars: React.FC<{
   return (
     <div className="relative overflow-x-auto pb-2">
       <svg width={W} height={H} role="img" aria-label="Preguntas por día">
-        {/* Fondo */}
         <rect x={0} y={0} width={W} height={H} fill="white" />
 
-        {/* Líneas y etiquetas del eje Y */}
         {[0, 0.25, 0.5, 0.75, 1].map((g, idx) => (
           <g key={idx}>
             <line
@@ -300,7 +302,6 @@ const ScrollableGroupedBars: React.FC<{
             </text>
           </g>
         ))}
-        {/* Eje X */}
         <line
           x1={Pleft}
           x2={W - Pright}
@@ -310,7 +311,6 @@ const ScrollableGroupedBars: React.FC<{
           strokeWidth={1}
         />
 
-        {/* Barras por día */}
         {data.map((d, i) => {
           const x0 = Pleft + i * step;
           const yOk = y(d.ok),
@@ -322,7 +322,6 @@ const ScrollableGroupedBars: React.FC<{
               onMouseEnter={() => setHover(i)}
               onMouseLeave={() => setHover(null)}
             >
-              {/* Guía vertical al pasar el ratón */}
               {hover === i && (
                 <line
                   x1={x0 + step / 2}
@@ -335,7 +334,6 @@ const ScrollableGroupedBars: React.FC<{
                 />
               )}
 
-              {/* Aciertos (verde) */}
               <rect
                 x={x0 + 2}
                 y={yOk}
@@ -344,7 +342,6 @@ const ScrollableGroupedBars: React.FC<{
                 fill="#10b981"
                 rx={4}
               />
-              {/* Fallos (rojo) */}
               <rect
                 x={x0 + 2 + barW + 4}
                 y={yKo}
@@ -354,7 +351,6 @@ const ScrollableGroupedBars: React.FC<{
                 rx={4}
               />
 
-              {/* Etiqueta de día (rotada) */}
               {(i % labelEvery === 0 || i === data.length - 1) && (
                 <g
                   transform={`translate(${x0 + step / 2}, ${
@@ -371,7 +367,6 @@ const ScrollableGroupedBars: React.FC<{
         })}
       </svg>
 
-      {/* Tooltip (día + valores) */}
       {hover != null && data[hover] && (
         <div
           className="absolute z-10 pointer-events-none rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 shadow-sm"
@@ -388,7 +383,6 @@ const ScrollableGroupedBars: React.FC<{
         </div>
       )}
 
-      {/* Leyenda colores */}
       <div className="mt-2 flex items-center gap-4 text-xs text-gray-600">
         <div className="inline-flex items-center gap-1.5">
           <span
@@ -473,9 +467,7 @@ const StudentDetail: React.FC = () => {
   const [bgs, setBgs] = useState<SupBadgeItem[]>([]);
   const [showBadges, setShowBadges] = useState(false);
 
-  const [mode, setMode] = useState<"ALL" | "learning" | "exam" | "errors">(
-    "ALL"
-  );
+  const [mode, setMode] = useState<"ALL" | "learning" | "exam">("ALL");
   const [q, setQ] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -730,7 +722,6 @@ const StudentDetail: React.FC = () => {
         {/* ===== PROGRESO ===== */}
         {tab === "progress" && (
           <div className="space-y-8">
-            {/* KPIs */}
             {ov && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <KPI
@@ -758,7 +749,7 @@ const StudentDetail: React.FC = () => {
                   label="Sesiones completadas"
                   value={ov.sessionsCompleted}
                 />
-                {/* Insignias (clic para ver) */}
+
                 <Card>
                   <button
                     type="button"
@@ -788,7 +779,6 @@ const StudentDetail: React.FC = () => {
               </div>
             )}
 
-            {/* Objetivo semanal */}
             <div className="grid grid-cols-1 lg:grid-cols-1 gap-4">
               <Card>
                 <CardBody>
@@ -851,7 +841,6 @@ const StudentDetail: React.FC = () => {
               </Card>
             </div>
 
-            {/* Evolución */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <Card>
                 <CardBody>
@@ -871,7 +860,6 @@ const StudentDetail: React.FC = () => {
               </Card>
             </div>
 
-            {/* Reclamaciones + Preguntas creadas */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <Card>
                 <CardBody>
@@ -929,12 +917,12 @@ const StudentDetail: React.FC = () => {
                   )}
                 </CardBody>
               </Card>
+
               <Card>
                 <CardBody>
                   <div className="text-lg font-semibold mb-3">
                     Preguntas creadas
                   </div>
-                  {/* Responsive: 1 col (móvil), 2 (sm), 3 (lg) */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     <div className="flex items-center gap-3 p-3 rounded-xl  ">
                       <div className="shrink-0 p-2.5 rounded-xl bg-emerald-50 text-emerald-700">
@@ -949,6 +937,7 @@ const StudentDetail: React.FC = () => {
                         </div>
                       </div>
                     </div>
+
                     <div className="flex items-center gap-3 p-3 rounded-xl  ">
                       <div className="shrink-0 p-2.5 rounded-xl bg-rose-50 text-rose-700">
                         <XCircle className="h-5 w-5" />
@@ -962,7 +951,8 @@ const StudentDetail: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 p-3 rounded-xl   sm:col-span-2 lg:col-span-1">
+
+                    <div className="flex items-center gap-3 p-3 rounded-xl sm:col-span-2 lg:col-span-1">
                       <Donut
                         value={
                           qCounts.approved + qCounts.rejected
@@ -1040,7 +1030,7 @@ const StudentDetail: React.FC = () => {
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  {(["ALL", "learning", "exam", "errors"] as const).map((m) => (
+                  {(["ALL", "learning", "exam"] as const).map((m) => (
                     <button
                       key={m}
                       type="button"
@@ -1055,9 +1045,7 @@ const StudentDetail: React.FC = () => {
                         ? "Todos"
                         : m === "learning"
                         ? "Aprendizaje"
-                        : m === "exam"
-                        ? "Examen"
-                        : "Errores"}
+                        : "Examen"}
                     </button>
                   ))}
                 </div>
@@ -1081,7 +1069,6 @@ const StudentDetail: React.FC = () => {
             </div>
 
             <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
-              {/* Cabecera desktop */}
               <div className="hidden md:grid grid-cols-12 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700">
                 <div className="col-span-5">Diagrama</div>
                 <div className="col-span-2">Modo</div>
@@ -1108,7 +1095,6 @@ const StudentDetail: React.FC = () => {
                         key={(it as any).id || (it as any).sessionId}
                         className="px-4 py-3"
                       >
-                        {/* Desktop grid */}
                         <div className="hidden md:grid grid-cols-12 gap-3 items-center hover:bg-gray-50">
                           <div className="col-span-5">
                             <div className="font-medium whitespace-normal break-words">
@@ -1144,7 +1130,6 @@ const StudentDetail: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Mobile card */}
                         <div className="md:hidden space-y-1 rounded-xl border p-3">
                           <div className="text-sm text-gray-500">Diagrama</div>
                           <div className="font-medium">
@@ -1190,7 +1175,6 @@ const StudentDetail: React.FC = () => {
                 <div className="text-gray-500">Sin preguntas creadas.</div>
               ) : (
                 <div className="rounded-xl border border-gray-200 overflow-hidden">
-                  {/* Cabecera desktop */}
                   <div className="hidden md:grid grid-cols-12 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700">
                     <div className="col-span-1">Diagrama</div>
                     <div className="col-span-5">Enunciado</div>
@@ -1209,18 +1193,20 @@ const StudentDetail: React.FC = () => {
                         ? qi.correctIndex
                         : -1;
 
+                    const diagramSrc = getDiagramSrc(qi.diagram?.path);
+
                     return (
                       <div key={qi.id} className="px-4 py-3">
-                        {/* ===== Desktop fila ===== */}
+                        {/* Desktop */}
                         <div className="hidden md:grid grid-cols-12 gap-3 items-start">
                           {/* Diagrama */}
                           <div className="col-span-1">
-                            {qi.diagram?.path ? (
+                            {diagramSrc ? (
                               <button
                                 type="button"
                                 onClick={() =>
                                   setPreviewImg({
-                                    src: qi.diagram!.path!,
+                                    src: diagramSrc, 
                                     title: qi.diagram?.title || "Diagrama",
                                   })
                                 }
@@ -1229,9 +1215,15 @@ const StudentDetail: React.FC = () => {
                                 title="Haz clic para ampliar"
                               >
                                 <img
-                                  src={qi.diagram.path}
-                                  alt={qi.diagram.title || "Diagrama"}
+                                  src={diagramSrc} // ✅
+                                  alt={qi.diagram?.title || "Diagrama"}
                                   className="h-full w-full object-cover"
+                                  loading="lazy"
+                                  referrerPolicy="no-referrer"
+                                  onError={() => {
+                                    // opcional debug:
+                                     console.log("IMG ERROR", diagramSrc, qi.diagram?.path, qi.diagram);
+                                  }}
                                 />
                               </button>
                             ) : (
@@ -1306,18 +1298,17 @@ const StudentDetail: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* ===== Mobile card ===== */}
+                        {/* Mobile */}
                         <div className="md:hidden">
-                          {/* Imagen */}
                           <div className="mb-3 rounded-xl border bg-white overflow-hidden">
                             <div className="relative w-full pt-[56.25%]">
-                              {qi.diagram?.path ? (
+                              {diagramSrc ? (
                                 <button
                                   type="button"
                                   className="absolute inset-0"
                                   onClick={() =>
                                     setPreviewImg({
-                                      src: qi.diagram!.path!,
+                                      src: diagramSrc, // ✅
                                       title: qi.diagram?.title || "Diagrama",
                                     })
                                   }
@@ -1325,9 +1316,11 @@ const StudentDetail: React.FC = () => {
                                   title="Toca para ampliar"
                                 >
                                   <img
-                                    src={qi.diagram.path}
-                                    alt={qi.diagram.title || "Diagrama"}
+                                    src={diagramSrc} // ✅
+                                    alt={qi.diagram?.title || "Diagrama"}
                                     className="h-full w-full object-contain bg-white"
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer"
                                   />
                                 </button>
                               ) : (
@@ -1338,7 +1331,6 @@ const StudentDetail: React.FC = () => {
                             </div>
                           </div>
 
-                          {/* Enunciado */}
                           <ExpandableText
                             text={qi.prompt || ""}
                             className="font-medium"
@@ -1350,7 +1342,6 @@ const StudentDetail: React.FC = () => {
                               : ""}
                           </div>
 
-                          {/* Opciones */}
                           {options.length ? (
                             <div className="mt-2 space-y-1">
                               {options.map((opt, i) => (
@@ -1384,7 +1375,6 @@ const StudentDetail: React.FC = () => {
                             </div>
                           ) : null}
 
-                          {/* Estado + Resolución */}
                           <div className="mt-2 flex items-start justify-between gap-3">
                             <StatusBadge status={qi.status} />
                             {normStatus(qi.status) === "REJECTED" &&
@@ -1402,7 +1392,6 @@ const StudentDetail: React.FC = () => {
                     );
                   })}
 
-                  {/* Footer paginación preguntas */}
                   <div className="flex items-center justify-between px-4 py-3">
                     <span className="text-xs text-gray-500">
                       Mostrando {Math.min(visibleQ, myQuestions.length)} de{" "}
@@ -1427,7 +1416,6 @@ const StudentDetail: React.FC = () => {
         {/* ===== RECLAMACIONES ===== */}
         {tab === "claims" && (
           <div className="space-y-4">
-            {/* filtros */}
             <div className="flex flex-wrap items-center gap-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -1453,9 +1441,7 @@ const StudentDetail: React.FC = () => {
               </div>
             </div>
 
-            {/* tabla/listado responsive */}
             <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
-              {/* Cabecera desktop */}
               <div className="hidden md:grid grid-cols-12 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700">
                 <div className="col-span-1">Diagrama</div>
                 <div className="col-span-5">Enunciado</div>
@@ -1518,18 +1504,19 @@ const StudentDetail: React.FC = () => {
                           ? letterFromIndex(correctIndex)
                           : "—";
 
+                      // ✅ RESUELVE AQUÍ TAMBIÉN
+                      const diagramSrc = getDiagramSrc(ci.diagram?.path);
+
                       return (
                         <div key={ci.id} className="px-4 py-3">
-                          {/* Desktop fila */}
                           <div className="hidden md:grid grid-cols-12 gap-3 items-start">
-                            {/* Diagrama */}
                             <div className="col-span-1">
-                              {ci.diagram?.path ? (
+                              {diagramSrc ? (
                                 <button
                                   type="button"
                                   onClick={() =>
                                     setPreviewImg({
-                                      src: ci.diagram!.path!,
+                                      src: diagramSrc,
                                       title: ci.diagram?.title || "Diagrama",
                                     })
                                   }
@@ -1538,9 +1525,11 @@ const StudentDetail: React.FC = () => {
                                   title="Haz clic para ampliar"
                                 >
                                   <img
-                                    src={ci.diagram.path}
-                                    alt={ci.diagram.title || "Diagrama"}
+                                    src={diagramSrc}
+                                    alt={ci.diagram?.title || "Diagrama"}
                                     className="h-full w-full object-cover"
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer"
                                   />
                                 </button>
                               ) : (
@@ -1550,7 +1539,6 @@ const StudentDetail: React.FC = () => {
                               )}
                             </div>
 
-                            {/* Enunciado + meta */}
                             <div className="col-span-5 min-w-0">
                               <ExpandableText
                                 text={prompt || "—"}
@@ -1564,7 +1552,6 @@ const StudentDetail: React.FC = () => {
                               </div>
                             </div>
 
-                            {/* Tu resp. / Test */}
                             <div className="col-span-3">
                               <div className="text-xs text-gray-500">
                                 Tu respuesta
@@ -1588,12 +1575,10 @@ const StudentDetail: React.FC = () => {
                               </div>
                             </div>
 
-                            {/* Estado */}
                             <div className="col-span-1 flex items-center justify-center">
                               <StatusBadge status={ci.status} />
                             </div>
 
-                            {/* Resolución */}
                             <div className="col-span-2">
                               {normStatus(ci.status) === "REJECTED"
                                 ? renderResolution(
@@ -1603,17 +1588,15 @@ const StudentDetail: React.FC = () => {
                             </div>
                           </div>
 
-                          {/* Mobile card */}
                           <div className="md:hidden">
-                            {/* Imagen */}
                             <div className="mb-2">
-                              {ci.diagram?.path ? (
+                              {diagramSrc ? (
                                 <button
                                   type="button"
                                   className="w-full"
                                   onClick={() =>
                                     setPreviewImg({
-                                      src: ci.diagram!.path!,
+                                      src: diagramSrc,
                                       title: ci.diagram?.title || "Diagrama",
                                     })
                                   }
@@ -1621,9 +1604,11 @@ const StudentDetail: React.FC = () => {
                                   title="Toca para ampliar"
                                 >
                                   <img
-                                    src={ci.diagram.path}
-                                    alt={ci.diagram.title || "Diagrama"}
+                                    src={diagramSrc}
+                                    alt={ci.diagram?.title || "Diagrama"}
                                     className="w-full max-h-64 object-contain rounded-xl border bg-white"
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer"
                                   />
                                 </button>
                               ) : (
@@ -1633,7 +1618,6 @@ const StudentDetail: React.FC = () => {
                               )}
                             </div>
 
-                            {/* Enunciado */}
                             <ExpandableText
                               text={prompt || "—"}
                               className="font-medium"
@@ -1645,7 +1629,6 @@ const StudentDetail: React.FC = () => {
                                 : ""}
                             </div>
 
-                            {/* Comparativa */}
                             <div className="mt-2 space-y-2">
                               <div>
                                 <div className="text-[11px] text-gray-500">
@@ -1671,7 +1654,6 @@ const StudentDetail: React.FC = () => {
                               </div>
                             </div>
 
-                            {/* Estado + Resolución */}
                             <div className="mt-2 flex items-start justify-between gap-3">
                               <StatusBadge status={ci.status} />
                               {normStatus(ci.status) === "REJECTED" &&
@@ -1693,7 +1675,6 @@ const StudentDetail: React.FC = () => {
                     })}
                   </div>
 
-                  {/* Footer paginación reclamaciones */}
                   <div className="flex items-center justify-between px-4 py-3">
                     <span className="text-xs text-gray-500">
                       Mostrando {Math.min(visibleC, filteredClaims.length)} de{" "}
@@ -1723,7 +1704,7 @@ const StudentDetail: React.FC = () => {
             tabIndex={0}
             aria-label="Cerrar imagen ampliada"
             onClick={(e) => {
-              if (e.target !== e.currentTarget) return; // solo cerrar si se hace click en el overlay
+              if (e.target !== e.currentTarget) return;
               setPreviewImg(null);
             }}
             onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -1750,6 +1731,7 @@ const StudentDetail: React.FC = () => {
                   src={previewImg.src}
                   alt={previewImg.title}
                   className="max-h-[75vh] max-w-[90vw] object-contain"
+                  referrerPolicy="no-referrer"
                 />
               </div>
             </div>
@@ -1877,12 +1859,15 @@ const StudentDetail: React.FC = () => {
                       )}
                     </div>
 
+                    {/* ✅ Diagrama: usar URL resuelta */}
                     <div className="mt-4">
                       {detail.diagram?.path ? (
                         <img
-                          src={detail.diagram.path}
+                          src={getDiagramSrc(detail.diagram.path)}
                           alt={detail.diagram.title || "Diagrama"}
                           className="max-h-[24rem] w-full rounded-lg border object-contain"
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
                         />
                       ) : (
                         <div className="inline-flex items-center gap-2 text-sm text-gray-500">
